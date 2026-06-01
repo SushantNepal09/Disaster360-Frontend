@@ -1,0 +1,63 @@
+# ===============================
+# Flutter / Mobile / Frontend
+# ===============================
+
+# Dart/Web
+/build/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android
+android/local.properties
+android/key.properties
+android/*.jks
+android/*.keystore
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# iOS
+ios/Flutter/.last_build_id
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/.symlinks/
+
+# macOS / Desktop
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Pods/
+
+# Environment Variables
+.env
+.env.example
+
+# ===============================
+# IDE / Editor / System
+# ===============================
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Node dependencies (if any web/firebase functions exist)
+node_modules/

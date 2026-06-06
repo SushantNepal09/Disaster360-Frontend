@@ -7,9 +7,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:disaster360/services/session_service.dart';
 
 class ApiService {
-  // Configured to the PC's actual local IPv4 address so physical Android devices on Wi-Fi can connect
+  // Uses the API_BASE_URL from the .env file.
   static String get baseUrl {
-    return dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.80:8000';
+    return dotenv.env['API_BASE_URL'] ?? '';
   }
 
   Future<Map<String, String>> _getHeaders({Map<String, String>? customHeaders}) async {

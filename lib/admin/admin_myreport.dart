@@ -27,8 +27,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
 
   final List<String> _filters = ['All', 'Pending', 'Verified', 'Closed'];
 
-  
-
   @override
   void initState() {
     super.initState();
@@ -59,30 +57,39 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
 
   List<AdminReportData> get _filteredReports {
     final reportProvider = context.watch<ReportProvider>();
-    final allReports = reportProvider.reports.map((m) {
-      final s = m.status.isEmpty ? 'Pending' : (m.status.toLowerCase() == 'pending' ? 'Pending' : m.status);
-      final capStatus = s[0].toUpperCase() + s.substring(1);
-      return AdminReportData(
-        reportId: 'RPT-${m.id}',
-        status: capStatus,
-        type: m.disasterType,
-        title: '${m.disasterType} — ${m.title}',
-        description: m.description,
-        date: m.createdAt,
-        location: m.title,
-        lat: '${m.latitude.toStringAsFixed(4)}°N',
-        lng: '${m.longitude.toStringAsFixed(4)}°E',
-        reporter: m.userName,
-        trustScore: 80,
-        upvotes: m.likes,
-        downvotes: m.dislikes,
-        mediaUrls: m.mediaUrls,
-        submissions: m.submissions,
-      );
-    }).toList();
+    final allReports =
+        reportProvider.reports.map((m) {
+          final s =
+              m.status.isEmpty
+                  ? 'Pending'
+                  : (m.status.toLowerCase() == 'pending'
+                      ? 'Pending'
+                      : m.status);
+          final capStatus = s[0].toUpperCase() + s.substring(1);
+          return AdminReportData(
+            reportId: 'RPT-${m.id}',
+            status: capStatus,
+            type: m.disasterType,
+            title: '${m.disasterType} — ${m.title}',
+            description: m.description,
+            date: m.createdAt,
+            location: m.title,
+            lat: '${m.latitude.toStringAsFixed(4)}°N',
+            lng: '${m.longitude.toStringAsFixed(4)}°E',
+            reporter: m.userName,
+            trustScore: 80,
+            upvotes: m.likes,
+            downvotes: m.dislikes,
+            mediaUrls: m.mediaUrls,
+            submissions: m.submissions,
+            assignedRescueTeams: m.rescueTeam ?? 'Not Assigned',
+          );
+        }).toList();
 
     return allReports.where((r) {
-      final matchesFilter = _activeFilter == 'All' || r.status.toLowerCase() == _activeFilter.toLowerCase();
+      final matchesFilter =
+          _activeFilter == 'All' ||
+          r.status.toLowerCase() == _activeFilter.toLowerCase();
       final matchesSearch =
           _searchQuery.isEmpty ||
           r.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -156,8 +163,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
                 child: RefreshIndicator(
                   color: AppColors.orange,
                   backgroundColor: AppColors.bgSurface,
-                  onRefresh: () =>
-                      context.read<ReportProvider>().fetchReports(),
+                  onRefresh:
+                      () => context.read<ReportProvider>().fetchReports(),
                   child:
                       _filteredReports.isEmpty
                           ? const SingleChildScrollView(
@@ -189,7 +196,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
       ),
     );
   }
-
 
   void _navigateToDetail(AdminReportData report) {
     Navigator.push(
@@ -576,7 +582,9 @@ class _AdminReportCardState extends State<_AdminReportCard> {
             reasonController: rc,
             onConfirmReject: (reason) {
               Navigator.pop(context);
-              final intId = int.tryParse(widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
+              final intId = int.tryParse(
+                widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+              );
               if (intId != null) {
                 context.read<ReportProvider>().rejectReport(intId);
               }
@@ -588,27 +596,42 @@ class _AdminReportCardState extends State<_AdminReportCard> {
   void _onDelete() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgDark,
-        title: const Text('Confirm Delete', style: TextStyle(color: Colors.white)),
-        content: const Text('Are you sure you want to permanently delete this report?', style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.bgDark,
+            title: const Text(
+              'Confirm Delete',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Text(
+              'Are you sure you want to permanently delete this report?',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  final intId = int.tryParse(
+                    widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+                  );
+                  if (intId != null) {
+                    context.read<ReportProvider>().deleteReportAdmin(intId);
+                  }
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: AppColors.danger),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              final intId = int.tryParse(widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
-              if (intId != null) {
-                context.read<ReportProvider>().deleteReportAdmin(intId);
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: AppColors.danger)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -634,10 +657,36 @@ class _AdminReportCardState extends State<_AdminReportCard> {
       } else if (diff.inDays < 30) {
         return '${diff.inDays} days ago';
       } else if (diff.inDays < 365) {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         return '${monthNames[dt.month - 1]} ${dt.day}';
       } else {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
       }
     } catch (_) {
@@ -681,7 +730,11 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                     color: AppColors.danger.withOpacity(0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.danger,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -719,9 +772,14 @@ class _AdminReportCardState extends State<_AdminReportCard> {
               foregroundColor: Colors.white,
               backgroundColor: AppColors.success,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('UNDO', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'UNDO',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -730,8 +788,12 @@ class _AdminReportCardState extends State<_AdminReportCard> {
 
   @override
   Widget build(BuildContext context) {
-    final intId = int.tryParse(widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
-    final isPendingDeletion = intId != null && context.watch<ReportProvider>().pendingDeletions.contains(intId);
+    final intId = int.tryParse(
+      widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+    );
+    final isPendingDeletion =
+        intId != null &&
+        context.watch<ReportProvider>().pendingDeletions.contains(intId);
 
     if (isPendingDeletion) {
       return _buildInlineUndoCard(context, intId);
@@ -866,12 +928,15 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                           PageRouteBuilder(
                             opaque: false,
                             barrierColor: Colors.transparent,
-                            transitionDuration: const Duration(milliseconds: 250),
-                            pageBuilder: (_, __, ___) => ImageViewerOverlay(
-                              mediaUrls: report.mediaUrls,
-                              initialIndex: index,
-                              reportId: report.reportId,
+                            transitionDuration: const Duration(
+                              milliseconds: 250,
                             ),
+                            pageBuilder:
+                                (_, __, ___) => ImageViewerOverlay(
+                                  mediaUrls: report.mediaUrls,
+                                  initialIndex: index,
+                                  reportId: report.reportId,
+                                ),
                           ),
                         );
                       },
@@ -882,12 +947,17 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                           width: 60,
                           height: 60,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 60,
-                            height: 60,
-                            color: Colors.white12,
-                            child: const Icon(Icons.broken_image, color: Colors.white38, size: 20),
-                          ),
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                width: 60,
+                                height: 60,
+                                color: Colors.white12,
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.white38,
+                                  size: 20,
+                                ),
+                              ),
                         ),
                       ),
                     );
@@ -939,26 +1009,43 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Icon(Icons.group_outlined, color: Colors.white54, size: 14),
+                  const Icon(
+                    Icons.group_outlined,
+                    color: Colors.white54,
+                    size: 14,
+                  ),
                   const Text(
                     'Reported by:',
-                    style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  ...report.submissions.map((sub) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.orange.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
+                  ...report.submissions.map(
+                    (sub) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.orange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        (sub['user_name'] ?? 'Citizen').toString(),
+                        style: const TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
-                        child: Text(
-                          (sub['user_name'] ?? 'Citizen').toString(),
-                          style: const TextStyle(color: AppColors.orange, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      )),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             if (report.submissions.isNotEmpty) const SizedBox(height: 14),
-            
+
             if (report.submissions.length > 1) ...[
               const Divider(color: Colors.white12, height: 1),
               InkWell(
@@ -969,12 +1056,20 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _isExpanded ? 'Hide Matched Reports' : 'Show Matched Reports (${report.submissions.length - 1})',
-                        style: const TextStyle(color: AppColors.orange, fontSize: 13, fontWeight: FontWeight.w600),
+                        _isExpanded
+                            ? 'Hide Matched Reports'
+                            : 'Show Matched Reports (${report.submissions.length - 1})',
+                        style: const TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
-                        _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
                         color: AppColors.orange,
                         size: 18,
                       ),
@@ -983,40 +1078,60 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                 ),
               ),
               if (_isExpanded)
-                ...report.submissions.skip(1).map((sub) => Container(
-                      margin: const EdgeInsets.only(top: 8, bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                (sub['user_name'] ?? 'Citizen').toString(),
-                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                ...report.submissions
+                    .skip(1)
+                    .map(
+                      (sub) => Container(
+                        margin: const EdgeInsets.only(top: 8, bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  (sub['user_name'] ?? 'Citizen').toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  sub['timestamp'] != null
+                                      ? _relativeDate(
+                                        sub['timestamp'].toString(),
+                                      )
+                                      : 'Unknown',
+                                  style: const TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              (sub['description'] ?? 'No description provided')
+                                  .toString(),
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                                height: 1.4,
                               ),
-                              Text(
-                                sub['timestamp'] != null ? _relativeDate(sub['timestamp'].toString()) : 'Unknown',
-                                style: const TextStyle(color: Colors.white38, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            (sub['description'] ?? 'No description provided').toString(),
-                            style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                    )),
+                    ),
             ],
 
             // Action buttons
@@ -1086,12 +1201,21 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                         color: AppColors.orange,
                         filled: false,
                         onTap: () async {
-                          final id = int.tryParse(widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
+                          final id = int.tryParse(
+                            widget.report.reportId.replaceAll(
+                              RegExp(r'[^0-9]'),
+                              '',
+                            ),
+                          );
                           if (id != null) {
-                            await context.read<ReportProvider>().undoRejectReport(id);
+                            await context
+                                .read<ReportProvider>()
+                                .undoRejectReport(id);
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Report reverted to Pending')),
+                                const SnackBar(
+                                  content: Text('Report reverted to Pending'),
+                                ),
                               );
                             }
                           }
@@ -1407,7 +1531,5 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 }
-
-
 
 // you as a professonal forntend developer and best coder give me 3 sized responsive screens ....1 its alredy in mobile screen responsive, anothe is tablet and last is desktop form....it must be responsive and overflow error free....and .image must be double of passport size photo (which asked when we fill form in goverment sectors)   in that report if image is clicked show it in full screen form...... ....and button , links , cards etc must be in basic animation and transition and hand hoverd cursor .....clean and managed

@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       letterSpacing: 2.5,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 48),
 
                   // Form Container
@@ -111,7 +111,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.mail_outline, color: Colors.white54),
+                            prefixIcon: const Icon(
+                              Icons.mail_outline,
+                              color: Colors.white54,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -129,10 +132,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                              color: Colors.white54,
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: Colors.white54,
                               ),
                               onPressed: () {
@@ -167,53 +175,63 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               elevation: 0,
                             ),
-                            onPressed: _isLoading
-                                ? null
-                                : () async {
-                                    setState(() => _isLoading = true);
-                                    try {
-                                      await context.read<AuthProvider>().login(
-                                        _emailController.text.trim(),
-                                        _passwordController.text.trim(),
-                                      );
-                                    } catch (e) {
-                                      if (mounted) {
-                                        final errorStr = e.toString();
-                                        if (errorStr.contains('Please verify your email first')) {
-                                          _showVerificationDialog();
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text(errorStr)),
-                                          );
+                            onPressed:
+                                _isLoading
+                                    ? null
+                                    : () async {
+                                      setState(() => _isLoading = true);
+                                      try {
+                                        await context
+                                            .read<AuthProvider>()
+                                            .login(
+                                              _emailController.text.trim(),
+                                              _passwordController.text.trim(),
+                                            );
+                                      } catch (e) {
+                                        if (mounted) {
+                                          final errorStr = e.toString();
+                                          if (errorStr.contains(
+                                            'Please verify your email first',
+                                          )) {
+                                            _showVerificationDialog();
+                                          } else {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(content: Text(errorStr)),
+                                            );
+                                          }
                                         }
+                                      } finally {
+                                        if (mounted)
+                                          setState(() => _isLoading = false);
                                       }
-                                    } finally {
-                                      if (mounted) setState(() => _isLoading = false);
-                                    }
-                                  },
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        'Sign In',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    },
+                            child:
+                                _isLoading
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
                                       ),
-                                      SizedBox(width: 8),
-                                      Icon(Icons.arrow_forward, size: 20),
-                                    ],
-                                  ),
+                                    )
+                                    : const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Icon(Icons.arrow_forward, size: 20),
+                                      ],
+                                    ),
                           ),
                         ),
                       ],
@@ -250,8 +268,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
+
                   // Footer Info
-                  
                 ],
               ),
             ),
@@ -268,15 +286,25 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: AppColors.bgSurface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           contentPadding: const EdgeInsets.all(24),
           title: const Column(
             children: [
-              Icon(Icons.mark_email_unread_outlined, size: 64, color: AppColors.orange),
+              Icon(
+                Icons.mark_email_unread_outlined,
+                size: 64,
+                color: AppColors.orange,
+              ),
               SizedBox(height: 16),
               Text(
                 'Verify Your Email',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -290,28 +318,44 @@ class _LoginScreenState extends State<LoginScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK', style: TextStyle(color: Colors.white54, fontSize: 16)),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Colors.white54, fontSize: 16),
+              ),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.orange,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
               onPressed: () async {
                 Navigator.pop(context);
                 setState(() => _isResending = true);
                 try {
-                  final msg = await context.read<AuthProvider>().resendVerification(_emailController.text.trim());
+                  final msg = await context
+                      .read<AuthProvider>()
+                      .resendVerification(_emailController.text.trim());
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(msg), backgroundColor: AppColors.success),
+                      SnackBar(
+                        content: Text(msg),
+                        backgroundColor: AppColors.success,
+                      ),
                     );
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+                      SnackBar(
+                        content: Text(e.toString()),
+                        backgroundColor: AppColors.danger,
+                      ),
                     );
                   }
                 } finally {
@@ -319,7 +363,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 }
               },
               icon: const Icon(Icons.send, color: Colors.white, size: 18),
-              label: const Text('Resend Email', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Resend Email',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );

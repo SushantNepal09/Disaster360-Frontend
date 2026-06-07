@@ -62,10 +62,7 @@ class RescueProvider extends ChangeNotifier {
 
     try {
       await fetchProfile();
-      await Future.wait([
-        fetchVerifiedReports(),
-        fetchMyOperations(),
-      ]);
+      await Future.wait([fetchVerifiedReports(), fetchMyOperations()]);
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -83,16 +80,30 @@ class RescueProvider extends ChangeNotifier {
       final parsed = data.map((r) => RescueTask.fromJson(r)).toList();
       _allVerifiedReports = parsed;
 
-      final teamName = (_profile != null && _profile!['full_name'] != null && _profile!['full_name'].toString().trim().isNotEmpty) 
-          ? _profile!['full_name'] 
-          : _profile?['email'];
+      final teamName =
+          (_profile != null &&
+                  _profile!['full_name'] != null &&
+                  _profile!['full_name'].toString().trim().isNotEmpty)
+              ? _profile!['full_name']
+              : _profile?['email'];
+
+      debugPrint('RescueProvider teamName: $teamName');
 
       // Only include reports NOT yet acknowledged by this member AND assigned to this team
-      _verifiedReports = data
-          .where((r) => r['rescue_status'] == 'Not Acknowledged')
-          .map((r) => RescueTask.fromJson(r))
-          .where((t) => teamName != null && t.assignedTeams.contains(teamName))
-          .toList();
+      _verifiedReports =
+          data
+              .where((r) => r['rescue_status'] == 'Not Acknowledged')
+              .map((r) {
+                final task = RescueTask.fromJson(r);
+                debugPrint('Task ${task.taskId} assignedTeams: ${task.assignedTeams}');
+                return task;
+              })
+              .where((t) {
+                if (teamName == null) return false;
+                final myTeam = teamName.toString().trim().toLowerCase();
+                return t.assignedTeams.any((assigned) => assigned.trim().toLowerCase() == myTeam);
+              })
+              .toList();
       notifyListeners();
     } catch (e) {
       // Silently handle — allTasks will just show empty active list
@@ -147,7 +158,9 @@ class RescueProvider extends ChangeNotifier {
   // Submit post-incident report
   // ---------------------------------------------------------------------------
   Future<void> submitPostIncidentReport(
-      int rescueUpdateId, String reportText) async {
+    int rescueUpdateId,
+    String reportText,
+  ) async {
     await _service.submitPostIncidentReport(rescueUpdateId, reportText);
     await fetchMyOperations();
   }

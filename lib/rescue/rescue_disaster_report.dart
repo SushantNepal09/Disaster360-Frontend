@@ -84,9 +84,10 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<RescueProvider>();
       setState(() {
-        _completedTasks = provider.myOperations
-            .where((t) => t.status == TaskStatus.completed)
-            .toList();
+        _completedTasks =
+            provider.myOperations
+                .where((t) => t.status == TaskStatus.completed)
+                .toList();
       });
     });
   }
@@ -171,9 +172,10 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
     ].join('\n\n');
 
     try {
-      await context
-          .read<RescueProvider>()
-          .submitPostIncidentReport(rescueUpdateId, reportText);
+      await context.read<RescueProvider>().submitPostIncidentReport(
+        rescueUpdateId,
+        reportText,
+      );
 
       if (!mounted) return;
       final taskId = _selectedTask!.taskId;
@@ -952,4 +954,3 @@ class _MiniTag extends StatelessWidget {
     );
   }
 }
-

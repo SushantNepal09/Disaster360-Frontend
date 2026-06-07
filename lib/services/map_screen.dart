@@ -1,4 +1,3 @@
-
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -116,22 +115,36 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   Future<void> _locateMe() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location services are disabled.')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location services are disabled.')),
+        );
       return;
     }
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are denied.')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permissions are denied.')),
+          );
         return;
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are permanently denied.')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permissions are permanently denied.'),
+          ),
+        );
       return;
     }
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Locating...')));
+    if (mounted)
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Locating...')));
     Position position = await Geolocator.getCurrentPosition();
     setState(() {
       _myLocation = LatLng(position.latitude, position.longitude);
@@ -147,13 +160,22 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
 
   int get _highCount =>
       _reports
-          .where((i) => i.severity.toLowerCase() == 'high' && i.status.toLowerCase() != 'controlled')
+          .where(
+            (i) =>
+                i.severity.toLowerCase() == 'high' &&
+                i.status.toLowerCase() != 'controlled',
+          )
           .length;
   int get _moderateCount =>
       _reports
-          .where((i) => i.severity.toLowerCase() == 'moderate' && i.status.toLowerCase() != 'controlled')
+          .where(
+            (i) =>
+                i.severity.toLowerCase() == 'moderate' &&
+                i.status.toLowerCase() != 'controlled',
+          )
           .length;
-  int get _activeCount => _reports.where((i) => i.status.toLowerCase() != 'controlled').length;
+  int get _activeCount =>
+      _reports.where((i) => i.status.toLowerCase() != 'controlled').length;
 
   @override
   void initState() {
@@ -181,7 +203,9 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
 
   List<ReportModel> get _filtered =>
       _reports.where((i) {
-        if (_activeFilter != null && i.disasterType.toLowerCase() != _activeFilter!.toLowerCase()) return false;
+        if (_activeFilter != null &&
+            i.disasterType.toLowerCase() != _activeFilter!.toLowerCase())
+          return false;
         return true;
       }).toList();
 
@@ -287,30 +311,32 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   }
 
   List<Marker> _buildMarkers() {
-    final markers = _filtered.map((inc) {
-      return Marker(
-        point: LatLng(inc.latitude, inc.longitude),
-        width: 54,
-        height: 54,
-        child: GestureDetector(
-          onTap: () => _selectIncident(inc),
-          child: AnimatedBuilder(
-            animation: _pulseCtrl,
-            builder: (_, child) {
-              final pulse =
-                  (inc.severity.toLowerCase() == 'high' && inc.status.toLowerCase() != 'controlled')
-                      ? (0.85 + 0.15 * sin(_pulseCtrl.value * 2 * pi))
-                      : 1.0;
-              return Transform.scale(scale: pulse, child: child);
-            },
-            child: _MarkerWidget(
-              incident: inc,
-              isSelected: _selectedIncident?.id == inc.id,
+    final markers =
+        _filtered.map((inc) {
+          return Marker(
+            point: LatLng(inc.latitude, inc.longitude),
+            width: 54,
+            height: 54,
+            child: GestureDetector(
+              onTap: () => _selectIncident(inc),
+              child: AnimatedBuilder(
+                animation: _pulseCtrl,
+                builder: (_, child) {
+                  final pulse =
+                      (inc.severity.toLowerCase() == 'high' &&
+                              inc.status.toLowerCase() != 'controlled')
+                          ? (0.85 + 0.15 * sin(_pulseCtrl.value * 2 * pi))
+                          : 1.0;
+                  return Transform.scale(scale: pulse, child: child);
+                },
+                child: _MarkerWidget(
+                  incident: inc,
+                  isSelected: _selectedIncident?.id == inc.id,
+                ),
+              ),
             ),
-          ),
-        ),
-      );
-    }).toList();
+          );
+        }).toList();
 
     if (_myLocation != null) {
       markers.add(
@@ -328,10 +354,18 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black38, blurRadius: 4, spreadRadius: 1),
+                    BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 4,
+                      spreadRadius: 1,
+                    ),
                   ],
                 ),
-                child: const Icon(Icons.my_location_rounded, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.my_location_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(height: 2),
               Container(
@@ -340,7 +374,14 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                   color: AppColors.bgDark.withOpacity(0.8),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('You', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'You',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -530,9 +571,15 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     final top = MediaQuery.of(context).padding.top + 122;
     final dynamicTypes = _reports.map((e) => e.disasterType).toSet().toList();
     if (dynamicTypes.isEmpty) {
-      dynamicTypes.addAll(['Flood', 'Landslide', 'Earthquake', 'Fire', 'Roadblock']);
+      dynamicTypes.addAll([
+        'Flood',
+        'Landslide',
+        'Earthquake',
+        'Fire',
+        'Roadblock',
+      ]);
     }
-    
+
     return Positioned(
       top: top,
       left: 0,
@@ -562,11 +609,19 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                   selected: _activeFilter?.toLowerCase() == t.toLowerCase(),
                   onTap:
                       () => setState(() {
-                        _activeFilter = _activeFilter?.toLowerCase() == t.toLowerCase() ? null : t;
+                        _activeFilter =
+                            _activeFilter?.toLowerCase() == t.toLowerCase()
+                                ? null
+                                : t;
                       }),
                   count:
                       _reports
-                          .where((i) => i.disasterType.toLowerCase() == t.toLowerCase() && i.status.toLowerCase() != 'controlled')
+                          .where(
+                            (i) =>
+                                i.disasterType.toLowerCase() ==
+                                    t.toLowerCase() &&
+                                i.status.toLowerCase() != 'controlled',
+                          )
                           .length,
                 ),
               ),
@@ -665,11 +720,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
               style: TextStyle(color: Colors.white54, fontSize: 10),
             ),
             const SizedBox(height: 8),
-            ...[
-              'High',
-              'Moderate',
-              'Low',
-            ].map(
+            ...['High', 'Moderate', 'Low'].map(
               (s) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
@@ -733,10 +784,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                 ),
           ),
           const SizedBox(height: 8),
-          _GlassBtn(
-            icon: Icons.my_location_rounded,
-            onTap: _locateMe,
-          ),
+          _GlassBtn(icon: Icons.my_location_rounded, onTap: _locateMe),
           const SizedBox(height: 8),
           _GlassBtn(icon: Icons.list_rounded, onTap: _showIncidentsList),
         ],
@@ -825,12 +873,16 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                                 children: [
                                   _Badge(
                                     label: inc.severity.toUpperCase(),
-                                    color: DisasterStyle.severityColor(inc.severity),
+                                    color: DisasterStyle.severityColor(
+                                      inc.severity,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   _Badge(
                                     label: inc.status,
-                                    color: DisasterStyle.statusColor(inc.status),
+                                    color: DisasterStyle.statusColor(
+                                      inc.status,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   Flexible(
@@ -895,7 +947,10 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                           child: _InfoTile(
                             icon: Icons.access_time_rounded,
                             label: 'Reported',
-                            value: _timeAgo(DateTime.tryParse(inc.createdAt) ?? DateTime.now()),
+                            value: _timeAgo(
+                              DateTime.tryParse(inc.createdAt) ??
+                                  DateTime.now(),
+                            ),
                           ),
                         ),
                       ],
@@ -909,7 +964,10 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                           child: _InfoTile(
                             icon: Icons.group_outlined,
                             label: 'Merged Reports',
-                            value: inc.submissions.length > 1 ? '${inc.submissions.length} reports' : '1 report',
+                            value:
+                                inc.submissions.length > 1
+                                    ? '${inc.submissions.length} reports'
+                                    : '1 report',
                           ),
                         ),
                       ],
@@ -1029,8 +1087,11 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                                   Divider(color: AppColors.border, height: 1),
                           itemBuilder: (_, i) {
                             final inc = _filtered[i];
-                            final color = DisasterStyle.colorForType(inc.disasterType);
-                            final isControlled = inc.status.toLowerCase() == 'controlled';
+                            final color = DisasterStyle.colorForType(
+                              inc.disasterType,
+                            );
+                            final isControlled =
+                                inc.status.toLowerCase() == 'controlled';
                             return ListTile(
                               contentPadding: const EdgeInsets.symmetric(
                                 vertical: 8,
@@ -1150,8 +1211,7 @@ class _MarkerWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(11),
             boxShadow: [
               BoxShadow(
-                color: (isControlled ? Colors.grey : color)
-                    .withOpacity(0.4),
+                color: (isControlled ? Colors.grey : color).withOpacity(0.4),
                 blurRadius: 8,
                 spreadRadius: 1,
               ),
@@ -1559,4 +1619,3 @@ class _PulseDotState extends State<_PulseDot>
     );
   }
 }
-

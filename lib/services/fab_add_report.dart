@@ -111,7 +111,7 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
         })
         .catchError((e) => debugPrint("Error fetching location: $e"));
 
-    // On Desktop platforms, getPositionStream has a known issue where it calls 
+    // On Desktop platforms, getPositionStream has a known issue where it calls
     // the platform channel on a background thread, causing a crash.
     // Since we already fetched the current location above, we can just return.
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -260,8 +260,11 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
       final storageService = SupabaseStorageService();
 
       // Step 1: Upload images to Supabase
-      List<File> filesToUpload = _uploadedPhotos.map((path) => File(path)).toList();
-      List<String> uploadedUrls = await storageService.uploadImages(filesToUpload);
+      List<File> filesToUpload =
+          _uploadedPhotos.map((path) => File(path)).toList();
+      List<String> uploadedUrls = await storageService.uploadImages(
+        filesToUpload,
+      );
 
       String severityStr = "Low";
       if (_severityLevel == 1) severityStr = "Medium";
@@ -291,13 +294,8 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
       // Step 3: Attach Media URLs to the report
       await api.post(
         '/reports/$reportId/media',
-        body: {
-          "media_urls": uploadedUrls,
-          "file_type": "image"
-        }
+        body: {"media_urls": uploadedUrls, "file_type": "image"},
       );
-
-
 
       // Keep it checking UI state but secretly update _isDuplicate so the step dots color correctly
       if (mounted) {

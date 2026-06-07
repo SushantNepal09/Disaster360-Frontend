@@ -105,9 +105,8 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
       builder: (context, provider, _) {
         final allTasks = provider.allTasks;
         final filtered = _filteredTasks(allTasks);
-        final activeCount = allTasks
-            .where((t) => t.status == TaskStatus.active)
-            .length;
+        final activeCount =
+            allTasks.where((t) => t.status == TaskStatus.active).length;
 
         return Scaffold(
           backgroundColor: AppColors.bgPrimary,
@@ -128,42 +127,47 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                 ),
                 const SizedBox(height: 14),
                 Expanded(
-                  child: provider.isLoading && allTasks.isEmpty
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
-                          ),
-                        )
-                      : filtered.isEmpty
-                          ? _buildEmptyState()
-                          : RefreshIndicator(
-                              color: AppColors.orange,
-                              backgroundColor: AppColors.bgSurface,
-                              onRefresh: () => provider.fetchAll(),
-                              child: ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 14),
-                                itemBuilder: (context, i) {
-                                  final task = filtered[i];
-                                  return _TaskCard(
-                                    task: task,
-                                    pulseAnim: _pulseAnim,
-                                    onAccept: () =>
-                                        _handleAccept(context, task),
-                                    onDetails: () =>
-                                        _handleDetails(context, task),
-                                    onStatusReport: () =>
-                                        _handleStatusReport(context, task),
-                                    onMarkDone: () =>
-                                        _handleMarkDone(context, task),
-                                    onCompletionReport: () =>
-                                        _handleCompletionReport(context, task),
-                                  );
-                                },
+                  child:
+                      provider.isLoading && allTasks.isEmpty
+                          ? const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.orange,
                               ),
                             ),
+                          )
+                          : filtered.isEmpty
+                          ? _buildEmptyState()
+                          : RefreshIndicator(
+                            color: AppColors.orange,
+                            backgroundColor: AppColors.bgSurface,
+                            onRefresh: () => provider.fetchAll(),
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              itemCount: filtered.length,
+                              separatorBuilder:
+                                  (_, __) => const SizedBox(height: 14),
+                              itemBuilder: (context, i) {
+                                final task = filtered[i];
+                                return _TaskCard(
+                                  task: task,
+                                  pulseAnim: _pulseAnim,
+                                  onAccept: () => _handleAccept(context, task),
+                                  onDetails:
+                                      () => _handleDetails(context, task),
+                                  onStatusReport:
+                                      () => _handleStatusReport(context, task),
+                                  onMarkDone:
+                                      () => _handleMarkDone(context, task),
+                                  onCompletionReport:
+                                      () => _handleCompletionReport(
+                                        context,
+                                        task,
+                                      ),
+                                );
+                              },
+                            ),
+                          ),
                 ),
               ],
             ),
@@ -379,10 +383,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   }
 
   void _handleMarkDone(BuildContext context, RescueTask task) {
-    RescueMotion.push(
-      context,
-      MarkAsControlledScreen(task: task),
-    ).then((_) {
+    RescueMotion.push(context, MarkAsControlledScreen(task: task)).then((_) {
       // Refresh tasks after returning from mark controlled screen
       if (context.mounted) context.read<RescueProvider>().fetchMyOperations();
     });
@@ -1068,207 +1069,215 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
           return KeyEventResult.ignored;
         },
         child: Stack(
-        children: [
-          // Blurred + darkened background
-          GestureDetector(
-            onTap: _close,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(color: Colors.black.withOpacity(0.88)),
+          children: [
+            // Blurred + darkened background
+            GestureDetector(
+              onTap: _close,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(color: Colors.black.withOpacity(0.88)),
+              ),
             ),
-          ),
 
-          // Full-screen swipeable image pages – edge‑to‑edge
-          PageView.builder(
-            controller: _pageCtrl,
-            itemCount: widget.photoCount,
-            onPageChanged: (i) => setState(() => _currentIndex = i),
-            itemBuilder: (_, i) {
-              return Container(
-                color: AppColors.bgDark,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.image_outlined,
-                        color: Colors.white.withOpacity(0.2),
-                        size: 72,
+            // Full-screen swipeable image pages – edge‑to‑edge
+            PageView.builder(
+              controller: _pageCtrl,
+              itemCount: widget.photoCount,
+              onPageChanged: (i) => setState(() => _currentIndex = i),
+              itemBuilder: (_, i) {
+                return Container(
+                  color: AppColors.bgDark,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          color: Colors.white.withOpacity(0.2),
+                          size: 72,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Photo ${i + 1}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.45),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '#${widget.reportId}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.25),
+                            fontSize: 12,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            // Next/Prev Arrows (Desktop navigation)
+            if (widget.photoCount > 1) ...[
+              if (_currentIndex > 0)
+                Positioned(
+                  left: 20,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 28,
                       ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'Photo ${i + 1}',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.45),
-                          fontSize: 16,
+                      onPressed: () {
+                        _pageCtrl.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black45,
+                        padding: const EdgeInsets.all(16),
+                      ),
+                    ),
+                  ),
+                ),
+              if (_currentIndex < widget.photoCount - 1)
+                Positioned(
+                  right: 20,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        _pageCtrl.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black45,
+                        padding: const EdgeInsets.all(16),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+
+            // Top bar: report ID (left), counter (center), close button (right)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 10,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        '#${widget.reportId}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        'Photo ${_currentIndex + 1} of ${widget.photoCount}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           decoration: TextDecoration.none,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '#${widget.reportId}',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.25),
-                          fontSize: 12,
-                          decoration: TextDecoration.none,
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _close,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.14),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Next/Prev Arrows (Desktop navigation)
-          if (widget.photoCount > 1) ...[
-            if (_currentIndex > 0)
-              Positioned(
-                left: 20,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 28),
-                    onPressed: () {
-                      _pageCtrl.previousPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black45,
-                      padding: const EdgeInsets.all(16),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            if (_currentIndex < widget.photoCount - 1)
+            ),
+
+            // Dot indicators at bottom
+            if (widget.photoCount > 1)
               Positioned(
-                right: 20,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 28),
-                    onPressed: () {
-                      _pageCtrl.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black45,
-                      padding: const EdgeInsets.all(16),
-                    ),
-                  ),
+                bottom: MediaQuery.of(context).padding.bottom + 24,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(widget.photoCount, (i) {
+                    final active = i == _currentIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: active ? 24 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: active ? AppColors.orange : Colors.white30,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  }),
                 ),
               ),
           ],
-
-          // Top bar: report ID (left), counter (center), close button (right)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Text(
-                      '#${widget.reportId}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'monospace',
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Text(
-                      'Photo ${_currentIndex + 1} of ${widget.photoCount}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: _close,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.14),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Dot indicators at bottom
-          if (widget.photoCount > 1)
-            Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 24,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(widget.photoCount, (i) {
-                  final active = i == _currentIndex;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: active ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: active ? AppColors.orange : Colors.white30,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  );
-                }),
-              ),
-            ),
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2060,7 +2069,11 @@ class RescueTask {
       lng: '${json['longitude'] ?? 0.0}',
       reportId: '${json['id']}',
       rescueUpdateId: json['rescue_update_id'] as int?,
-      assignedTeams: (json['assigned_teams'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      assignedTeams:
+          (json['assigned_teams'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 
@@ -2089,8 +2102,8 @@ class RescueTask {
       lng: '${json['longitude'] ?? 0.0}',
       reportId: '${json['incident_id']}',
       rescueUpdateId: json['rescue_update_id'] as int?,
-      assignedTeams: const [], // my-operations doesn't need assignedTeams as they are already accepted
+      assignedTeams:
+          const [], // my-operations doesn't need assignedTeams as they are already accepted
     );
   }
 }
-

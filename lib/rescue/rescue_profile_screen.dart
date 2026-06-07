@@ -49,9 +49,10 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.45, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 0.45,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     // Fetch rescue-specific stats from the backend
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,6 +90,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
     final email = user?.email ?? 'N/A';
     final phone = user?.phone ?? 'N/A';
     final role = user?.role ?? 'rescue';
+    final specialization = user?.specialization ?? 'Not Specified';
     final initials = _getInitials(name);
 
     // Stats from /rescue/profile API
@@ -109,11 +111,11 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
               const SizedBox(height: 28),
               _buildAvatar(initials),
               const SizedBox(height: 14),
-              _buildNameAndBadge(name, role),
+              _buildNameAndBadge(name, role, specialization),
               const SizedBox(height: 20),
               _buildStatsRow(completedOps, totalOps, activeOps),
               const SizedBox(height: 20),
-              _buildDetailsCard(email, phone),
+              _buildDetailsCard(email, phone, specialization),
               const SizedBox(height: 16),
               _buildSystemStatusCard(),
               const SizedBox(height: 16),
@@ -204,7 +206,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
   }
 
   // ── 3. Name + role badge ───────────────────────────────────────────────────
-  Widget _buildNameAndBadge(String name, String role) {
+  Widget _buildNameAndBadge(String name, String role, String specialization) {
     return Column(
       children: [
         Text(
@@ -218,6 +220,11 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
         ),
         const SizedBox(height: 8),
         _roleBadge('Rescue Team', AppColors.success),
+        const SizedBox(height: 6),
+        _roleBadge(
+          specialization,
+          specialization == 'Not Specified' ? Colors.white38 : AppColors.orange,
+        ),
       ],
     );
   }
@@ -250,50 +257,56 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
     ];
 
     return Row(
-      children: statList.map((s) {
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  s.value,
-                  style: TextStyle(
-                    color: s.color,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
+      children:
+          statList.map((s) {
+            return Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.bgSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  s.label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    height: 1.3,
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      s.value,
+                      style: TextStyle(
+                        color: s.color,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      s.label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+              ),
+            );
+          }).toList(),
     );
   }
 
   // ── 5. Details card (from registration) ───────────────────────────────────
-  Widget _buildDetailsCard(String email, String phone) {
+  Widget _buildDetailsCard(String email, String phone, String specialization) {
     final rows = [
       _InfoRow(label: 'Email', value: email),
       _InfoRow(label: 'Phone', value: phone.isNotEmpty ? phone : 'N/A'),
-      _InfoRow(label: 'Role', value: 'Rescue Team', valueColor: AppColors.success),
+      _InfoRow(
+        label: 'Role',
+        value: 'Rescue Team',
+        valueColor: AppColors.success,
+      ),
+      _InfoRow(label: 'Specialization', value: specialization),
     ];
 
     return Container(
@@ -472,8 +485,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
                       child: AnimatedDefaultTextStyle(
                         duration: const Duration(milliseconds: 200),
                         style: TextStyle(
-                          color:
-                              _isOnDuty ? AppColors.success : Colors.white54,
+                          color: _isOnDuty ? AppColors.success : Colors.white54,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -501,7 +513,8 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
       child: _ProfileMenuTile(
         icon: Icons.chat_bubble_outline_rounded,
         label: 'Provide Feedback',
-        onTap: () => Navigator.push(context, _fadeRoute(const FeedbackScreen())),
+        onTap:
+            () => Navigator.push(context, _fadeRoute(const FeedbackScreen())),
       ),
     );
   }
@@ -538,88 +551,151 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
     final nameCtrl = TextEditingController(text: user?.fullName ?? '');
     final phoneCtrl = TextEditingController(text: user?.phone ?? '');
 
+    String? selectedSpec = user?.specialization;
+    final List<String> specializations = [
+      'Firefighter',
+      'Ambulance/Medical',
+      'Police',
+      'Search and Rescue (SAR)',
+      'Heavy Rescue',
+      'Other',
+    ];
+    if (selectedSpec != null && !specializations.contains(selectedSpec)) {
+      specializations.add(selectedSpec);
+    }
+
     showDialog(
       context: context,
       builder:
-          (_) => AlertDialog(
-            backgroundColor: AppColors.bgSurface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: AppColors.border),
-            ),
-            title: const Text(
-              'Edit Profile',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 17,
-              ),
-            ),
-            content: SizedBox(
-              width: 400,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _DialogField(controller: nameCtrl, label: 'Full Name'),
-                    const SizedBox(height: 12),
-                    _DialogField(controller: phoneCtrl, label: 'Phone'),
+          (_) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  backgroundColor: AppColors.bgSurface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  title: const Text(
+                    'Edit Profile',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 17,
+                    ),
+                  ),
+                  content: SizedBox(
+                    width: 400,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _DialogField(
+                            controller: nameCtrl,
+                            label: 'Full Name',
+                          ),
+                          const SizedBox(height: 12),
+                          _DialogField(controller: phoneCtrl, label: 'Phone'),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: selectedSpec,
+                            dropdownColor: AppColors.bgSurface,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            iconEnabledColor: Colors.white54,
+                            decoration: InputDecoration(
+                              labelText: 'Specialization',
+                              labelStyle: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 13,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                            ),
+                            items:
+                                specializations.map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
+                            onChanged: (newValue) {
+                              setState(() {
+                                selectedSpec = newValue;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.white38),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          await context.read<AuthProvider>().updateProfile(
+                            fullName: nameCtrl.text.trim(),
+                            phone: phoneCtrl.text.trim(),
+                            specialization: selectedSpec,
+                          );
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  'Profile updated successfully.',
+                                ),
+                                backgroundColor: AppColors.success.withOpacity(
+                                  0.9,
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                margin: const EdgeInsets.all(16),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to update: $e')),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.orange,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Save',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white38),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  try {
-                    await context.read<AuthProvider>().updateProfile(
-                      fullName: nameCtrl.text.trim(),
-                      phone: phoneCtrl.text.trim(),
-                    );
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Profile updated successfully.'),
-                          backgroundColor: AppColors.success.withOpacity(0.9),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          margin: const EdgeInsets.all(16),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to update: $e')),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
           ),
     );
   }
@@ -704,7 +780,10 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
             ),
             title: const Text(
               'Sign Out',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             content: const Text(
               'Are you sure you want to sign out of your rescue account?',
@@ -723,7 +802,9 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
                     () => context.read<AuthProvider>().logout().then((_) {
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                          MaterialPageRoute(
+                            builder: (_) => const AuthWrapper(),
+                          ),
                           (route) => false,
                         );
                       }

@@ -71,32 +71,33 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       bottomNavigationBar: isMobile ? _buildBottomNav() : null,
-      body: isDesktop || isTablet
-          ? Row(
-              children: [
-                _SideRail(
-                  activeNav: _activeNav,
-                  onNavTap: _switchNav,
-                  expanded: isDesktop,
-                ),
-                Expanded(
-                  child: FadeTransition(
-                    opacity: _fadeAnim,
-                    child: SlideTransition(
-                      position: _slideAnim,
-                      child: _getScreenForNav(),
+      body:
+          isDesktop || isTablet
+              ? Row(
+                children: [
+                  _SideRail(
+                    activeNav: _activeNav,
+                    onNavTap: _switchNav,
+                    expanded: isDesktop,
+                  ),
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SlideTransition(
+                        position: _slideAnim,
+                        child: _getScreenForNav(),
+                      ),
                     ),
                   ),
+                ],
+              )
+              : FadeTransition(
+                opacity: _fadeAnim,
+                child: SlideTransition(
+                  position: _slideAnim,
+                  child: _getScreenForNav(),
                 ),
-              ],
-            )
-          : FadeTransition(
-              opacity: _fadeAnim,
-              child: SlideTransition(
-                position: _slideAnim,
-                child: _getScreenForNav(),
               ),
-            ),
     );
   }
 
@@ -109,12 +110,13 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
             SafeArea(bottom: false, child: _buildHeader()),
             Expanded(
               child: Consumer<RescueProvider>(
-                builder: (context, provider, _) => _RescueHomeBody(
-                  onGoToTasks: () => _switchNav(2),
-                  myOperations: provider.myOperations,
-                  verifiedReports: provider.verifiedReports,
-                  isLoading: provider.isLoading,
-                ),
+                builder:
+                    (context, provider, _) => _RescueHomeBody(
+                      onGoToTasks: () => _switchNav(2),
+                      myOperations: provider.myOperations,
+                      verifiedReports: provider.verifiedReports,
+                      isLoading: provider.isLoading,
+                    ),
               ),
             ),
           ],
@@ -455,12 +457,10 @@ class _RescueHomeBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Split myOperations by status
-    final inProgress = myOperations
-        .where((t) => t.status == TaskStatus.pending)
-        .toList();
-    final completed = myOperations
-        .where((t) => t.status == TaskStatus.completed)
-        .toList();
+    final inProgress =
+        myOperations.where((t) => t.status == TaskStatus.pending).toList();
+    final completed =
+        myOperations.where((t) => t.status == TaskStatus.completed).toList();
 
     // Banner: show latest in-progress assignment
     final latestAssigned = myOperations.isNotEmpty ? myOperations.first : null;
@@ -480,82 +480,83 @@ class _RescueHomeBody extends StatelessWidget {
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.symmetric(
-            horizontal: _Breakpoint.horizontalPadding(context), vertical: 20),
+          horizontal: _Breakpoint.horizontalPadding(context),
+          vertical: 20,
+        ),
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-                maxWidth: _Breakpoint.contentMaxWidth(context)),
+              maxWidth: _Breakpoint.contentMaxWidth(context),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            // Banner only shows when there are assigned operations
-            if (latestAssigned != null) ...[
-              _AssignedMissionBanner(
-                task: latestAssigned,
-                onTap: onGoToTasks,
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Stats: only from MY operations
-            _buildStatCards(
-              inProgress: inProgress.length,
-              completed: completed.length,
-              total: myOperations.length,
-            ),
-            const SizedBox(height: 28),
-
-            // ── MY ASSIGNED MISSIONS ──────────────────────────────
-            if (myOperations.isEmpty)
-              _EmptyMyMissions(onGoToTasks: onGoToTasks)
-            else ...[
-              if (inProgress.isNotEmpty) ...[
-                _SectionLabel('MY ACTIVE MISSIONS'),
-                const SizedBox(height: 12),
-                ...inProgress.map(
-                  (t) => _MyOperationCard(
-                    task: t,
-                    accentColor: AppColors.warning,
+                // Banner only shows when there are assigned operations
+                if (latestAssigned != null) ...[
+                  _AssignedMissionBanner(
+                    task: latestAssigned,
                     onTap: onGoToTasks,
                   ),
-                ),
-                const SizedBox(height: 20),
-              ],
-              if (completed.isNotEmpty) ...[
-                _SectionLabel('COMPLETED MISSIONS'),
-                const SizedBox(height: 12),
-                ...completed.map(
-                  (t) => _MyOperationCard(
-                    task: t,
-                    accentColor: AppColors.success,
-                    onTap: onGoToTasks,
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ],
+                  const SizedBox(height: 20),
+                ],
 
-            // ── ALL VERIFIED REPORTS (global queue) ───────────────
-            _SectionLabel('ALL VERIFIED REPORTS'),
-            const SizedBox(height: 6),
-            const Text(
-              'Incidents verified by admin — visible to all rescue teams',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
-            ),
-            const SizedBox(height: 14),
-            if (verifiedReports.isEmpty)
-              _EmptySection(
-                icon: Icons.check_circle_outline,
-                message: 'No verified reports in queue',
-              )
-            else
-              ...verifiedReports.map(
-                (t) => _VerifiedReportCard(
-                  task: t,
-                  onGoToTasks: onGoToTasks,
+                // Stats: only from MY operations
+                _buildStatCards(
+                  inProgress: inProgress.length,
+                  completed: completed.length,
+                  total: myOperations.length,
                 ),
-              ),
-            const SizedBox(height: 24),
+                const SizedBox(height: 28),
+
+                // ── MY ASSIGNED MISSIONS ──────────────────────────────
+                if (myOperations.isEmpty)
+                  _EmptyMyMissions(onGoToTasks: onGoToTasks)
+                else ...[
+                  if (inProgress.isNotEmpty) ...[
+                    _SectionLabel('MY ACTIVE MISSIONS'),
+                    const SizedBox(height: 12),
+                    ...inProgress.map(
+                      (t) => _MyOperationCard(
+                        task: t,
+                        accentColor: AppColors.warning,
+                        onTap: onGoToTasks,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  if (completed.isNotEmpty) ...[
+                    _SectionLabel('COMPLETED MISSIONS'),
+                    const SizedBox(height: 12),
+                    ...completed.map(
+                      (t) => _MyOperationCard(
+                        task: t,
+                        accentColor: AppColors.success,
+                        onTap: onGoToTasks,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ],
+
+                // ── ALL VERIFIED REPORTS (global queue) ───────────────
+                _SectionLabel('ALL VERIFIED REPORTS'),
+                const SizedBox(height: 6),
+                const Text(
+                  'Incidents verified by admin — visible to all rescue teams',
+                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+                const SizedBox(height: 14),
+                if (verifiedReports.isEmpty)
+                  _EmptySection(
+                    icon: Icons.check_circle_outline,
+                    message: 'No verified reports in queue',
+                  )
+                else
+                  ...verifiedReports.map(
+                    (t) =>
+                        _VerifiedReportCard(task: t, onGoToTasks: onGoToTasks),
+                  ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -720,9 +721,10 @@ class _MyOperationCardState extends State<_MyOperationCard> {
 
   @override
   Widget build(BuildContext context) {
-    final statusLabel = widget.task.status == TaskStatus.completed
-        ? 'Controlled'
-        : 'In Progress';
+    final statusLabel =
+        widget.task.status == TaskStatus.completed
+            ? 'Controlled'
+            : 'In Progress';
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -740,9 +742,10 @@ class _MyOperationCardState extends State<_MyOperationCard> {
                 color: _hovered ? AppColors.bgDark : AppColors.bgSurface,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: _hovered
-                      ? widget.accentColor.withOpacity(0.5)
-                      : AppColors.border,
+                  color:
+                      _hovered
+                          ? widget.accentColor.withOpacity(0.5)
+                          : AppColors.border,
                 ),
               ),
               child: Row(
@@ -822,10 +825,7 @@ class _MyOperationCardState extends State<_MyOperationCard> {
 class _VerifiedReportCard extends StatefulWidget {
   final RescueTask task;
   final VoidCallback onGoToTasks;
-  const _VerifiedReportCard({
-    required this.task,
-    required this.onGoToTasks,
-  });
+  const _VerifiedReportCard({required this.task, required this.onGoToTasks});
 
   @override
   State<_VerifiedReportCard> createState() => _VerifiedReportCardState();
@@ -850,9 +850,8 @@ class _VerifiedReportCardState extends State<_VerifiedReportCard> {
             color: _hovered ? AppColors.bgDark : AppColors.bgSurface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: _hovered
-                  ? AppColors.info.withOpacity(0.5)
-                  : AppColors.border,
+              color:
+                  _hovered ? AppColors.info.withOpacity(0.5) : AppColors.border,
             ),
           ),
           child: Row(
@@ -1112,7 +1111,10 @@ class _SideRail extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: Row(
-                mainAxisAlignment: expanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+                mainAxisAlignment:
+                    expanded
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
                 children: [
                   const CircleAvatar(
                     radius: 16,
@@ -1125,8 +1127,21 @@ class _SideRail extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Rescue Team', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                          Text('On Duty', style: TextStyle(color: AppColors.success, fontSize: 10)),
+                          Text(
+                            'Rescue Team',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'On Duty',
+                            style: TextStyle(
+                              color: AppColors.success,
+                              fontSize: 10,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1191,10 +1206,7 @@ class _SideRailItemState extends State<_SideRailItem> {
             borderRadius: BorderRadius.circular(10),
             border:
                 widget.isActive
-                    ? Border.all(
-                      color: AppColors.border,
-                      width: 1,
-                    )
+                    ? Border.all(color: AppColors.border, width: 1)
                     : null,
           ),
           child: Row(
@@ -1284,5 +1296,3 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
-
-

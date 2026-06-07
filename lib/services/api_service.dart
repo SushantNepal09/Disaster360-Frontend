@@ -12,7 +12,9 @@ class ApiService {
     return dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.80:8000';
   }
 
-  Future<Map<String, String>> _getHeaders({Map<String, String>? customHeaders}) async {
+  Future<Map<String, String>> _getHeaders({
+    Map<String, String>? customHeaders,
+  }) async {
     final token = SessionService().token;
     final headers = {
       'Content-Type': 'application/json',
@@ -30,17 +32,24 @@ class ApiService {
 
   Future<dynamic> get(String endpoint, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final response = await http.get(uri, headers: await _getHeaders(customHeaders: headers));
+    final response = await http.get(
+      uri,
+      headers: await _getHeaders(customHeaders: headers),
+    );
     return _handleResponse(response);
   }
 
-  Future<dynamic> post(String endpoint, {dynamic body, bool isForm = false}) async {
+  Future<dynamic> post(
+    String endpoint, {
+    dynamic body,
+    bool isForm = false,
+  }) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     final headers = await _getHeaders();
     if (isForm) {
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
     }
-    
+
     final response = await http.post(
       uri,
       headers: headers,
@@ -52,14 +61,14 @@ class ApiService {
   Future<dynamic> multipartPost(String endpoint, String filePath) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     final request = http.MultipartRequest('POST', uri);
-    
+
     final headers = await _getHeaders();
     // MultipartRequest doesn't need Content-Type JSON, it manages bounded form-data automatically
-    headers.remove('Content-Type'); 
+    headers.remove('Content-Type');
     request.headers.addAll(headers);
 
     request.files.add(await http.MultipartFile.fromPath('file', filePath));
-    
+
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     return _handleResponse(response);
@@ -89,7 +98,9 @@ class ApiService {
       String errorMessage = 'Error ${response.statusCode}';
       try {
         final decoded = jsonDecode(response.body);
-        if (decoded != null && decoded is Map && decoded.containsKey('detail')) {
+        if (decoded != null &&
+            decoded is Map &&
+            decoded.containsKey('detail')) {
           errorMessage = decoded['detail'].toString();
         }
       } catch (_) {}

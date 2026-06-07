@@ -20,6 +20,7 @@ class ReportModel {
   final String createdAt;
   final List<dynamic> submissions;
   final List<String> mediaUrls;
+  final String rescueTeam;
 
   ReportModel({
     required this.id,
@@ -39,6 +40,7 @@ class ReportModel {
     required this.createdAt,
     this.submissions = const [],
     this.mediaUrls = const [],
+    this.rescueTeam = 'Not Assigned',
   });
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {
@@ -46,7 +48,10 @@ class ReportModel {
     return ReportModel(
       id: json['id'] ?? 0,
       userId: json['user_id']?.toString() ?? '',
-      userName: (json['submissions'] != null && json['submissions'].isNotEmpty) ? json['submissions'][0]['user_name'] ?? 'Unknown' : 'Unknown',
+      userName:
+          (json['submissions'] != null && json['submissions'].isNotEmpty)
+              ? json['submissions'][0]['user_name'] ?? 'Unknown'
+              : 'Unknown',
       disasterType: json['disaster_type'] ?? 'Unknown',
       title: json['title'] ?? 'No Title',
       description: json['description'] ?? '',
@@ -60,7 +65,12 @@ class ReportModel {
       userReaction: json['user_reaction'],
       createdAt: json['created_at'] ?? '',
       submissions: json['submissions'] ?? [],
-      mediaUrls: (json['media_urls'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      mediaUrls:
+          (json['media_urls'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      rescueTeam: json['rescue_team']?.toString() ?? 'Not Assigned',
     );
   }
 }
@@ -177,11 +187,11 @@ class ReportProvider extends ChangeNotifier {
 
   void deleteReportWithInlineUndo(int reportId) {
     if (_deletionTimers.containsKey(reportId)) return;
-    
+
     // Start a 5-second timer
     _deletionTimers[reportId] = Timer(const Duration(seconds: 5), () async {
       _deletionTimers.remove(reportId);
-      
+
       try {
         await _apiService.delete('/admin/reports/$reportId');
         // Successfully deleted, remove from the list
@@ -193,7 +203,7 @@ class ReportProvider extends ChangeNotifier {
         notifyListeners();
       }
     });
-    
+
     notifyListeners(); // Rebuild UI to show the inline banner
   }
 

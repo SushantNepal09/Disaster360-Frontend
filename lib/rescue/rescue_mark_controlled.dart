@@ -123,7 +123,9 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
           ),
           backgroundColor: AppColors.danger.withOpacity(0.92),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -134,9 +136,10 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
 
     try {
       // 1. Update status to Controlled via API
-      await context
-          .read<RescueProvider>()
-          .updateOperationStatus(rescueUpdateId, 'Controlled');
+      await context.read<RescueProvider>().updateOperationStatus(
+        rescueUpdateId,
+        'Controlled',
+      );
 
       if (!mounted) return;
       setState(() => _isSubmitting = false);

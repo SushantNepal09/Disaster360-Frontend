@@ -10,11 +10,12 @@ class SessionService {
   SessionService._internal();
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  
+
   User? _currentUser;
   String? _token;
-  
-  final StreamController<User?> _sessionController = StreamController<User?>.broadcast();
+
+  final StreamController<User?> _sessionController =
+      StreamController<User?>.broadcast();
 
   Stream<User?> get sessionStream => _sessionController.stream;
   User? get currentUser => _currentUser;
@@ -23,7 +24,7 @@ class SessionService {
   Future<void> initialize() async {
     _token = await _storage.read(key: 'auth_token');
     final userJsonStr = await _storage.read(key: 'user_profile');
-    
+
     if (_token != null && userJsonStr != null) {
       try {
         final Map<String, dynamic> userMap = jsonDecode(userJsonStr);
@@ -36,7 +37,7 @@ class SessionService {
       _currentUser = null;
       _token = null;
     }
-    
+
     _sessionController.add(_currentUser);
   }
 

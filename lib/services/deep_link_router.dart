@@ -15,7 +15,7 @@ class DeepLinkRouter {
   StreamSubscription? _sessionSubscription;
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  
+
   bool _isNavigated = false;
   final List<Uri> _eventBuffer = [];
   bool _isAppReady = false;
@@ -52,11 +52,14 @@ class DeepLinkRouter {
     }
 
     // Attach a listener to the stream
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      _handleDeepLink(uri);
-    }, onError: (err) {
-      // Handle error
-    });
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (uri) {
+        _handleDeepLink(uri);
+      },
+      onError: (err) {
+        // Handle error
+      },
+    );
   }
 
   void _handleDeepLink(Uri uri) {
@@ -89,20 +92,24 @@ class DeepLinkRouter {
       final sessionService = SessionService();
       if (sessionService.currentUser != null) {
         // We have a session, push the emergency screen directly
-        navigatorKey.currentState!.push(
-          MaterialPageRoute(builder: (_) => const EmergencyReportScreen())
-        ).then((_) {
-          // Unlock when returning
-          _isNavigated = false;
-        });
+        navigatorKey.currentState!
+            .push(
+              MaterialPageRoute(builder: (_) => const EmergencyReportScreen()),
+            )
+            .then((_) {
+              // Unlock when returning
+              _isNavigated = false;
+            });
       } else {
         // No session, redirect to login
-        navigatorKey.currentState!.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AuthWrapper()),
-          (route) => false,
-        ).then((_) {
-          _isNavigated = false;
-        });
+        navigatorKey.currentState!
+            .pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const AuthWrapper()),
+              (route) => false,
+            )
+            .then((_) {
+              _isNavigated = false;
+            });
       }
     } else {
       // Retry after a short delay if navigator is not yet mounted

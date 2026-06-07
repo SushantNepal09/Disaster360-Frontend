@@ -195,7 +195,11 @@ class CitizenReportDetailScreen extends StatelessWidget {
             const SizedBox(height: 16),
             const Text(
               'Attached Media',
-              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -212,12 +216,16 @@ class CitizenReportDetailScreen extends StatelessWidget {
                       width: 120,
                       height: 120,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 120,
-                        height: 120,
-                        color: Colors.white12,
-                        child: const Icon(Icons.broken_image, color: Colors.white38),
-                      ),
+                      errorBuilder:
+                          (_, __, ___) => Container(
+                            width: 120,
+                            height: 120,
+                            color: Colors.white12,
+                            child: const Icon(
+                              Icons.broken_image,
+                              color: Colors.white38,
+                            ),
+                          ),
                     ),
                   );
                 },
@@ -227,7 +235,11 @@ class CitizenReportDetailScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.image_outlined, color: Colors.white38, size: 18),
+                const Icon(
+                  Icons.image_outlined,
+                  color: Colors.white38,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'No photos attached',
@@ -268,7 +280,10 @@ class CitizenReportDetailScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                report.submissions.isNotEmpty ? report.submissions.first['user_name'] ?? 'Citizen Reporter' : 'Citizen Reporter',
+                report.submissions.isNotEmpty
+                    ? report.submissions.first['user_name'] ??
+                        'Citizen Reporter'
+                    : 'Citizen Reporter',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,

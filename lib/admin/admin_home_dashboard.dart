@@ -107,7 +107,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     if (_isLoading) return;
     setState(() => _isLoading = true);
     _refreshSpinController.repeat();
-    
+
     final provider = context.read<ReportProvider>();
     await Future.wait([
       provider.fetchReports(),
@@ -174,59 +174,59 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       child:
           isMobile
               ? Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.orange.withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: FloatingActionButton(
-                onPressed: () {
-                  // Mobile: full screen page
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ReportDisasterScreen(),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.orange.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                  );
-                },
-                child: const Icon(Icons.add, size: 28),
-                backgroundColor: AppColors.orange,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shape: const CircleBorder(),
-              ),
-            )
-              : Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.orange.withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+                  ],
+                ),
+                child: FloatingActionButton(
+                  onPressed: () {
+                    // Mobile: full screen page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ReportDisasterScreen(),
                       ),
-                    ],
+                    );
+                  },
+                  child: const Icon(Icons.add, size: 28),
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shape: const CircleBorder(),
+                ),
+              )
+              : Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.orange.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    // Tablet / Desktop: show as centered dialog (not full width)
+                    _showReportDialog(context);
+                  },
+                  icon: const Icon(Icons.add_alert_rounded),
+                  label: const Text('New Report'),
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                  child: FloatingActionButton.extended(
-                onPressed: () {
-                  // Tablet / Desktop: show as centered dialog (not full width)
-                  _showReportDialog(context);
-                },
-                icon: const Icon(Icons.add_alert_rounded),
-                label: const Text('New Report'),
-                backgroundColor: AppColors.orange,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
                 ),
               ),
-            ),
     );
   }
 
@@ -324,59 +324,59 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 20),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxW),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                const SizedBox(height: 24),
-                _buildStatCards(context),
-                const SizedBox(height: 28),
-                if (_Breakpoint.isTablet(context) || _Breakpoint.isDesktop(context))
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 8,
-                        child: _buildPendingVerification(context),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 5,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildDuplicateReports(context),
-                            const SizedBox(height: 28),
-                            _buildRescueTeamStatus(context),
-                          ],
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxW),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
+                  const SizedBox(height: 24),
+                  _buildStatCards(context),
+                  const SizedBox(height: 28),
+                  if (_Breakpoint.isTablet(context) ||
+                      _Breakpoint.isDesktop(context))
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 8,
+                          child: _buildPendingVerification(context),
                         ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPendingVerification(context),
-                      const SizedBox(height: 28),
-                      _buildDuplicateReports(context),
-                      const SizedBox(height: 28),
-                      _buildRescueTeamStatus(context),
-                    ],
-                  ),
-                const SizedBox(height: 16),
-              ],
+                        const SizedBox(width: 24),
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildDuplicateReports(context),
+                              const SizedBox(height: 28),
+                              _buildRescueTeamStatus(context),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildPendingVerification(context),
+                        const SizedBox(height: 28),
+                        _buildDuplicateReports(context),
+                        const SizedBox(height: 28),
+                        _buildRescueTeamStatus(context),
+                      ],
+                    ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      ),
     );
   }
-
 
   // ─── Header ───────────────────────────────────────────────────────────────
   Widget _buildHeader(BuildContext context) {
@@ -416,12 +416,21 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 curve: Curves.easeInOut,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: _isLoading ? AppColors.success.withOpacity(0.08) : AppColors.bgDark,
+                    color:
+                        _isLoading
+                            ? AppColors.success.withOpacity(0.08)
+                            : AppColors.bgDark,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: _isLoading ? AppColors.success.withOpacity(0.4) : AppColors.border,
+                      color:
+                          _isLoading
+                              ? AppColors.success.withOpacity(0.4)
+                              : AppColors.border,
                     ),
                   ),
                   child: Row(
@@ -429,7 +438,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                     children: [
                       RotationTransition(
                         turns: _refreshSpinController,
-                        child: const Icon(Icons.refresh_rounded, color: AppColors.success, size: 15),
+                        child: const Icon(
+                          Icons.refresh_rounded,
+                          color: AppColors.success,
+                          size: 15,
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -448,7 +461,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             const SizedBox(width: 8),
             _HoverAnimatedWidget(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.bgDark,
                   borderRadius: BorderRadius.circular(10),
@@ -550,10 +566,36 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       } else if (diff.inDays < 30) {
         return '${diff.inDays} days ago';
       } else if (diff.inDays < 365) {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         return '${monthNames[dt.month - 1]} ${dt.day}';
       } else {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
       }
     } catch (_) {
@@ -561,7 +603,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     }
   }
 
-  AdminReportData _toAdminReportData(_PendingReportData p) {
+  AdminReportData _toAdminReportData(_PendingReportData p, ReportProvider reportProvider) {
     return AdminReportData(
       reportId: p.reportId,
       status: p.status,
@@ -578,6 +620,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       downvotes: p.downvotes,
       mediaUrls: p.mediaUrls,
       submissions: p.submissions,
+      assignedRescueTeams: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).rescueTeam,
     );
   }
 
@@ -643,27 +686,41 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.chevron_left, color: Colors.white54),
-                          onPressed: _currentReportIndex > 0
-                              ? () => setState(() => _currentReportIndex--)
-                              : null,
+                          icon: const Icon(
+                            Icons.chevron_left,
+                            color: Colors.white54,
+                          ),
+                          onPressed:
+                              _currentReportIndex > 0
+                                  ? () => setState(() => _currentReportIndex--)
+                                  : null,
                         ),
                         Text(
                           'Report ${_currentReportIndex + 1} of ${reports.length}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.chevron_right, color: Colors.white54),
-                          onPressed: _currentReportIndex < reports.length - 1
-                              ? () => setState(() => _currentReportIndex++)
-                              : null,
+                          icon: const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white54,
+                          ),
+                          onPressed:
+                              _currentReportIndex < reports.length - 1
+                                  ? () => setState(() => _currentReportIndex++)
+                                  : null,
                         ),
                       ],
                     ),
                   ),
                   TextButton(
                     onPressed: () {},
-                    child: const Text('View Archive', style: TextStyle(color: AppColors.orange)),
+                    child: const Text(
+                      'View Archive',
+                      style: TextStyle(color: AppColors.orange),
+                    ),
                   ),
                 ],
               ),
@@ -672,126 +729,194 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         const SizedBox(height: 16),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          child: reports.isEmpty
-              ? Container(
-                  key: const ValueKey('empty_pending'),
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.success.withOpacity(0.3), width: 1),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.15),
-                          shape: BoxShape.circle,
+          child:
+              reports.isEmpty
+                  ? Container(
+                    key: const ValueKey('empty_pending'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 32,
+                      horizontal: 24,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.success.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.shield_rounded,
+                            color: AppColors.success,
+                            size: 32,
+                          ),
                         ),
-                        child: const Icon(Icons.shield_rounded, color: AppColors.success, size: 32),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'All caught up!',
-                        style: TextStyle(
-                          color: AppColors.success,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(height: 16),
+                        const Text(
+                          'All caught up!',
+                          style: TextStyle(
+                            color: AppColors.success,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'No pending reports require verification at this time.',
-                        style: TextStyle(
-                          color: AppColors.success.withOpacity(0.8),
-                          fontSize: 14,
+                        const SizedBox(height: 8),
+                        Text(
+                          'No pending reports require verification at this time.',
+                          style: TextStyle(
+                            color: AppColors.success.withOpacity(0.8),
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              : Builder(
-                  builder: (context) {
-                    // Safe index access
-                    if (_currentReportIndex >= reports.length) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) setState(() => _currentReportIndex = reports.length - 1);
-                      });
-                      return const SizedBox.shrink();
-                    }
-                    final report = reports[_currentReportIndex];
-                    final adminReport = _toAdminReportData(report);
-                    final intId = int.tryParse(report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
-                    final isPendingDeletion = intId != null && reportProvider.pendingDeletions.contains(intId);
-
-                    if (isPendingDeletion) {
-                      return _buildInlineUndoCard(context, report, intId);
-                    }
-
-                    return _SinglePendingReportCard(
-                      key: ValueKey(report.reportId),
-                      report: report,
-                      onTap: () => Navigator.push(
-                        context,
-                        _fadeRoute(AdminReportDetailScreen(report: adminReport)),
-                      ),
-                      onVerify: () async {
-                        try {
-                          final intId = int.tryParse(report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
-                          if (intId != null) await reportProvider.verifyReport(intId);
+                      ],
+                    ),
+                  )
+                  : Builder(
+                    builder: (context) {
+                      // Safe index access
+                      if (_currentReportIndex >= reports.length) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report verified')));
-                            if (_currentReportIndex >= reports.length - 1 && _currentReportIndex > 0) {
-                              setState(() => _currentReportIndex--);
+                            setState(
+                              () => _currentReportIndex = reports.length - 1,
+                            );
+                          }
+                        });
+                        return const SizedBox.shrink();
+                      }
+                      final report = reports[_currentReportIndex];
+                      final adminReport = _toAdminReportData(report, reportProvider);
+                      final intId = int.tryParse(
+                        report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+                      );
+                      final isPendingDeletion =
+                          intId != null &&
+                          reportProvider.pendingDeletions.contains(intId);
+
+                      if (isPendingDeletion) {
+                        return _buildInlineUndoCard(context, report, intId);
+                      }
+
+                      return _SinglePendingReportCard(
+                        key: ValueKey(report.reportId),
+                        report: report,
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              _fadeRoute(
+                                AdminReportDetailScreen(report: adminReport),
+                              ),
+                            ),
+                        onVerify: () async {
+                          try {
+                            final intId = int.tryParse(
+                              report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+                            );
+                            if (intId != null)
+                              await reportProvider.verifyReport(intId);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Report verified'),
+                                ),
+                              );
+                              if (_currentReportIndex >= reports.length - 1 &&
+                                  _currentReportIndex > 0) {
+                                setState(() => _currentReportIndex--);
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Verify failed: $e')),
+                              );
                             }
                           }
-                        } catch (e) {
-                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verify failed: $e')));
-                        }
-                      },
-                      onReject: () {
-                         final rc = TextEditingController();
-                         showDialog(
-                           context: context,
-                           builder: (_) => _RejectionDialog(
-                             report: adminReport,
-                             reasonController: rc,
-                             onConfirmReject: (reason) async {
-                               Navigator.pop(context);
-                               final intId = int.tryParse(report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
-                               if (intId != null) {
-                                 try {
-                                   await reportProvider.rejectReport(intId);
-                                   if (mounted) {
-                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report rejected')));
-                                     if (_currentReportIndex >= reports.length - 1 && _currentReportIndex > 0) {
-                                       setState(() => _currentReportIndex--);
-                                     }
-                                   }
-                                 } catch (e) {
-                                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Reject failed: $e')));
-                                 }
-                               }
-                             },
-                           ),
-                         );
-                      },
-                      onReview: () => Navigator.push(
-                        context,
-                        _fadeRoute(AdminReportDetailScreen(report: adminReport)),
-                      ),
-                    );
-                  },
-                ),
+                        },
+                        onReject: () {
+                          final rc = TextEditingController();
+                          showDialog(
+                            context: context,
+                            builder:
+                                (_) => _RejectionDialog(
+                                  report: adminReport,
+                                  reasonController: rc,
+                                  onConfirmReject: (reason) async {
+                                    Navigator.pop(context);
+                                    final intId = int.tryParse(
+                                      report.reportId.replaceAll(
+                                        RegExp(r'[^0-9]'),
+                                        '',
+                                      ),
+                                    );
+                                    if (intId != null) {
+                                      try {
+                                        await reportProvider.rejectReport(
+                                          intId,
+                                        );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Report rejected'),
+                                            ),
+                                          );
+                                          if (_currentReportIndex >=
+                                                  reports.length - 1 &&
+                                              _currentReportIndex > 0) {
+                                            setState(
+                                              () => _currentReportIndex--,
+                                            );
+                                          }
+                                        }
+                                      } catch (e) {
+                                        if (mounted)
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Reject failed: $e',
+                                              ),
+                                            ),
+                                          );
+                                      }
+                                    }
+                                  },
+                                ),
+                          );
+                        },
+                        onReview:
+                            () => Navigator.push(
+                              context,
+                              _fadeRoute(
+                                AdminReportDetailScreen(report: adminReport),
+                              ),
+                            ),
+                      );
+                    },
+                  ),
         ),
       ],
     );
   }
 
-  Widget _buildInlineUndoCard(BuildContext context, _PendingReportData report, int intId) {
+  Widget _buildInlineUndoCard(
+    BuildContext context,
+    _PendingReportData report,
+    int intId,
+  ) {
     final color = AppColors.danger;
     final icon = Icons.delete_outline;
     final titleText = '${report.reportId} Deleted';
@@ -850,9 +975,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
               foregroundColor: Colors.white,
               backgroundColor: AppColors.success,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('UNDO', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'UNDO',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -869,7 +999,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
 
     final onConfirm = (String reason) {
       Navigator.pop(context);
-      final intId = int.tryParse(report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
+      final intId = int.tryParse(
+        report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+      );
       if (intId != null) {
         context.read<ReportProvider>().rejectReport(intId);
       }
@@ -880,20 +1012,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => RejectionBottomSheet(
-          report: adminReport,
-          reasonController: reasonController,
-          onConfirmReject: onConfirm,
-        ),
+        builder:
+            (_) => RejectionBottomSheet(
+              report: adminReport,
+              reasonController: reasonController,
+              onConfirmReject: onConfirm,
+            ),
       );
     } else {
       showDialog(
         context: context,
-        builder: (_) => _RejectionDialog(
-          report: adminReport,
-          reasonController: reasonController,
-          onConfirmReject: onConfirm,
-        ),
+        builder:
+            (_) => _RejectionDialog(
+              report: adminReport,
+              reasonController: reasonController,
+              onConfirmReject: onConfirm,
+            ),
       );
     }
   }
@@ -903,19 +1037,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     final reportProvider = context.watch<ReportProvider>();
     final activeRescues = reportProvider.activeRescues;
 
-    final teams = activeRescues.map((rescue) {
-      return _RescueTeamData(
-        initials: rescue['initials'] ?? 'RT',
-        initialsColor: AppColors.info,
-        name: rescue['name'] ?? 'Unknown Team',
-        locationStatus: rescue['locationStatus'] ?? 'Unknown',
-        badge: rescue['badge'] ?? 'Dispatch',
-        badgeColor: rescue['badge'] == 'Active' ? AppColors.success : AppColors.info,
-        reportType: rescue['reportType'] ?? 'Unknown',
-        title: rescue['title'] ?? 'Unknown',
-        flag: rescue['flag'] ?? 'Ongoing',
-      );
-    }).toList();
+    final teams =
+        activeRescues.map((rescue) {
+          return _RescueTeamData(
+            initials: rescue['initials'] ?? 'RT',
+            initialsColor: AppColors.info,
+            name: rescue['name'] ?? 'Unknown Team',
+            locationStatus: rescue['locationStatus'] ?? 'Unknown',
+            badge: rescue['badge'] ?? 'Dispatch',
+            badgeColor:
+                rescue['badge'] == 'Active'
+                    ? AppColors.success
+                    : AppColors.info,
+            reportType: rescue['reportType'] ?? 'Unknown',
+            title: rescue['title'] ?? 'Unknown',
+            flag: rescue['flag'] ?? 'Ongoing',
+          );
+        }).toList();
 
     final isWide =
         _Breakpoint.isTablet(context) || _Breakpoint.isDesktop(context);
@@ -928,31 +1066,34 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         if (teams.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
-            child: Text('No active rescue operations.', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              'No active rescue operations.',
+              style: TextStyle(color: Colors.white54),
+            ),
           )
         else if (isWide)
-            _threeColumnGrid(
-              teams
-                  .map(
-                    (team) => _AnimatedRescueCard(
-                      team: team,
-                      onTap: () => _showRescueTeamDialog(context, team),
-                    ),
-                  )
-                  .toList(),
-            )
+          _threeColumnGrid(
+            teams
+                .map(
+                  (team) => _AnimatedRescueCard(
+                    team: team,
+                    onTap: () => _showRescueTeamDialog(context, team),
+                  ),
+                )
+                .toList(),
+          )
         else
-            Column(
-              children:
-                  teams
-                      .map(
-                        (team) => _AnimatedRescueCard(
-                          team: team,
-                          onTap: () => _showRescueTeamDialog(context, team),
-                        ),
-                      )
-                      .toList(),
-            ),
+          Column(
+            children:
+                teams
+                    .map(
+                      (team) => _AnimatedRescueCard(
+                        team: team,
+                        onTap: () => _showRescueTeamDialog(context, team),
+                      ),
+                    )
+                    .toList(),
+          ),
       ],
     );
   }
@@ -1066,23 +1207,25 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     final reportProvider = context.watch<ReportProvider>();
     final duplicateReports = reportProvider.duplicateReports;
 
-    final duplicates = duplicateReports.map((dup) {
-      final mergedReportsRaw = dup['mergedReports'] as List<dynamic>? ?? [];
-      final mergedReports = mergedReportsRaw.map((r) {
-        return _MergedReportItem(
-          id: r['id'] ?? 'Unknown',
-          title: r['title'] ?? 'Unknown',
-          date: r['date'] ?? 'Unknown',
-          reporter: r['reporter'] ?? 'Unknown',
-        );
-      }).toList();
+    final duplicates =
+        duplicateReports.map((dup) {
+          final mergedReportsRaw = dup['mergedReports'] as List<dynamic>? ?? [];
+          final mergedReports =
+              mergedReportsRaw.map((r) {
+                return _MergedReportItem(
+                  id: r['id'] ?? 'Unknown',
+                  title: r['title'] ?? 'Unknown',
+                  date: r['date'] ?? 'Unknown',
+                  reporter: r['reporter'] ?? 'Unknown',
+                );
+              }).toList();
 
-      return _DuplicateReportData(
-        summary: dup['summary'] ?? '',
-        detail: dup['detail'] ?? '',
-        mergedReports: mergedReports,
-      );
-    }).toList();
+          return _DuplicateReportData(
+            summary: dup['summary'] ?? '',
+            detail: dup['detail'] ?? '',
+            mergedReports: mergedReports,
+          );
+        }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1092,7 +1235,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         if (duplicates.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
-            child: Text('No duplicate reports found.', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              'No duplicate reports found.',
+              style: TextStyle(color: Colors.white54),
+            ),
           )
         else
           ...duplicates.map(
@@ -1408,7 +1554,10 @@ class _SideRail extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: Row(
-                mainAxisAlignment: expanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+                mainAxisAlignment:
+                    expanded
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
                 children: [
                   const CircleAvatar(
                     radius: 16,
@@ -1421,8 +1570,21 @@ class _SideRail extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('System Console', style: TextStyle(color: AppColors.textLight, fontSize: 12, fontWeight: FontWeight.w600)),
-                          Text('Admin', style: TextStyle(color: Colors.white38, fontSize: 10)),
+                          Text(
+                            'System Console',
+                            style: TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'Admin',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 10,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1487,10 +1649,7 @@ class _SideRailItemState extends State<_SideRailItem> {
             borderRadius: BorderRadius.circular(10),
             border:
                 widget.isActive
-                    ? Border.all(
-                      color: AppColors.border,
-                      width: 1,
-                    )
+                    ? Border.all(color: AppColors.border, width: 1)
                     : null,
           ),
           child: Row(
@@ -1629,7 +1788,8 @@ class _SinglePendingReportCard extends StatefulWidget {
   });
 
   @override
-  State<_SinglePendingReportCard> createState() => _SinglePendingReportCardState();
+  State<_SinglePendingReportCard> createState() =>
+      _SinglePendingReportCardState();
 }
 
 class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
@@ -1644,10 +1804,15 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
       if (diff.inHours < 1) {
         if (diff.inMinutes < 1) return 'Just now';
         return '${diff.inMinutes} min ago';
-      } else if (diff.inHours < 24) return '${diff.inHours} hours ago';
-      else if (diff.inDays < 30) return '${diff.inDays} days ago';
-      else return '${dt.day}/${dt.month}/${dt.year}';
-    } catch (_) { return dateStr; }
+      } else if (diff.inHours < 24)
+        return '${diff.inHours} hours ago';
+      else if (diff.inDays < 30)
+        return '${diff.inDays} days ago';
+      else
+        return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   Color _getTypeColor(String type) {
@@ -1662,11 +1827,16 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
   (Color, String) _getSeverityInfo(String severity) {
     final s = severity.toLowerCase();
     if (s == 'low' || s == '1') return (const Color(0xFF4CAF50), 'LOW');
-    if (s == 'moderate' || s == 'medium' || s == '2') return (const Color(0xFF8BC34A), 'MODERATE');
+    if (s == 'moderate' || s == 'medium' || s == '2')
+      return (const Color(0xFF8BC34A), 'MODERATE');
     if (s == 'high' || s == '3') return (const Color(0xFFFFB800), 'HIGH');
     if (s == 'severe' || s == '4') return (const Color(0xFFFF6B2B), 'SEVERE');
-    if (s == 'extreme' || s == 'critical' || s == '5') return (const Color(0xFFFF3B3B), 'CRITICAL');
-    return (AppColors.warning, severity.toUpperCase().isNotEmpty ? severity.toUpperCase() : 'UNKNOWN');
+    if (s == 'extreme' || s == 'critical' || s == '5')
+      return (const Color(0xFFFF3B3B), 'CRITICAL');
+    return (
+      AppColors.warning,
+      severity.toUpperCase().isNotEmpty ? severity.toUpperCase() : 'UNKNOWN',
+    );
   }
 
   @override
@@ -1675,9 +1845,10 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
     final severityInfo = _getSeverityInfo(widget.report.severity);
     final severityColor = severityInfo.$1;
     final severityLabel = severityInfo.$2;
-    final String? heroImage = widget.report.mediaUrls.isNotEmpty 
-        ? widget.report.mediaUrls.first 
-        : null;
+    final String? heroImage =
+        widget.report.mediaUrls.isNotEmpty
+            ? widget.report.mediaUrls.first
+            : null;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1695,15 +1866,16 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
               color: _hovered ? typeColor.withOpacity(0.45) : AppColors.border,
               width: 1,
             ),
-            boxShadow: _hovered
-                ? [
-                    BoxShadow(
-                      color: typeColor.withOpacity(0.06),
-                      blurRadius: 14,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : [],
+            boxShadow:
+                _hovered
+                    ? [
+                      BoxShadow(
+                        color: typeColor.withOpacity(0.06),
+                        blurRadius: 14,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                    : [],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1712,36 +1884,48 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(15),
+                    ),
                     child: SizedBox(
                       height: 240,
                       width: double.infinity,
-                      child: heroImage != null
-                          ? Image.network(
-                              heroImage,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                color: typeColor.withOpacity(0.2),
+                      child:
+                          heroImage != null
+                              ? Image.network(
+                                heroImage,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Container(
+                                      color: typeColor.withOpacity(0.2),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.image_not_supported_rounded,
+                                          color: typeColor.withOpacity(0.5),
+                                          size: 48,
+                                        ),
+                                      ),
+                                    ),
+                              )
+                              : Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      typeColor.withOpacity(0.4),
+                                      typeColor.withOpacity(0.1),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
                                 child: Center(
-                                  child: Icon(Icons.image_not_supported_rounded, color: typeColor.withOpacity(0.5), size: 48),
+                                  child: Icon(
+                                    Icons.satellite_alt_rounded,
+                                    color: typeColor.withOpacity(0.5),
+                                    size: 48,
+                                  ),
                                 ),
                               ),
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    typeColor.withOpacity(0.4),
-                                    typeColor.withOpacity(0.1),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                              child: Center(
-                                child: Icon(Icons.satellite_alt_rounded, color: typeColor.withOpacity(0.5), size: 48),
-                              ),
-                            ),
                     ),
                   ),
                   Positioned(
@@ -1750,22 +1934,46 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: severityColor.withOpacity(0.85),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(severityLabel, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          child: Text(
+                            severityLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.bgDark.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.white24, width: 0.5),
+                            border: Border.all(
+                              color: Colors.white24,
+                              width: 0.5,
+                            ),
                           ),
-                          child: Text(widget.report.type.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                          child: Text(
+                            widget.report.type.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -1821,21 +2029,35 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, color: Colors.white54, size: 16),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          color: Colors.white54,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             '${widget.report.lat}, ${widget.report.lng}',
-                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Icon(Icons.access_time_rounded, color: Colors.white54, size: 16),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          color: Colors.white54,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _relativeDate(widget.report.date),
-                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -1867,9 +2089,20 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                                  Icon(
+                                    Icons.check_circle_outline_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('Verify', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    'Verify',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1885,14 +2118,28 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                               decoration: BoxDecoration(
                                 color: AppColors.bgSurface,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white24, width: 1),
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 1,
+                                ),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.history_rounded, color: Colors.white70, size: 20),
+                                  Icon(
+                                    Icons.history_rounded,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('Review', style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    'Review',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1908,14 +2155,28 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                               decoration: BoxDecoration(
                                 color: AppColors.bgSurface,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white24, width: 1),
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 1,
+                                ),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.highlight_off_rounded, color: AppColors.danger, size: 20),
+                                  Icon(
+                                    Icons.highlight_off_rounded,
+                                    color: AppColors.danger,
+                                    size: 20,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('Reject', style: TextStyle(color: AppColors.danger, fontSize: 15, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    'Reject',
+                                    style: TextStyle(
+                                      color: AppColors.danger,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

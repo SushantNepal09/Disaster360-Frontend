@@ -56,11 +56,16 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.info.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.info.withOpacity(0.4)),
+                              border: Border.all(
+                                color: AppColors.info.withOpacity(0.4),
+                              ),
                             ),
                             child: Text(
                               '${allTasks.length} Total',
@@ -82,12 +87,23 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen> {
                           border: Border.all(color: AppColors.border),
                         ),
                         child: TextField(
-                          onChanged: (val) => setState(() => _searchQuery = val),
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          onChanged:
+                              (val) => setState(() => _searchQuery = val),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                           decoration: const InputDecoration(
                             hintText: 'Search reports...',
-                            hintStyle: TextStyle(color: Colors.white30, fontSize: 14),
-                            prefixIcon: Icon(Icons.search, color: Colors.white30, size: 20),
+                            hintStyle: TextStyle(
+                              color: Colors.white30,
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: Colors.white30,
+                              size: 20,
+                            ),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(vertical: 14),
                           ),
@@ -97,33 +113,40 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen> {
                   ),
                 ),
                 Expanded(
-                  child: provider.isLoading && allTasks.isEmpty
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
-                          ),
-                        )
-                      : filtered.isEmpty
+                  child:
+                      provider.isLoading && allTasks.isEmpty
                           ? const Center(
-                              child: Text(
-                                'No verified reports available.',
-                                style: TextStyle(color: Colors.white54, fontSize: 15),
-                              ),
-                            )
-                          : RefreshIndicator(
-                              color: AppColors.orange,
-                              backgroundColor: AppColors.bgSurface,
-                              onRefresh: () => provider.fetchAll(),
-                              child: ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 14),
-                                itemBuilder: (context, i) {
-                                  final task = filtered[i];
-                                  return _ReportCard(task: task);
-                                },
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.orange,
                               ),
                             ),
+                          )
+                          : filtered.isEmpty
+                          ? const Center(
+                            child: Text(
+                              'No verified reports available.',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 15,
+                              ),
+                            ),
+                          )
+                          : RefreshIndicator(
+                            color: AppColors.orange,
+                            backgroundColor: AppColors.bgSurface,
+                            onRefresh: () => provider.fetchAll(),
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              itemCount: filtered.length,
+                              separatorBuilder:
+                                  (_, __) => const SizedBox(height: 14),
+                              itemBuilder: (context, i) {
+                                final task = filtered[i];
+                                return _ReportCard(task: task);
+                              },
+                            ),
+                          ),
                 ),
               ],
             ),
@@ -174,8 +197,15 @@ class _ReportCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            task.description.isEmpty ? 'No description provided' : task.description,
-            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600, height: 1.3),
+            task.description.isEmpty
+                ? 'No description provided'
+                : task.description,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

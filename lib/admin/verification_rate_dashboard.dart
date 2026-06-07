@@ -61,7 +61,8 @@ class _VerificationRateDashboardScreenState
     verifiedPct = total > 0 ? (widget.verifiedCount / total * 100) : 0;
     rejectedPct = total > 0 ? (widget.rejectedCount / total * 100) : 0;
     pendingPct = total > 0 ? (widget.pendingCount / total * 100) : 0;
-    otherCount = widget.totalReports -
+    otherCount =
+        widget.totalReports -
         widget.verifiedCount -
         widget.rejectedCount -
         widget.pendingCount;
@@ -120,48 +121,34 @@ class _VerificationRateDashboardScreenState
                     _buildTopHeader(context)
                         .animate()
                         .fadeIn(duration: 500.ms)
-                        .slideY(
-                            begin: 0.5,
-                            end: 0,
-                            curve: Curves.easeOutCubic),
+                        .slideY(begin: 0.5, end: 0, curve: Curves.easeOutCubic),
                     const SizedBox(height: 48),
                     _buildTitleSection()
                         .animate()
                         .fadeIn(duration: 500.ms, delay: 100.ms)
-                        .slideY(
-                            begin: 0.5,
-                            end: 0,
-                            curve: Curves.easeOutCubic),
+                        .slideY(begin: 0.5, end: 0, curve: Curves.easeOutCubic),
                     const SizedBox(height: 24),
                     _buildKPIGrid(isMobile),
                     const SizedBox(height: 24),
                     _buildPieChartSection(isMobile)
                         .animate()
                         .fadeIn(duration: 600.ms, delay: 400.ms)
-                        .slideY(
-                            begin: 0.1,
-                            end: 0,
-                            curve: Curves.easeOutCubic),
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
                     const SizedBox(height: 24),
                     _buildBreakdownSection()
                         .animate()
                         .fadeIn(duration: 600.ms, delay: 500.ms)
-                        .slideY(
-                            begin: 0.1,
-                            end: 0,
-                            curve: Curves.easeOutCubic),
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
                     const SizedBox(height: 24),
                     _buildDistributionSummary()
                         .animate()
                         .fadeIn(duration: 600.ms, delay: 600.ms)
-                        .slideY(
-                            begin: 0.1,
-                            end: 0,
-                            curve: Curves.easeOutCubic),
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
                     const SizedBox(height: 64),
-                    _buildFooter()
-                        .animate()
-                        .fadeIn(duration: 600.ms, delay: 1200.ms),
+                    _buildFooter().animate().fadeIn(
+                      duration: 600.ms,
+                      delay: 1200.ms,
+                    ),
                   ],
                 ),
               ),
@@ -215,10 +202,7 @@ class _VerificationRateDashboardScreenState
           ),
           Text(
             'Analytics Console',
-            style: GoogleFonts.dmMono(
-              color: _mutedText,
-              fontSize: 12,
-            ),
+            style: GoogleFonts.dmMono(color: _mutedText, fontSize: 12),
           ),
         ],
         const Spacer(),
@@ -289,46 +273,46 @@ class _VerificationRateDashboardScreenState
       physics: const NeverScrollableScrollPhysics(),
       children: [
         _buildKPICard(
-          title: 'Total Reports',
-          value: widget.totalReports,
-          subtitle: 'in $_rangeLabel',
-          icon: Icons.assessment_rounded,
-          valueColor: _accent,
-          bgTint: _accent,
-        )
+              title: 'Total Reports',
+              value: widget.totalReports,
+              subtitle: 'in $_rangeLabel',
+              icon: Icons.assessment_rounded,
+              valueColor: _accent,
+              bgTint: _accent,
+            )
             .animate()
             .fadeIn(duration: 500.ms, delay: 100.ms)
             .slideY(begin: 0.2, end: 0),
         _buildKPICard(
-          title: 'Verified',
-          value: widget.verifiedCount,
-          subtitle: '${verifiedPct.toStringAsFixed(1)}% of total',
-          icon: Icons.verified_rounded,
-          valueColor: _verified,
-          bgTint: _verified,
-        )
+              title: 'Verified',
+              value: widget.verifiedCount,
+              subtitle: '${verifiedPct.toStringAsFixed(1)}% of total',
+              icon: Icons.verified_rounded,
+              valueColor: _verified,
+              bgTint: _verified,
+            )
             .animate()
             .fadeIn(duration: 500.ms, delay: 180.ms)
             .slideY(begin: 0.2, end: 0),
         _buildKPICard(
-          title: 'Rejected',
-          value: widget.rejectedCount,
-          subtitle: '${rejectedPct.toStringAsFixed(1)}% of total',
-          icon: Icons.cancel_rounded,
-          valueColor: _rejected,
-          bgTint: _rejected,
-        )
+              title: 'Rejected',
+              value: widget.rejectedCount,
+              subtitle: '${rejectedPct.toStringAsFixed(1)}% of total',
+              icon: Icons.cancel_rounded,
+              valueColor: _rejected,
+              bgTint: _rejected,
+            )
             .animate()
             .fadeIn(duration: 500.ms, delay: 260.ms)
             .slideY(begin: 0.2, end: 0),
         _buildKPICard(
-          title: 'Pending',
-          value: widget.pendingCount,
-          subtitle: '${pendingPct.toStringAsFixed(1)}% of total',
-          icon: Icons.pending_actions_rounded,
-          valueColor: _pending,
-          bgTint: _pending,
-        )
+              title: 'Pending',
+              value: widget.pendingCount,
+              subtitle: '${pendingPct.toStringAsFixed(1)}% of total',
+              icon: Icons.pending_actions_rounded,
+              valueColor: _pending,
+              bgTint: _pending,
+            )
             .animate()
             .fadeIn(duration: 500.ms, delay: 340.ms)
             .slideY(begin: 0.2, end: 0),
@@ -442,10 +426,7 @@ class _VerificationRateDashboardScreenState
                   const SizedBox(height: 4),
                   Text(
                     'Report status breakdown by category',
-                    style: GoogleFonts.dmMono(
-                      color: _mutedText,
-                      fontSize: 11,
-                    ),
+                    style: GoogleFonts.dmMono(color: _mutedText, fontSize: 11),
                   ),
                 ],
               ),
@@ -508,10 +489,7 @@ class _VerificationRateDashboardScreenState
         ),
         const SizedBox(width: 32),
         // Legend
-        Expanded(
-          flex: 5,
-          child: _buildLegend(),
-        ),
+        Expanded(flex: 5, child: _buildLegend()),
       ],
     );
   }
@@ -567,16 +545,24 @@ class _VerificationRateDashboardScreenState
   List<_PieSegment> _buildSegments() {
     final segs = <_PieSegment>[];
     if (widget.verifiedCount > 0) {
-      segs.add(_PieSegment(_verified, widget.verifiedCount.toDouble(), 'Verified'));
+      segs.add(
+        _PieSegment(_verified, widget.verifiedCount.toDouble(), 'Verified'),
+      );
     }
     if (widget.rejectedCount > 0) {
-      segs.add(_PieSegment(_rejected, widget.rejectedCount.toDouble(), 'Rejected'));
+      segs.add(
+        _PieSegment(_rejected, widget.rejectedCount.toDouble(), 'Rejected'),
+      );
     }
     if (widget.pendingCount > 0) {
-      segs.add(_PieSegment(_pending, widget.pendingCount.toDouble(), 'Pending'));
+      segs.add(
+        _PieSegment(_pending, widget.pendingCount.toDouble(), 'Pending'),
+      );
     }
     if (otherCount > 0) {
-      segs.add(_PieSegment(const Color(0xFF2A3548), otherCount.toDouble(), 'Other'));
+      segs.add(
+        _PieSegment(const Color(0xFF2A3548), otherCount.toDouble(), 'Other'),
+      );
     }
     if (segs.isEmpty) {
       segs.add(_PieSegment(const Color(0xFF2A3548), 1, 'No Data'));
@@ -658,10 +644,7 @@ class _VerificationRateDashboardScreenState
               ),
               Text(
                 '$count reports',
-                style: GoogleFonts.dmMono(
-                  color: _mutedText,
-                  fontSize: 11,
-                ),
+                style: GoogleFonts.dmMono(color: _mutedText, fontSize: 11),
               ),
             ],
           ),
@@ -689,17 +672,44 @@ class _VerificationRateDashboardScreenState
   // ─── BREAKDOWN SECTION ────────────────────────────────────────────────────
   Widget _buildBreakdownSection() {
     final items = <_BreakdownItem>[
-      _BreakdownItem('Verified', widget.verifiedCount, _verified, Icons.verified_rounded),
-      _BreakdownItem('Rejected', widget.rejectedCount, _rejected, Icons.cancel_rounded),
-      _BreakdownItem('Pending', widget.pendingCount, _pending, Icons.pending_actions_rounded),
+      _BreakdownItem(
+        'Verified',
+        widget.verifiedCount,
+        _verified,
+        Icons.verified_rounded,
+      ),
+      _BreakdownItem(
+        'Rejected',
+        widget.rejectedCount,
+        _rejected,
+        Icons.cancel_rounded,
+      ),
+      _BreakdownItem(
+        'Pending',
+        widget.pendingCount,
+        _pending,
+        Icons.pending_actions_rounded,
+      ),
     ];
     if (otherCount > 0) {
-      items.add(_BreakdownItem('Other', otherCount, const Color(0xFF2A3548), Icons.help_outline_rounded));
+      items.add(
+        _BreakdownItem(
+          'Other',
+          otherCount,
+          const Color(0xFF2A3548),
+          Icons.help_outline_rounded,
+        ),
+      );
     }
 
-    final maxCount = items.isEmpty
-        ? 1
-        : items.map((e) => e.count).reduce(math.max).clamp(1, double.infinity).toInt();
+    final maxCount =
+        items.isEmpty
+            ? 1
+            : items
+                .map((e) => e.count)
+                .reduce(math.max)
+                .clamp(1, double.infinity)
+                .toInt();
 
     return Container(
       decoration: BoxDecoration(
@@ -736,8 +746,7 @@ class _VerificationRateDashboardScreenState
           ...items.asMap().entries.map((entry) {
             final idx = entry.key;
             final item = entry.value;
-            final widthRatio =
-                maxCount > 0 ? item.count / maxCount : 0.0;
+            final widthRatio = maxCount > 0 ? item.count / maxCount : 0.0;
             final isMax = item.count == maxCount && item.count > 0;
             return _buildBreakdownRow(item, widthRatio, isMax)
                 .animate()
@@ -750,7 +759,10 @@ class _VerificationRateDashboardScreenState
   }
 
   Widget _buildBreakdownRow(
-      _BreakdownItem item, double widthRatio, bool isMax) {
+    _BreakdownItem item,
+    double widthRatio,
+    bool isMax,
+  ) {
     return _HoverRow(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
@@ -782,30 +794,34 @@ class _VerificationRateDashboardScreenState
                 ),
                 if (isMax)
                   Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: item.color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: item.color.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      'HIGHEST',
-                      style: GoogleFonts.dmMono(
-                        color: item.color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                      .animate(
-                          onPlay: (c) => c.repeat(reverse: true))
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: item.color.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: item.color.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Text(
+                          'HIGHEST',
+                          style: GoogleFonts.dmMono(
+                            color: item.color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
                       .scale(
-                          begin: const Offset(1, 1),
-                          end: const Offset(1.08, 1.08),
-                          duration: 1.seconds,
-                          curve: Curves.easeInOut),
+                        begin: const Offset(1, 1),
+                        end: const Offset(1.08, 1.08),
+                        duration: 1.seconds,
+                        curve: Curves.easeInOut,
+                      ),
                 Text(
                   item.count.toString(),
                   style: GoogleFonts.dmMono(
@@ -828,14 +844,15 @@ class _VerificationRateDashboardScreenState
                 tween: Tween(begin: 0, end: widthRatio),
                 duration: const Duration(milliseconds: 900),
                 curve: Curves.easeOutCubic,
-                builder: (_, v, __) => LinearProgressIndicator(
-                  value: v,
-                  backgroundColor: _elevatedPanel,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    isMax ? item.color : item.color.withOpacity(0.6),
-                  ),
-                  minHeight: 6,
-                ),
+                builder:
+                    (_, v, __) => LinearProgressIndicator(
+                      value: v,
+                      backgroundColor: _elevatedPanel,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isMax ? item.color : item.color.withOpacity(0.6),
+                      ),
+                      minHeight: 6,
+                    ),
               ),
             ),
           ],
@@ -847,18 +864,19 @@ class _VerificationRateDashboardScreenState
   // ─── DISTRIBUTION SUMMARY ─────────────────────────────────────────────────
   Widget _buildDistributionSummary() {
     final total = widget.totalReports;
-    final verifiedRatio =
-        total > 0 ? widget.verifiedCount / total : 0.0;
-    final healthLabel = verifiedRatio >= 0.7
-        ? 'Excellent'
-        : verifiedRatio >= 0.5
+    final verifiedRatio = total > 0 ? widget.verifiedCount / total : 0.0;
+    final healthLabel =
+        verifiedRatio >= 0.7
+            ? 'Excellent'
+            : verifiedRatio >= 0.5
             ? 'Good'
             : verifiedRatio >= 0.3
-                ? 'Needs Improvement'
-                : 'Critical';
-    final healthColor = verifiedRatio >= 0.7
-        ? _verified
-        : verifiedRatio >= 0.5
+            ? 'Needs Improvement'
+            : 'Critical';
+    final healthColor =
+        verifiedRatio >= 0.7
+            ? _verified
+            : verifiedRatio >= 0.5
             ? _pending
             : _rejected;
 
@@ -895,22 +913,34 @@ class _VerificationRateDashboardScreenState
                     children: [
                       if (verifiedPct > 0)
                         Flexible(
-                          flex: (verifiedPct * progress * 10).round().clamp(1, 1000),
+                          flex: (verifiedPct * progress * 10).round().clamp(
+                            1,
+                            1000,
+                          ),
                           child: Container(color: _verified),
                         ),
                       if (rejectedPct > 0)
                         Flexible(
-                          flex: (rejectedPct * progress * 10).round().clamp(1, 1000),
+                          flex: (rejectedPct * progress * 10).round().clamp(
+                            1,
+                            1000,
+                          ),
                           child: Container(color: _rejected),
                         ),
                       if (pendingPct > 0)
                         Flexible(
-                          flex: (pendingPct * progress * 10).round().clamp(1, 1000),
+                          flex: (pendingPct * progress * 10).round().clamp(
+                            1,
+                            1000,
+                          ),
                           child: Container(color: _pending),
                         ),
                       if (otherPct > 0)
                         Flexible(
-                          flex: (otherPct * progress * 10).round().clamp(1, 1000),
+                          flex: (otherPct * progress * 10).round().clamp(
+                            1,
+                            1000,
+                          ),
                           child: Container(color: const Color(0xFF2A3548)),
                         ),
                     ],
@@ -927,8 +957,7 @@ class _VerificationRateDashboardScreenState
                 style: GoogleFonts.dmMono(color: _mutedText, fontSize: 12),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: healthColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -958,16 +987,18 @@ class _VerificationRateDashboardScreenState
           Row(
             children: [
               _buildQuickStat(
-                  'Verified-to-Rejected Ratio',
-                  widget.rejectedCount > 0
-                      ? '${(widget.verifiedCount / widget.rejectedCount).toStringAsFixed(1)}:1'
-                      : '∞:1',
-                  _verified),
+                'Verified-to-Rejected Ratio',
+                widget.rejectedCount > 0
+                    ? '${(widget.verifiedCount / widget.rejectedCount).toStringAsFixed(1)}:1'
+                    : '∞:1',
+                _verified,
+              ),
               const SizedBox(width: 16),
               _buildQuickStat(
-                  'Pending Queue',
-                  widget.pendingCount.toString(),
-                  _pending),
+                'Pending Queue',
+                widget.pendingCount.toString(),
+                _pending,
+              ),
             ],
           ),
         ],
@@ -998,10 +1029,7 @@ class _VerificationRateDashboardScreenState
             const SizedBox(height: 4),
             Text(
               label,
-              style: GoogleFonts.dmMono(
-                color: _mutedText,
-                fontSize: 10,
-              ),
+              style: GoogleFonts.dmMono(color: _mutedText, fontSize: 10),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1072,7 +1100,10 @@ class _AnimatedPieChartPainter extends CustomPainter {
     for (final seg in segments) {
       if (seg.value <= 0) continue;
       final fullSweep = (seg.value / total) * 2 * math.pi - gap;
-      final availableSweep = math.max(0.0, math.min(fullSweep, totalSweep - accumSweep));
+      final availableSweep = math.max(
+        0.0,
+        math.min(fullSweep, totalSweep - accumSweep),
+      );
 
       if (availableSweep <= 0) break;
 
@@ -1178,10 +1209,7 @@ class _AnimatedCounter extends StatelessWidget {
       duration: const Duration(milliseconds: 1200),
       curve: Curves.easeOutCubic,
       builder: (_, v, __) {
-        return Text(
-          v.round().toString(),
-          style: style,
-        );
+        return Text(v.round().toString(), style: style);
       },
     );
   }

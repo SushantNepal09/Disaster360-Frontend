@@ -127,6 +127,33 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
 
     _cardController.forward();
     _decisionController.forward();
+
+    _fetchAvailableTeams();
+  }
+
+  List<String> _availableTeams = [];
+
+  void _fetchAvailableTeams() async {
+    try {
+      final api = ApiService();
+      final response = await api.get('/admin/users');
+      if (response is List) {
+        final teams = response
+            .where((u) => u['role'] == 'rescue' && u['is_rescueteam'] == true)
+            .map((u) {
+              final name = u['full_name'] as String?;
+              return (name != null && name.trim().isNotEmpty) ? name : (u['email'] as String? ?? 'Unknown Team');
+            })
+            .toList();
+        if (mounted) {
+          setState(() {
+            _availableTeams = teams;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching rescue teams: $e");
+    }
   }
 
   @override
@@ -136,16 +163,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     super.dispose();
   }
 
-  final List<String> _availableTeams = [
-    'Fire Response Team A',
-    'Fire Response Team B',
-    'Ambulance Unit 1',
-    'Ambulance Unit 2',
-    'Flood Response Team A',
-    'Flood Response Team B',
-    'Search & Rescue Unit',
-    'Police Response Unit',
-  ];
+  // Fetch real teams from API now
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
@@ -928,6 +946,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           ),
         ),
         const SizedBox(height: 12),
+        if (_availableTeams.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Text('No rescue teams available', style: TextStyle(color: Colors.white54, fontSize: 12)),
+          ),
         ..._availableTeams.map(
           (team) => _TeamCheckTile(
             label: team,

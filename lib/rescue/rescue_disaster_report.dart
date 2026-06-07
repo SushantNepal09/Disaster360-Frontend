@@ -1,6 +1,8 @@
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -37,8 +39,8 @@ class PostDisasterReportScreen extends StatefulWidget {
 
 class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
     with SingleTickerProviderStateMixin {
-  // ── Completed tasks (same data as rescue_tasks_screen, filtered) ───────────
-  final List<RescueTask> _completedTasks = [];
+  // ── Completed tasks populated from provider ─────────────────────────────────
+  List<RescueTask> _completedTasks = [];
 
   // ── State ──────────────────────────────────────────────────────────────────
   RescueTask? _selectedTask;
@@ -77,6 +79,16 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut));
     _entryCtrl.forward();
+
+    // Load completed tasks from provider after frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<RescueProvider>();
+      setState(() {
+        _completedTasks = provider.myOperations
+            .where((t) => t.status == TaskStatus.completed)
+            .toList();
+      });
+    });
   }
 
   @override
@@ -138,17 +150,32 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
     }
     if (!_formKey.currentState!.validate()) return;
 
+    final rescueUpdateId = _selectedTask!.rescueUpdateId;
+    if (rescueUpdateId == null) {
+      _showSnack(
+        'This task does not have a valid operation ID. Cannot submit.',
+        color: AppColors.danger,
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
-    // Simulate API call — replace with real service call
-    await Future.delayed(const Duration(seconds: 2));
+    // Combine all form fields into one structured report text
+    final reportText = [
+      'INCIDENT SUMMARY:\n${_incidentSummaryCtrl.text.trim()}',
+      'RESPONSE DETAILS:\n${_responseDetailsCtrl.text.trim()}',
+      'INFRASTRUCTURE DAMAGE:\n${_infrastructureCtrl.text.trim()}',
+      'DAMAGE ESTIMATE (NPR): ${_damageEstimateCtrl.text.trim()}',
+      'CASUALTIES: ${_casualtiesCtrl.text.trim()}',
+    ].join('\n\n');
 
-    // Simulate success (set to false to test failure path)
-    const bool success = true;
+    try {
+      await context
+          .read<RescueProvider>()
+          .submitPostIncidentReport(rescueUpdateId, reportText);
 
-    if (!mounted) return;
-
-    if (success) {
+      if (!mounted) return;
       final taskId = _selectedTask!.taskId;
       _clearForm();
       setState(() => _isSubmitting = false);
@@ -175,10 +202,11 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
           duration: const Duration(seconds: 4),
         ),
       );
-    } else {
+    } catch (e) {
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
       _showSnack(
-        'Submission failed. Check your connection and try again.',
+        e.toString().replaceFirst('Exception: ', ''),
         color: AppColors.danger,
       );
     }

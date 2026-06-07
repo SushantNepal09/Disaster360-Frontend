@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/auth/auth_wrapper.dart';
 import 'package:disaster360/services/session_service.dart';
 import 'package:disaster360/services/deep_link_router.dart';
@@ -35,6 +36,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ReportProvider()),
+        ChangeNotifierProvider(create: (_) => RescueProvider()),
       ],
       child: DisasterApp(router: router),
     ),

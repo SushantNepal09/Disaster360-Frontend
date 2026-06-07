@@ -3,12 +3,16 @@ import 'package:disaster360/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/providers/auth_provider.dart';
 import 'package:disaster360/services/api_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:disaster360/services/supabase_storage_service.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ReportDisasterScreen extends StatefulWidget {
   const ReportDisasterScreen({super.key});
@@ -111,7 +115,7 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
         })
         .catchError((e) => debugPrint("Error fetching location: $e"));
 
-    // On Desktop platforms, getPositionStream has a known issue where it calls 
+    // On Desktop platforms, getPositionStream has a known issue where it calls
     // the platform channel on a background thread, causing a crash.
     // Since we already fetched the current location above, we can just return.
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -245,6 +249,20 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
     _hourglassController.repeat();
 
     try {
+      // Offline SMS Fallback Check
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isOffline = connectivityResult.contains(ConnectivityResult.none) || connectivityResult.isEmpty;
+      
+      if (isOffline) {
+         _hourglassController.stop();
+         setState(() {
+            _isSubmitting = false;
+            _isDuplicateCheckRunning = false;
+         });
+         await _launchSmsFallback();
+         return;
+      }
+
       // Ensure minimum photos
       if (_uploadedPhotos.length < 2) {
         _snack('Please provide at least 2 photos of the incident.');
@@ -260,8 +278,11 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
       final storageService = SupabaseStorageService();
 
       // Step 1: Upload images to Supabase
-      List<File> filesToUpload = _uploadedPhotos.map((path) => File(path)).toList();
-      List<String> uploadedUrls = await storageService.uploadImages(filesToUpload);
+      List<File> filesToUpload =
+          _uploadedPhotos.map((path) => File(path)).toList();
+      List<String> uploadedUrls = await storageService.uploadImages(
+        filesToUpload,
+      );
 
       String severityStr = "Low";
       if (_severityLevel == 1) severityStr = "Medium";
@@ -291,13 +312,8 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
       // Step 3: Attach Media URLs to the report
       await api.post(
         '/reports/$reportId/media',
-        body: {
-          "media_urls": uploadedUrls,
-          "file_type": "image"
-        }
+        body: {"media_urls": uploadedUrls, "file_type": "image"},
       );
-
-
 
       // Keep it checking UI state but secretly update _isDuplicate so the step dots color correctly
       if (mounted) {
@@ -345,6 +361,48 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
           context,
         ).showSnackBar(SnackBar(content: Text('Error submitting report: $e')));
       }
+    }
+  }
+
+  Future<void> _launchSmsFallback() async {
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.user;
+    final userName = user?.fullName ?? user?.email ?? "Unknown User";
+    final userId = user?.id ?? "UNKNOWN_ID";
+    
+    final severityStr = _severityLevel == 1 ? "Medium" : (_severityLevel == 2 ? "High" : (_severityLevel == 3 ? "Critical" : "Low"));
+    final lat = _currentPosition?.latitude.toStringAsFixed(4) ?? "0.0";
+    final lng = _currentPosition?.longitude.toStringAsFixed(4) ?? "0.0";
+    
+    // Format: TITLE|DESCRIPTION|SEVERITY|LATITUDE|LONGITUDE|USER_NAME|USER_ID
+    final smsBody = "${_titleCtrl.text}|${_descCtrl.text}|$severityStr|$lat|$lng|$userName|$userId";
+
+    String? encodeQueryParameters(Map<String, String> params) {
+      return params.entries
+          .map((MapEntry<String, String> e) =>
+              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+          .join('&');
+    }
+    
+    final gatewayNumber = dotenv.env['SMS_GATEWAY_NUMBER'] ?? '';
+
+    final Uri smsLaunchUri = Uri(
+      scheme: 'sms',
+      path: gatewayNumber,
+      query: encodeQueryParameters(<String, String>{
+        'body': smsBody,
+      }),
+    );
+
+    try {
+      if (await canLaunchUrl(smsLaunchUri)) {
+        await launchUrl(smsLaunchUri);
+        _snack('Opened SMS app for offline reporting.');
+      } else {
+        _snack('Could not launch SMS app. Please manually text: $smsBody');
+      }
+    } catch (e) {
+      _snack('Failed to open SMS: $e');
     }
   }
 

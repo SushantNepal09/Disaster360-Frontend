@@ -55,5 +55,9 @@
         <string>Disaster360 needs access to your photo library to attach photos to your disaster reports.</string>
         <key>NSCameraUsageDescription</key>
         <string>Disaster360 needs access to your camera to take photos of disasters.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>sms</string>
+	</array>
 </dict>
 </plist>

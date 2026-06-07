@@ -8,7 +8,6 @@ import 'package:disaster360/services/feedback.dart';
 import 'package:disaster360/services/api_service.dart';
 import 'package:disaster360/providers/report_provider.dart';
 
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ADMIN PROFILE SCREEN — Disaster360
 //  Enhanced:
@@ -79,12 +78,18 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
         for (var u in userRes) {
           final role = (u['role'] ?? 'citizen').toString().toLowerCase();
           final appUser = _AppUser(
-            id: u['id'].toString().length >= 8 ? u['id'].toString().substring(0, 8) : u['id'].toString(),
+            id:
+                u['id'].toString().length >= 8
+                    ? u['id'].toString().substring(0, 8)
+                    : u['id'].toString(),
             name: u['full_name'] ?? 'Unknown',
             role: role.toUpperCase(),
             phone: u['phone']?.toString() ?? 'N/A',
             loginTime: 'Just now',
-            citizenId: u['id'].toString().length >= 5 ? u['id'].toString().substring(0, 5) : u['id'].toString(),
+            citizenId:
+                u['id'].toString().length >= 5
+                    ? u['id'].toString().substring(0, 5)
+                    : u['id'].toString(),
             isOnline: true,
             district: 'N/A',
           );
@@ -106,7 +111,10 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
       final reportProv = context.read<ReportProvider>();
       final reports = reportProv.reports;
       setState(() {
-        _alertsManaged = reports.where((r) => r.status == 'Verified' || r.status == 'Resolved').length;
+        _alertsManaged =
+            reports
+                .where((r) => r.status == 'Verified' || r.status == 'Resolved')
+                .length;
         _reportsReviewed = reports.where((r) => r.status != 'Pending').length;
         _teamsDeployed = reportProv.activeRescues.length;
         _zonesMonitored = reports.map((r) => r.title).toSet().length;
@@ -928,7 +936,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
       );
     }
   }
-
 
   // ── Broadcast alert ────────────────────────────────────────────────────────
   void _showBroadcastDialog(BuildContext context) {
@@ -1960,9 +1967,15 @@ class _HoverUserTileState extends State<_HoverUserTile> {
                 ),
                 child: Center(
                   child: Text(
-                    widget.user.name.trim().isEmpty 
-                        ? 'U' 
-                        : widget.user.name.trim().split(' ').take(2).map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase(),
+                    widget.user.name.trim().isEmpty
+                        ? 'U'
+                        : widget.user.name
+                            .trim()
+                            .split(' ')
+                            .take(2)
+                            .map((w) => w.isNotEmpty ? w[0] : '')
+                            .join()
+                            .toUpperCase(),
                     style: TextStyle(
                       color: rc,
                       fontSize: 14,
@@ -2415,4 +2428,3 @@ class _LogEntry {
     required this.level,
   });
 }
-

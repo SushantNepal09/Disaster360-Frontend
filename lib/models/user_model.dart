@@ -7,16 +7,18 @@ class User {
   final String? citizenshipNumber;
   final String? citizenshipIssueDate;
   final String? citizenshipIssueDistrict;
+  final String? specialization;
 
   User({
-    required this.id, 
-    required this.email, 
+    required this.id,
+    required this.email,
     required this.role,
     this.fullName,
     this.phone,
     this.citizenshipNumber,
     this.citizenshipIssueDate,
     this.citizenshipIssueDistrict,
+    this.specialization,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class User {
       citizenshipNumber: json['citizenship_number'],
       citizenshipIssueDate: json['citizenship_issue_date'],
       citizenshipIssueDistrict: json['citizenship_issue_district'],
+      specialization: json['specialization'],
     );
   }
 
@@ -42,6 +45,7 @@ class User {
       'citizenship_number': citizenshipNumber,
       'citizenship_issue_date': citizenshipIssueDate,
       'citizenship_issue_district': citizenshipIssueDistrict,
+      'specialization': specialization,
     };
   }
 }

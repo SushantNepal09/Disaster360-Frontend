@@ -83,7 +83,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
     });
     _refreshSpinController.repeat();
     try {
-      final response = await _apiService.get('/admin/analytics?time_range=$_timeRange');
+      final response = await _apiService.get(
+        '/admin/analytics?time_range=$_timeRange',
+      );
       setState(() {
         _analyticsData = response;
         _isLoading = false;
@@ -142,18 +144,16 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         ),
       );
     } else {
-      final layout = _BP.isWide(context)
-          ? _buildWideLayout(context)
-          : _buildMobileLayout(context);
-          
+      final layout =
+          _BP.isWide(context)
+              ? _buildWideLayout(context)
+              : _buildMobileLayout(context);
+
       content = AnimatedOpacity(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         opacity: _isLoading ? 0.4 : 1.0,
-        child: IgnorePointer(
-          ignoring: _isLoading,
-          child: layout,
-        ),
+        child: IgnorePointer(ignoring: _isLoading, child: layout),
       );
     }
 
@@ -323,12 +323,21 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                 curve: Curves.easeInOut,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: _isLoading ? AppColors.success.withOpacity(0.08) : AppColors.bgDark,
+                    color:
+                        _isLoading
+                            ? AppColors.success.withOpacity(0.08)
+                            : AppColors.bgDark,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: _isLoading ? AppColors.success.withOpacity(0.4) : AppColors.border,
+                      color:
+                          _isLoading
+                              ? AppColors.success.withOpacity(0.4)
+                              : AppColors.border,
                     ),
                   ),
                   child: Row(
@@ -336,7 +345,11 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                     children: [
                       RotationTransition(
                         turns: _refreshSpinController,
-                        child: const Icon(Icons.refresh_rounded, color: AppColors.success, size: 15),
+                        child: const Icon(
+                          Icons.refresh_rounded,
+                          color: AppColors.success,
+                          size: 15,
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -358,7 +371,10 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
               borderColor: AppColors.border,
               hoverBorderColor: AppColors.info,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.bgDark,
                   borderRadius: BorderRadius.circular(10),
@@ -366,7 +382,11 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.download_rounded, color: AppColors.info, size: 15),
+                    Icon(
+                      Icons.download_rounded,
+                      color: AppColors.info,
+                      size: 15,
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'Export',
@@ -438,12 +458,15 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
   // ─── KPI Row ───────────────────────────────────────────────────────────────
   Widget _buildKpiRow(BuildContext context) {
     final kpis = Map<String, dynamic>.from(_analyticsData!['kpis']);
-    final trends = Map<String, dynamic>.from(_analyticsData!['trends'] ?? {
-      'total': {'value': '0%', 'up': true},
-      'verified': {'value': '0%', 'up': true},
-      'rejected': {'value': '0%', 'up': true},
-      'pending': {'value': '0%', 'up': true},
-    });
+    final trends = Map<String, dynamic>.from(
+      _analyticsData!['trends'] ??
+          {
+            'total': {'value': '0%', 'up': true},
+            'verified': {'value': '0%', 'up': true},
+            'rejected': {'value': '0%', 'up': true},
+            'pending': {'value': '0%', 'up': true},
+          },
+    );
 
     return Column(
       children: [
@@ -500,7 +523,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
 
   // ─── Report Progress ───────────────────────────────────────────────────────
   Widget _buildReportProgressCard(BuildContext context) {
-    final fullData = List<Map<String, dynamic>>.from(_analyticsData!['dailyReports']);
+    final fullData = List<Map<String, dynamic>>.from(
+      _analyticsData!['dailyReports'],
+    );
     List<Map<String, dynamic>> data = fullData;
     if (_timeRange == '24H' && data.length > 6) {
       data = data.sublist(data.length - 6);
@@ -510,10 +535,11 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ReportVolumeDashboardScreen(
-              data: fullData,
-              timeRange: _timeRange,
-            ),
+            builder:
+                (context) => ReportVolumeDashboardScreen(
+                  data: fullData,
+                  timeRange: _timeRange,
+                ),
           ),
         );
       },
@@ -551,21 +577,23 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
             SizedBox(height: 100, child: _BarChartPainterWidget(data: data)),
             const SizedBox(height: 8),
             Row(
-              children: data.map((e) {
-                return Expanded(
-                  child: Center(
-                    child: e['showLabel'] == true
-                        ? Text(
-                            e['label'] as String,
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 10,
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                );
-              }).toList(),
+              children:
+                  data.map((e) {
+                    return Expanded(
+                      child: Center(
+                        child:
+                            e['showLabel'] == true
+                                ? Text(
+                                  e['label'] as String,
+                                  style: const TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 10,
+                                  ),
+                                )
+                                : const SizedBox.shrink(),
+                      ),
+                    );
+                  }).toList(),
             ),
           ],
         ),
@@ -589,13 +617,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => VerificationRateDashboardScreen(
-              totalReports: total.toInt(),
-              verifiedCount: verified.toInt(),
-              rejectedCount: rejected.toInt(),
-              pendingCount: pending.toInt(),
-              timeRange: _timeRange,
-            ),
+            builder:
+                (context) => VerificationRateDashboardScreen(
+                  totalReports: total.toInt(),
+                  verifiedCount: verified.toInt(),
+                  rejectedCount: rejected.toInt(),
+                  pendingCount: pending.toInt(),
+                  timeRange: _timeRange,
+                ),
           ),
         );
       },
@@ -661,7 +690,10 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                           ),
                           const Text(
                             'verified',
-                            style: TextStyle(color: Colors.white38, fontSize: 10),
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 10,
+                            ),
                           ),
                         ],
                       ),
@@ -706,16 +738,26 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
 
   // ─── Disaster Type ─────────────────────────────────────────────────────────
   Widget _buildDisasterTypeCard(BuildContext context) {
-    final types = List<Map<String, dynamic>>.from(_analyticsData!['disasterTypes']).map((t) {
-      final label = t['label'].toString().toLowerCase();
-      Color c = AppColors.success;
-      if (label.contains('flood')) c = AppColors.info;
-      else if (label.contains('landslide')) c = AppColors.warning;
-      else if (label.contains('fire')) c = AppColors.danger;
-      else if (label.contains('earthquake')) c = AppColors.orange;
-      return {...t, 'color': c};
-    }).toList();
-    final maxCount = types.isEmpty ? 0 : types.map((t) => (t['count'] as num).toInt()).reduce(math.max);
+    final types =
+        List<Map<String, dynamic>>.from(_analyticsData!['disasterTypes']).map((
+          t,
+        ) {
+          final label = t['label'].toString().toLowerCase();
+          Color c = AppColors.success;
+          if (label.contains('flood'))
+            c = AppColors.info;
+          else if (label.contains('landslide'))
+            c = AppColors.warning;
+          else if (label.contains('fire'))
+            c = AppColors.danger;
+          else if (label.contains('earthquake'))
+            c = AppColors.orange;
+          return {...t, 'color': c};
+        }).toList();
+    final maxCount =
+        types.isEmpty
+            ? 0
+            : types.map((t) => (t['count'] as num).toInt()).reduce(math.max);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -731,69 +773,71 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
               final pct = maxCount > 0 ? count / maxCount : 0.0;
               return _HoverRow(
                 onTap: () => _showDisasterTypeDetail(context, type),
-                builder: (isHovered) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                builder:
+                    (isHovered) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: type['color'] as Color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              type['label'] as String,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: type['color'] as Color,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  type['label'] as String,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                '$count reports',
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color:
+                                    isHovered ? Colors.white70 : Colors.white24,
+                                size: 16,
+                              ),
+                            ],
                           ),
-                          Text(
-                            '$count reports',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: pct),
+                              duration: const Duration(milliseconds: 800),
+                              curve: Curves.easeOut,
+                              builder:
+                                  (_, value, __) => LinearProgressIndicator(
+                                    value: value,
+                                    backgroundColor: AppColors.bgDark,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      type['color'] as Color,
+                                    ),
+                                    minHeight: 6,
+                                  ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: isHovered ? Colors.white70 : Colors.white24,
-                            size: 16,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: pct),
-                          duration: const Duration(milliseconds: 800),
-                          curve: Curves.easeOut,
-                          builder:
-                              (_, value, __) => LinearProgressIndicator(
-                                value: value,
-                                backgroundColor: AppColors.bgDark,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  type['color'] as Color,
-                                ),
-                                minHeight: 6,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
               );
             }).toList(),
       ),
@@ -802,14 +846,20 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
 
   // ─── Rescue Team Performance ───────────────────────────────────────────────
   Widget _buildRescueTeamPerformance(BuildContext context) {
-    final teams = List<Map<String, dynamic>>.from(_analyticsData!['rescueTeams']).map((t) {
-      final type = t['type'].toString().toLowerCase();
-      Color c = AppColors.success;
-      if (type.contains('flood')) c = AppColors.info;
-      else if (type.contains('fire')) c = AppColors.danger;
-      else if (type.contains('search')) c = AppColors.warning;
-      return {...t, 'color': c};
-    }).toList();
+    final teams =
+        List<Map<String, dynamic>>.from(_analyticsData!['rescueTeams']).map((
+          t,
+        ) {
+          final type = t['type'].toString().toLowerCase();
+          Color c = AppColors.success;
+          if (type.contains('flood'))
+            c = AppColors.info;
+          else if (type.contains('fire'))
+            c = AppColors.danger;
+          else if (type.contains('search'))
+            c = AppColors.warning;
+          return {...t, 'color': c};
+        }).toList();
     return Column(
       children:
           teams.map((team) {
@@ -958,7 +1008,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
     final onScene = (data['onScene'] as num).toDouble();
     final controlled = (data['controlled'] as num).toDouble();
     final total = dispatch + onScene + controlled;
-    
+
     final dispatchFlex = total > 0 ? (dispatch / total * 100).round() : 1;
     final onSceneFlex = total > 0 ? (onScene / total * 100).round() : 1;
     final controlledFlex = total > 0 ? (controlled / total * 100).round() : 1;
@@ -978,7 +1028,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                   builder:
                       (_, v, __) => Container(
                         height: 10,
-                        color: AppColors.info.withOpacity(total > 0 ? v : v * 0.2),
+                        color: AppColors.info.withOpacity(
+                          total > 0 ? v : v * 0.2,
+                        ),
                       ),
                 ),
               ),
@@ -990,7 +1042,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                   builder:
                       (_, v, __) => Container(
                         height: 10,
-                        color: AppColors.warning.withOpacity(total > 0 ? v : v * 0.2),
+                        color: AppColors.warning.withOpacity(
+                          total > 0 ? v : v * 0.2,
+                        ),
                       ),
                 ),
               ),
@@ -1002,7 +1056,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                   builder:
                       (_, v, __) => Container(
                         height: 10,
-                        color: AppColors.success.withOpacity(total > 0 ? v : v * 0.2),
+                        color: AppColors.success.withOpacity(
+                          total > 0 ? v : v * 0.2,
+                        ),
                       ),
                 ),
               ),
@@ -1091,7 +1147,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                           value: v,
                           minHeight: 10,
                           backgroundColor: AppColors.bgDark,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.success,
+                          ),
                         ),
                   ),
                 ),
@@ -1110,7 +1168,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
 
   // ─── Top Reporters ─────────────────────────────────────────────────────────
   Widget _buildTopReporters(BuildContext context) {
-    final reporters = List<Map<String, dynamic>>.from(_analyticsData!['topReporters']);
+    final reporters = List<Map<String, dynamic>>.from(
+      _analyticsData!['topReporters'],
+    );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1436,31 +1496,44 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
               width: math.max(800.0, data.length * 70.0),
               child: Column(
                 children: [
-                  SizedBox(height: 240, child: _BarChartPainterWidget(data: data)),
-                const SizedBox(height: 12),
-                Row(
-                  children: data.map((e) {
-                    return Expanded(
-                      child: Center(
-                        child: e['showLabel'] == true
-                            ? Text(
-                                e['label'] as String,
-                                style: const TextStyle(color: Colors.white38, fontSize: 10),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+                  SizedBox(
+                    height: 240,
+                    child: _BarChartPainterWidget(data: data),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children:
+                        data.map((e) {
+                          return Expanded(
+                            child: Center(
+                              child:
+                                  e['showLabel'] == true
+                                      ? Text(
+                                        e['label'] as String,
+                                        style: const TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 10,
+                                        ),
+                                      )
+                                      : const SizedBox.shrink(),
+                            ),
+                          );
+                        }).toList(),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
         const SizedBox(height: 32),
         const Text(
           'Detailed Breakdown',
-          style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 1.1),
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.1,
+          ),
         ),
         const SizedBox(height: 16),
         _DetailedBreakdownList(data: data),
@@ -1479,13 +1552,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VerificationRateDashboardScreen(
-          totalReports: total,
-          verifiedCount: (kpis['verified'] as num).toInt(),
-          rejectedCount: (kpis['rejected'] as num).toInt(),
-          pendingCount: (kpis['pending'] as num).toInt(),
-          timeRange: _timeRange,
-        ),
+        builder:
+            (context) => VerificationRateDashboardScreen(
+              totalReports: total,
+              verifiedCount: (kpis['verified'] as num).toInt(),
+              rejectedCount: (kpis['rejected'] as num).toInt(),
+              pendingCount: (kpis['pending'] as num).toInt(),
+              timeRange: _timeRange,
+            ),
       ),
     );
   }
@@ -1525,7 +1599,10 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: (team['successRate'] as num).toDouble() / 100),
+            tween: Tween(
+              begin: 0,
+              end: (team['successRate'] as num).toDouble() / 100,
+            ),
             duration: const Duration(milliseconds: 900),
             curve: Curves.easeOut,
             builder:
@@ -1631,7 +1708,6 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
       ],
     );
   }
-
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1833,22 +1909,24 @@ class _AnimatedKpiCardState extends State<_AnimatedKpiCard> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: widget.trend == "0%" 
-                              ? Colors.white.withOpacity(0.08)
-                              : (widget.trendUp
-                                  ? AppColors.success
-                                  : AppColors.danger)
-                              .withOpacity(0.12),
+                          color:
+                              widget.trend == "0%"
+                                  ? Colors.white.withOpacity(0.08)
+                                  : (widget.trendUp
+                                          ? AppColors.success
+                                          : AppColors.danger)
+                                      .withOpacity(0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           widget.trend,
                           style: TextStyle(
-                            color: widget.trend == "0%"
-                                ? Colors.white54
-                                : (widget.trendUp
-                                    ? AppColors.success
-                                    : AppColors.danger),
+                            color:
+                                widget.trend == "0%"
+                                    ? Colors.white54
+                                    : (widget.trendUp
+                                        ? AppColors.success
+                                        : AppColors.danger),
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1922,7 +2000,9 @@ class _HoverFilterChipState extends State<_HoverFilterChip> {
             color:
                 widget.isActive
                     ? AppColors.orange.withOpacity(0.15)
-                    : (_h ? Colors.white.withOpacity(0.05) : Colors.transparent),
+                    : (_h
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.transparent),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color:
@@ -2336,7 +2416,11 @@ class _ResponseTimeStat extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -2413,7 +2497,11 @@ class _VoteStatBlock extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -2473,9 +2561,10 @@ class _DetailedBreakdownListState extends State<_DetailedBreakdownList> {
   Widget build(BuildContext context) {
     final hasMore = widget.data.length > 6;
     // Show newest (last) 6 hours if not showing all.
-    final displayData = _showAll || !hasMore
-        ? widget.data
-        : widget.data.sublist(widget.data.length - 6);
+    final displayData =
+        _showAll || !hasMore
+            ? widget.data
+            : widget.data.sublist(widget.data.length - 6);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

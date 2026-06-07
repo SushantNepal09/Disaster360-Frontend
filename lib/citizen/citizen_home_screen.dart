@@ -153,15 +153,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     'Landslide',
     'Road Blockage',
     'Flood',
-    'Earthquake'
+    'Earthquake',
   ];
 
   String _selectedSortOption = 'Date';
-  final List<String> _sortOptions = [
-    'Date',
-    'Severity',
-    'Most Reported'
-  ];
+  final List<String> _sortOptions = ['Date', 'Severity', 'Most Reported'];
 
   int _activeNav = 0;
 
@@ -220,10 +216,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -317,9 +310,20 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   // ── STAT CARDS ──────────────────────────────────────────────────────────────
   Widget _buildStatCards() {
     final reports = context.watch<ReportProvider>().reports;
-    final pending = reports.where((r) => r.status.toLowerCase().contains('pending')).length;
-    final inProgress = reports.where((r) => r.status.toLowerCase().contains('progress')).length;
-    final controlled = reports.where((r) => r.status.toLowerCase().contains('controlled') || r.status.toLowerCase().contains('verified')).length;
+    final pending =
+        reports.where((r) => r.status.toLowerCase().contains('pending')).length;
+    final inProgress =
+        reports
+            .where((r) => r.status.toLowerCase().contains('progress'))
+            .length;
+    final controlled =
+        reports
+            .where(
+              (r) =>
+                  r.status.toLowerCase().contains('controlled') ||
+                  r.status.toLowerCase().contains('verified'),
+            )
+            .length;
     return Row(
       children: [
         _StatCard(
@@ -343,7 +347,6 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     );
   }
 
-
   Widget _buildFilterAndSortButtons(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -353,7 +356,10 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             child: GestureDetector(
               onTap: () => _showFilterBottomSheet(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.bgSurface,
                   borderRadius: BorderRadius.circular(12),
@@ -364,7 +370,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.filter_list_rounded, color: AppColors.orange, size: 18),
+                        const Icon(
+                          Icons.filter_list_rounded,
+                          color: AppColors.orange,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           _selectedHomeFilter,
@@ -377,7 +387,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                         ),
                       ],
                     ),
-                    const Icon(Icons.keyboard_arrow_down, color: Colors.white54, size: 18),
+                    const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.white54,
+                      size: 18,
+                    ),
                   ],
                 ),
               ),
@@ -388,7 +402,10 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             child: GestureDetector(
               onTap: () => _showSortBottomSheet(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.bgSurface,
                   borderRadius: BorderRadius.circular(12),
@@ -400,7 +417,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                     Expanded(
                       child: Row(
                         children: [
-                          const Icon(Icons.sort_rounded, color: AppColors.orange, size: 18),
+                          const Icon(
+                            Icons.sort_rounded,
+                            color: AppColors.orange,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -416,7 +437,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                         ],
                       ),
                     ),
-                    const Icon(Icons.keyboard_arrow_down, color: Colors.white54, size: 18),
+                    const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.white54,
+                      size: 18,
+                    ),
                   ],
                 ),
               ),
@@ -437,8 +462,15 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       isScrollControlled: true,
       builder: (BuildContext ctx) {
         return Container(
-          padding: const EdgeInsets.only(top: 16, bottom: 24, left: 20, right: 20),
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.5),
+          padding: const EdgeInsets.only(
+            top: 16,
+            bottom: 24,
+            left: 20,
+            right: 20,
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.5,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -467,7 +499,9 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _sortOptions.length,
-                  separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                  separatorBuilder:
+                      (_, __) =>
+                          const Divider(color: Colors.white12, height: 1),
                   itemBuilder: (ctx, index) {
                     final option = _sortOptions[index];
                     final isSelected = option == _selectedSortOption;
@@ -477,13 +511,19 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                         option,
                         style: TextStyle(
                           color: isSelected ? AppColors.orange : Colors.white70,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 15,
                         ),
                       ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: AppColors.orange, size: 22)
-                          : null,
+                      trailing:
+                          isSelected
+                              ? const Icon(
+                                Icons.check_circle,
+                                color: AppColors.orange,
+                                size: 22,
+                              )
+                              : null,
                       onTap: () {
                         Navigator.pop(ctx);
                         setState(() => _selectedSortOption = option);
@@ -509,8 +549,15 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       isScrollControlled: true,
       builder: (BuildContext ctx) {
         return Container(
-          padding: const EdgeInsets.only(top: 16, bottom: 24, left: 20, right: 20),
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+          padding: const EdgeInsets.only(
+            top: 16,
+            bottom: 24,
+            left: 20,
+            right: 20,
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.7,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -539,7 +586,9 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _homeFilters.length,
-                  separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                  separatorBuilder:
+                      (_, __) =>
+                          const Divider(color: Colors.white12, height: 1),
                   itemBuilder: (ctx, index) {
                     final filter = _homeFilters[index];
                     final isSelected = filter == _selectedHomeFilter;
@@ -549,13 +598,19 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                         filter,
                         style: TextStyle(
                           color: isSelected ? AppColors.orange : Colors.white70,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 15,
                         ),
                       ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: AppColors.orange, size: 22)
-                          : null,
+                      trailing:
+                          isSelected
+                              ? const Icon(
+                                Icons.check_circle,
+                                color: AppColors.orange,
+                                size: 22,
+                              )
+                              : null,
                       onTap: () {
                         Navigator.pop(ctx);
                         setState(() => _selectedHomeFilter = filter);
@@ -582,28 +637,46 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     } else if (_selectedHomeFilter == 'My Reports') {
       final auth = context.read<AuthProvider>();
       filtered = all.where((r) => r.userId == auth.user?.id).toList();
-    } else if (['Pending', 'On Rescue', 'Verified'].contains(_selectedHomeFilter)) {
+    } else if ([
+      'Pending',
+      'On Rescue',
+      'Verified',
+    ].contains(_selectedHomeFilter)) {
       if (_selectedHomeFilter == 'On Rescue') {
-         filtered = all.where((r) => r.status.toLowerCase().contains('progress')).toList();
+        filtered =
+            all
+                .where((r) => r.status.toLowerCase().contains('progress'))
+                .toList();
       } else {
-         filtered = all.where((r) => r.status == _selectedHomeFilter).toList();
+        filtered = all.where((r) => r.status == _selectedHomeFilter).toList();
       }
     } else {
       // Type filters
-      filtered = all.where((r) => r.disasterType == _selectedHomeFilter).toList();
+      filtered =
+          all.where((r) => r.disasterType == _selectedHomeFilter).toList();
     }
 
     // Sort rules
     if (_selectedSortOption == 'Severity') {
-      filtered.sort((a, b) => _getSeverityScore(b.severity).compareTo(_getSeverityScore(a.severity)));
+      filtered.sort(
+        (a, b) => _getSeverityScore(
+          b.severity,
+        ).compareTo(_getSeverityScore(a.severity)),
+      );
     } else if (_selectedSortOption == 'Most Reported') {
-      filtered.sort((a, b) => b.submissions.length.compareTo(a.submissions.length));
+      filtered.sort(
+        (a, b) => b.submissions.length.compareTo(a.submissions.length),
+      );
     } else {
       // Default: Date (Recent to oldest)
       filtered.sort((a, b) {
-        DateTime dateA = DateTime.tryParse(a.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        DateTime dateB = DateTime.tryParse(b.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return dateB.compareTo(dateA); 
+        DateTime dateA =
+            DateTime.tryParse(a.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        DateTime dateB =
+            DateTime.tryParse(b.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return dateB.compareTo(dateA);
       });
     }
 
@@ -612,11 +685,16 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   int _getSeverityScore(String severity) {
     switch (severity.toLowerCase()) {
-      case 'critical': return 4;
-      case 'high': return 3;
-      case 'medium': return 2;
-      case 'low': return 1;
-      default: return 0;
+      case 'critical':
+        return 4;
+      case 'high':
+        return 3;
+      case 'medium':
+        return 2;
+      case 'low':
+        return 1;
+      default:
+        return 0;
     }
   }
 
@@ -643,9 +721,19 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           return _ReportCard(
             key: ValueKey(report.id.toString()),
             report: report,
-            animationDelay: Duration(milliseconds: 60 * reports.indexOf(report)),
-            onUpvote: () => context.read<ReportProvider>().reactToReport(report.id, 'LIKE'),
-            onDownvote: () => context.read<ReportProvider>().reactToReport(report.id, 'DISLIKE'),
+            animationDelay: Duration(
+              milliseconds: 60 * reports.indexOf(report),
+            ),
+            onUpvote:
+                () => context.read<ReportProvider>().reactToReport(
+                  report.id,
+                  'LIKE',
+                ),
+            onDownvote:
+                () => context.read<ReportProvider>().reactToReport(
+                  report.id,
+                  'DISLIKE',
+                ),
           );
         }),
         const SizedBox(height: 20),
@@ -883,202 +971,211 @@ class _ImageViewerOverlayState extends State<ImageViewerOverlay>
           return KeyEventResult.ignored;
         },
         child: Stack(
-        children: [
-          // Blurred + darkened background
-          GestureDetector(
-            onTap: _close,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(color: Colors.black.withOpacity(0.88)),
+          children: [
+            // Blurred + darkened background
+            GestureDetector(
+              onTap: _close,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(color: Colors.black.withOpacity(0.88)),
+              ),
             ),
-          ),
 
-          // Full-screen swipeable images – now edge‑to‑edge
-          PageView.builder(
-            controller: _pageCtrl,
-            itemCount: widget.mediaUrls.length,
-            onPageChanged: (i) => setState(() => _currentIndex = i),
-            itemBuilder: (_, i) {
-              return Container(
-                color: AppColors.bgDark,
-                child: Center(
-                  child: Image.network(
-                    widget.mediaUrls[i],
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.broken_image_outlined,
-                          color: Colors.white.withOpacity(0.2),
-                          size: 72,
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Error loading image',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.45),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.none,
+            // Full-screen swipeable images – now edge‑to‑edge
+            PageView.builder(
+              controller: _pageCtrl,
+              itemCount: widget.mediaUrls.length,
+              onPageChanged: (i) => setState(() => _currentIndex = i),
+              itemBuilder: (_, i) {
+                return Container(
+                  color: AppColors.bgDark,
+                  child: Center(
+                    child: Image.network(
+                      widget.mediaUrls[i],
+                      fit: BoxFit.contain,
+                      errorBuilder:
+                          (context, error, stackTrace) => Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.white.withOpacity(0.2),
+                                size: 72,
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Error loading image',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.45),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            // Next/Prev Arrows (Desktop navigation)
+            if (widget.mediaUrls.length > 1) ...[
+              if (_currentIndex > 0)
+                Positioned(
+                  left: 20,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        _pageCtrl.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black45,
+                        padding: const EdgeInsets.all(16),
+                      ),
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-
-          // Next/Prev Arrows (Desktop navigation)
-          if (widget.mediaUrls.length > 1) ...[
-            if (_currentIndex > 0)
-              Positioned(
-                left: 20,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 28),
-                    onPressed: () {
-                      _pageCtrl.previousPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black45,
-                      padding: const EdgeInsets.all(16),
+              if (_currentIndex < widget.mediaUrls.length - 1)
+                Positioned(
+                  right: 20,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        _pageCtrl.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black45,
+                        padding: const EdgeInsets.all(16),
+                      ),
                     ),
                   ),
+                ),
+            ],
+
+            // Top bar: report ID (left), counter (center), close button (right)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 10,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        '#${widget.reportId}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        'Photo ${_currentIndex + 1} of ${widget.mediaUrls.length}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _close,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.14),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            if (_currentIndex < widget.mediaUrls.length - 1)
+            ),
+
+            // Dot indicators at bottom
+            if (widget.mediaUrls.length > 1)
               Positioned(
-                right: 20,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 28),
-                    onPressed: () {
-                      _pageCtrl.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black45,
-                      padding: const EdgeInsets.all(16),
-                    ),
-                  ),
+                bottom: MediaQuery.of(context).padding.bottom + 24,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(widget.mediaUrls.length, (i) {
+                    final active = i == _currentIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: active ? 24 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: active ? AppColors.orange : Colors.white30,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  }),
                 ),
               ),
           ],
-
-          // Top bar: report ID (left), counter (center), close button (right)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Text(
-                      '#${widget.reportId}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'monospace',
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Text(
-                      'Photo ${_currentIndex + 1} of ${widget.mediaUrls.length}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: _close,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.14),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Dot indicators at bottom
-          if (widget.mediaUrls.length > 1)
-            Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 24,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(widget.mediaUrls.length, (i) {
-                  final active = i == _currentIndex;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: active ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: active ? AppColors.orange : Colors.white30,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  );
-                }),
-              ),
-            ),
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1175,7 +1272,9 @@ class _ReportCardWidgetState extends State<_ReportCard>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CitizenReportDetailScreen(report: widget.report),
+                    builder:
+                        (context) =>
+                            CitizenReportDetailScreen(report: widget.report),
                   ),
                 );
               },
@@ -1206,192 +1305,204 @@ class _ReportCardWidgetState extends State<_ReportCard>
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Top row: Status + Date ──────────────────────────
-                Row(
                   children: [
-                    _StatusBadge(status: report.status),
-                    const Spacer(),
-                    Text(
-                      _relativeDate(report.createdAt),
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // ── Type title + Reporter alongside ──────────────────────
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        report.disasterType,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
+                    // ── Top row: Status + Date ──────────────────────────
                     Row(
                       children: [
-                        const Icon(
-                          Icons.person_outline_rounded,
-                          color: Colors.white38,
-                          size: 13,
-                        ),
-                        const SizedBox(width: 3),
+                        _StatusBadge(status: report.status),
+                        const Spacer(),
                         Text(
-                          "Citizen",
+                          _relativeDate(report.createdAt),
                           style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
+                            color: Colors.white38,
+                            fontSize: 11,
                             decoration: TextDecoration.none,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 3),
+                    const SizedBox(height: 10),
 
-
-
-                // ── Description ──────────────────────────────────────────
-                Text(
-                  report.description,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 13,
-                    height: 1.4,
-                    decoration: TextDecoration.none,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 14),
-
-                                if (report.submissions.isNotEmpty)
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      const Icon(Icons.group_outlined, color: Colors.white54, size: 14),
-                      const Text(
-                        'Reported by:',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                      ...report.submissions.map((sub) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.orange.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              (sub['user_name'] ?? 'Citizen').toString(),
-                              style: const TextStyle(
-                                  color: AppColors.orange, fontSize: 10, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
-                            ),
-                          )),
-                    ],
-                  ),
-                if (report.submissions.isNotEmpty) const SizedBox(height: 14),
-
-                // ── TWO‑IMAGE GRID (restored) ────────────────────────────
-                _buildImageGrid(report.mediaUrls),
-                const SizedBox(height: 14),
-
-                // ── Vote Buttons ─────────────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: _VoteButton(
-                        label: '${report.likes}',
-                        icon: Icons.thumb_up_alt_outlined,
-                        activeIcon: Icons.thumb_up_alt_rounded,
-                        color: AppColors.success,
-                        active: report.userReaction == 'LIKE',
-                        onTap: widget.onUpvote,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _VoteButton(
-                        label: '${report.dislikes}',
-                        icon: Icons.thumb_down_alt_outlined,
-                        activeIcon: Icons.thumb_down_alt_rounded,
-                        color: AppColors.danger,
-                        active: report.userReaction == 'DISLIKE',
-                        onTap: widget.onDownvote,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // ── Nested Submissions Dropdown ─────────────────────────
-                if (report.submissions.length > 1) ...[
-                  const SizedBox(height: 16),
-                  const Divider(color: Colors.white12, height: 1),
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        _isExpanded = !_isExpanded;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _isExpanded
-                                ? 'Hide Matched Reports'
-                                : 'Show Matched Reports (${report.submissions.length - 1})',
+                    // ── Type title + Reporter alongside ──────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            report.disasterType,
                             style: const TextStyle(
-                              color: AppColors.orange,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              decoration: TextDecoration.none,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            _isExpanded
-                                ? Icons.keyboard_arrow_up_rounded
-                                : Icons.keyboard_arrow_down_rounded,
-                            color: AppColors.orange,
-                            size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.person_outline_rounded,
+                              color: Colors.white38,
+                              size: 13,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              "Citizen",
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+
+                    // ── Description ──────────────────────────────────────────
+                    Text(
+                      report.description,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                        height: 1.4,
+                        decoration: TextDecoration.none,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 14),
+
+                    if (report.submissions.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.group_outlined,
+                            color: Colors.white54,
+                            size: 14,
+                          ),
+                          const Text(
+                            'Reported by:',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          ...report.submissions.map(
+                            (sub) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.orange.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                (sub['user_name'] ?? 'Citizen').toString(),
+                                style: const TextStyle(
+                                  color: AppColors.orange,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
+                    if (report.submissions.isNotEmpty)
+                      const SizedBox(height: 14),
+
+                    // ── TWO‑IMAGE GRID (restored) ────────────────────────────
+                    _buildImageGrid(report.mediaUrls),
+                    const SizedBox(height: 14),
+
+                    // ── Vote Buttons ─────────────────────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _VoteButton(
+                            label: '${report.likes}',
+                            icon: Icons.thumb_up_alt_outlined,
+                            activeIcon: Icons.thumb_up_alt_rounded,
+                            color: AppColors.success,
+                            active: report.userReaction == 'LIKE',
+                            onTap: widget.onUpvote,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _VoteButton(
+                            label: '${report.dislikes}',
+                            icon: Icons.thumb_down_alt_outlined,
+                            activeIcon: Icons.thumb_down_alt_rounded,
+                            color: AppColors.danger,
+                            active: report.userReaction == 'DISLIKE',
+                            onTap: widget.onDownvote,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  if (_isExpanded)
-                    ...report.submissions
-                        .skip(1)
-                        .map((sub) => _buildNestedReportCard(sub, report)),
-                ],
-              ],
+
+                    // ── Nested Submissions Dropdown ─────────────────────────
+                    if (report.submissions.length > 1) ...[
+                      const SizedBox(height: 16),
+                      const Divider(color: Colors.white12, height: 1),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _isExpanded
+                                    ? 'Hide Matched Reports'
+                                    : 'Show Matched Reports (${report.submissions.length - 1})',
+                                style: const TextStyle(
+                                  color: AppColors.orange,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isExpanded
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                color: AppColors.orange,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_isExpanded)
+                        ...report.submissions
+                            .skip(1)
+                            .map((sub) => _buildNestedReportCard(sub, report)),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   Widget _buildNestedReportCard(dynamic sub, ReportModel mainReport) {
     return GestureDetector(
@@ -1425,10 +1536,7 @@ class _ReportCardWidgetState extends State<_ReportCard>
                 ),
                 Text(
                   _formatTime(sub['timestamp'] ?? mainReport.createdAt),
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
                 ),
               ],
             ),
@@ -1511,25 +1619,40 @@ class _ReportCardWidgetState extends State<_ReportCard>
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, color: AppColors.orange, size: 14),
+                    const Icon(
+                      Icons.person_outline,
+                      color: AppColors.orange,
+                      size: 14,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       sub['user_name'] ?? 'Citizen',
-                      style: const TextStyle(color: AppColors.orange, fontSize: 13),
+                      style: const TextStyle(
+                        color: AppColors.orange,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(Icons.access_time, color: Colors.white54, size: 14),
+                    const Icon(
+                      Icons.access_time,
+                      color: Colors.white54,
+                      size: 14,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _formatTime(sub['timestamp'] ?? mainReport.createdAt),
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Nested Image
-                if (sub['media_urls'] != null && (sub['media_urls'] as List).isNotEmpty)
+                if (sub['media_urls'] != null &&
+                    (sub['media_urls'] as List).isNotEmpty)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
@@ -1549,12 +1672,19 @@ class _ReportCardWidgetState extends State<_ReportCard>
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          const Icon(Icons.image_outlined, color: Colors.white24, size: 40),
+                          const Icon(
+                            Icons.image_outlined,
+                            color: Colors.white24,
+                            size: 40,
+                          ),
                           Positioned(
                             bottom: 8,
                             child: Text(
                               'No Evidence Photo',
-                              style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.3),
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -1581,23 +1711,43 @@ class _ReportCardWidgetState extends State<_ReportCard>
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Likes/Dislikes (Using main report's for now as nested reports don't have separate likes strictly in the DB design yet, or we show 0)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.thumb_up_alt_outlined, color: AppColors.success, size: 20),
+                        const Icon(
+                          Icons.thumb_up_alt_outlined,
+                          color: AppColors.success,
+                          size: 20,
+                        ),
                         const SizedBox(width: 6),
-                        Text('${mainReport.likes}', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                        Text(
+                          '${mainReport.likes}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                     Row(
                       children: [
-                        const Icon(Icons.thumb_down_alt_outlined, color: AppColors.danger, size: 20),
+                        const Icon(
+                          Icons.thumb_down_alt_outlined,
+                          color: AppColors.danger,
+                          size: 20,
+                        ),
                         const SizedBox(width: 6),
-                        Text('${mainReport.dislikes}', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                        Text(
+                          '${mainReport.dislikes}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1641,16 +1791,17 @@ class _ReportCardWidgetState extends State<_ReportCard>
                     Image.network(
                       mediaUrls[i],
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.broken_image_outlined,
-                            color: Colors.white.withOpacity(0.2),
-                            size: 32,
+                      errorBuilder:
+                          (context, error, stackTrace) => Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.white.withOpacity(0.2),
+                                size: 32,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
                     ),
                     // +N overlay on last visible card
                     if (isLast)
@@ -1710,10 +1861,36 @@ class _ReportCardWidgetState extends State<_ReportCard>
       } else if (diff.inDays < 30) {
         return '${diff.inDays} days ago';
       } else if (diff.inDays < 365) {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         return '${monthNames[dt.month - 1]} ${dt.day}';
       } else {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
       }
     } catch (_) {
@@ -1912,19 +2089,21 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bg, text;
     final lowercaseStatus = status.toLowerCase();
-    
+
     if (lowercaseStatus.contains('progress')) {
-        bg = AppColors.orange.withOpacity(0.18);
-        text = AppColors.orange;
-    } else if (lowercaseStatus.contains('controlled') || lowercaseStatus.contains('verified')) {
-        bg = AppColors.success.withOpacity(0.15);
-        text = AppColors.success;
+      bg = AppColors.orange.withOpacity(0.18);
+      text = AppColors.orange;
+    } else if (lowercaseStatus.contains('controlled') ||
+        lowercaseStatus.contains('verified')) {
+      bg = AppColors.success.withOpacity(0.15);
+      text = AppColors.success;
     } else if (lowercaseStatus.contains('rejected')) {
-        bg = AppColors.danger.withOpacity(0.15);
-        text = AppColors.danger;
-    } else { // Pending
-        bg = AppColors.warning.withOpacity(0.15);
-        text = AppColors.warning;
+      bg = AppColors.danger.withOpacity(0.15);
+      text = AppColors.danger;
+    } else {
+      // Pending
+      bg = AppColors.warning.withOpacity(0.15);
+      text = AppColors.warning;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

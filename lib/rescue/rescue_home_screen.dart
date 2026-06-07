@@ -1,3 +1,4 @@
+import 'package:disaster360/rescue/rescue_all_reports_screen.dart';
 import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/rescue/rescue_profile_screen.dart';
@@ -6,6 +7,7 @@ import 'package:disaster360/services/map_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/colors.dart';
 
@@ -22,7 +24,7 @@ class RescueHomeScreen extends StatefulWidget {
 
 class _RescueHomeScreenState extends State<RescueHomeScreen>
     with TickerProviderStateMixin {
-  int _activeNav = 0; // 0: Home, 1: Map, 2: Tasks, 3: Reports, 4: Profile
+  int _activeNav = 0; // 0: Home, 1: Map, 2: Tasks, 3: All Reports, 4: Profile
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnim;
@@ -33,6 +35,7 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReportProvider>().fetchReports();
+      context.read<RescueProvider>().fetchAll();
     });
     _fadeController = AnimationController(
       vsync: this,
@@ -61,13 +64,40 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = _Breakpoint.isDesktop(context);
+    final isTablet = _Breakpoint.isTablet(context);
+    final isMobile = !isDesktop && !isTablet;
+
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
-      bottomNavigationBar: _buildBottomNav(),
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: SlideTransition(position: _slideAnim, child: _getScreenForNav()),
-      ),
+      bottomNavigationBar: isMobile ? _buildBottomNav() : null,
+      body:
+          isDesktop || isTablet
+              ? Row(
+                children: [
+                  _SideRail(
+                    activeNav: _activeNav,
+                    onNavTap: _switchNav,
+                    expanded: isDesktop,
+                  ),
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SlideTransition(
+                        position: _slideAnim,
+                        child: _getScreenForNav(),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+              : FadeTransition(
+                opacity: _fadeAnim,
+                child: SlideTransition(
+                  position: _slideAnim,
+                  child: _getScreenForNav(),
+                ),
+              ),
     );
   }
 
@@ -78,7 +108,17 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
         return Column(
           children: [
             SafeArea(bottom: false, child: _buildHeader()),
-            Expanded(child: _RescueHomeBody(onGoToTasks: () => _switchNav(2))),
+            Expanded(
+              child: Consumer<RescueProvider>(
+                builder:
+                    (context, provider, _) => _RescueHomeBody(
+                      onGoToTasks: () => _switchNav(2),
+                      myOperations: provider.myOperations,
+                      verifiedReports: provider.verifiedReports,
+                      isLoading: provider.isLoading,
+                    ),
+              ),
+            ),
           ],
         );
       case 1:
@@ -86,7 +126,7 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
       case 2:
         return const RescueTasksScreen();
       case 3:
-        return const PostDisasterReportScreen();
+        return const RescueAllReportsScreen();
       case 4:
         return const RescueProfileScreen();
       default:
@@ -105,11 +145,11 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'DISASTER360',
+              Text(
+                'RESCUE DASHBOARD',
                 style: TextStyle(
                   color: AppColors.orange,
-                  fontSize: 22,
+                  fontSize: _Breakpoint.isDesktop(context) ? 26 : 22,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
                 ),
@@ -225,7 +265,7 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
           ),
           _AnimatedNavItem(
             icon: Icons.insert_drive_file_outlined,
-            label: 'Reports',
+            label: 'All Reports',
             isActive: _activeNav == 3,
             onTap: () => _switchNav(3),
           ),
@@ -403,67 +443,144 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem>
 
 class _RescueHomeBody extends StatelessWidget {
   final VoidCallback onGoToTasks;
-  const _RescueHomeBody({required this.onGoToTasks});
+  final List<RescueTask> myOperations;
+  final List<RescueTask> verifiedReports;
+  final bool isLoading;
+
+  const _RescueHomeBody({
+    required this.onGoToTasks,
+    this.myOperations = const [],
+    this.verifiedReports = const [],
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // ── Sample data ──────────────────────────────────────────────────────────
-    final activeMissions = <_MissionData>[];
+    // Split myOperations by status
+    final inProgress =
+        myOperations.where((t) => t.status == TaskStatus.pending).toList();
+    final completed =
+        myOperations.where((t) => t.status == TaskStatus.completed).toList();
 
-    final pendingMissions = <_MissionData>[];
+    // Banner: show latest in-progress assignment
+    final latestAssigned = myOperations.isNotEmpty ? myOperations.first : null;
 
-    final completedMissions = <_MissionData>[];
+    if (isLoading && myOperations.isEmpty && verifiedReports.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
+        ),
+      );
+    }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _NewMissionBanner(onTap: onGoToTasks),
-          const SizedBox(height: 20),
-          _buildStatCards(
-            active: activeMissions.length,
-            pending: pendingMissions.length,
-            completed: completedMissions.length,
+    return RefreshIndicator(
+      color: AppColors.orange,
+      backgroundColor: AppColors.bgSurface,
+      onRefresh: () => context.read<RescueProvider>().fetchAll(),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          horizontal: _Breakpoint.horizontalPadding(context),
+          vertical: 20,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: _Breakpoint.contentMaxWidth(context),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Banner only shows when there are assigned operations
+                if (latestAssigned != null) ...[
+                  _AssignedMissionBanner(
+                    task: latestAssigned,
+                    onTap: onGoToTasks,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Stats: only from MY operations
+                _buildStatCards(
+                  inProgress: inProgress.length,
+                  completed: completed.length,
+                  total: myOperations.length,
+                ),
+                const SizedBox(height: 28),
+
+                // ── MY ASSIGNED MISSIONS ──────────────────────────────
+                if (myOperations.isEmpty)
+                  _EmptyMyMissions(onGoToTasks: onGoToTasks)
+                else ...[
+                  if (inProgress.isNotEmpty) ...[
+                    _SectionLabel('MY ACTIVE MISSIONS'),
+                    const SizedBox(height: 12),
+                    ...inProgress.map(
+                      (t) => _MyOperationCard(
+                        task: t,
+                        accentColor: AppColors.warning,
+                        onTap: onGoToTasks,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  if (completed.isNotEmpty) ...[
+                    _SectionLabel('COMPLETED MISSIONS'),
+                    const SizedBox(height: 12),
+                    ...completed.map(
+                      (t) => _MyOperationCard(
+                        task: t,
+                        accentColor: AppColors.success,
+                        onTap: onGoToTasks,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ],
+
+                // ── ALL VERIFIED REPORTS (global queue) ───────────────
+                _SectionLabel('ALL VERIFIED REPORTS'),
+                const SizedBox(height: 6),
+                const Text(
+                  'Incidents verified by admin — visible to all rescue teams',
+                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+                const SizedBox(height: 14),
+                if (verifiedReports.isEmpty)
+                  _EmptySection(
+                    icon: Icons.check_circle_outline,
+                    message: 'No verified reports in queue',
+                  )
+                else
+                  ...verifiedReports.map(
+                    (t) =>
+                        _VerifiedReportCard(task: t, onGoToTasks: onGoToTasks),
+                  ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
-          const SizedBox(height: 28),
-          _MissionSection(
-            label: 'ACTIVE MISSIONS',
-            missions: activeMissions,
-            accentColor: AppColors.danger,
-            status: 'Active',
-          ),
-          const SizedBox(height: 20),
-          _MissionSection(
-            label: 'PENDING MISSIONS',
-            missions: pendingMissions,
-            accentColor: AppColors.warning,
-            status: 'Pending',
-          ),
-          const SizedBox(height: 20),
-          _TodaysCompleted(missions: completedMissions),
-          const SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildStatCards({
-    required int active,
-    required int pending,
+    required int inProgress,
     required int completed,
+    required int total,
   }) {
     return Row(
       children: [
         _StatCard(
-          value: '$active',
-          label: 'Active',
-          valueColor: AppColors.danger,
+          value: '$total',
+          label: 'Assigned',
+          valueColor: AppColors.info,
         ),
         const SizedBox(width: 10),
         _StatCard(
-          value: '$pending',
-          label: 'Pending',
+          value: '$inProgress',
+          label: 'In Progress',
           valueColor: AppColors.warning,
         ),
         const SizedBox(width: 10),
@@ -477,17 +594,18 @@ class _RescueHomeBody extends StatelessWidget {
   }
 }
 
-// ─── New Mission Banner (subtle pulse) ───────────────────────────────────────
+// ─── Assigned Mission Banner ──────────────────────────────────────────────────
 
-class _NewMissionBanner extends StatefulWidget {
+class _AssignedMissionBanner extends StatefulWidget {
   final VoidCallback onTap;
-  const _NewMissionBanner({required this.onTap});
+  final RescueTask task;
+  const _AssignedMissionBanner({required this.onTap, required this.task});
 
   @override
-  State<_NewMissionBanner> createState() => _NewMissionBannerState();
+  State<_AssignedMissionBanner> createState() => _AssignedMissionBannerState();
 }
 
-class _NewMissionBannerState extends State<_NewMissionBanner>
+class _AssignedMissionBannerState extends State<_AssignedMissionBanner>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -499,7 +617,7 @@ class _NewMissionBannerState extends State<_NewMissionBanner>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.92, end: 1.0).animate(
+    _pulseAnim = Tween<double>(begin: 0.94, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
@@ -512,677 +630,166 @@ class _NewMissionBannerState extends State<_NewMissionBanner>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: ScaleTransition(
-        scale: _pulseAnim,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.bgDark,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.danger.withOpacity(0.45),
-              width: 1.5,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: ScaleTransition(
+          scale: _pulseAnim,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.bgDark,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.warning.withOpacity(0.55),
+                width: 1.5,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.danger.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.warning_amber_rounded,
-                  color: AppColors.danger,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'New mission assigned',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Flood — Koshi Bridge · Respond immediately',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white38,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Mission Section ──────────────────────────────────────────────────────────
-
-class _MissionSection extends StatelessWidget {
-  final String label;
-  final List<_MissionData> missions;
-  final Color accentColor;
-  final String status;
-
-  const _MissionSection({
-    required this.label,
-    required this.missions,
-    required this.accentColor,
-    required this.status,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (missions.isEmpty) return const SizedBox();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white38,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...missions.map(
-          (m) => _MissionCard(
-            mission: m,
-            accentColor: accentColor,
-            status: status,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Mission Card (with tap feedback) ────────────────────────────────────────
-
-class _MissionCard extends StatefulWidget {
-  final _MissionData mission;
-  final Color accentColor;
-  final String status;
-
-  const _MissionCard({
-    required this.mission,
-    required this.accentColor,
-    required this.status,
-  });
-
-  @override
-  State<_MissionCard> createState() => _MissionCardState();
-}
-
-class _MissionCardState extends State<_MissionCard> {
-  bool _hovered = false;
-
-  void _showDetails(BuildContext context) {
-    RescueMotion.showSweetBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder:
-          (_) => DraggableScrollableSheet(
-            initialChildSize: 0.65,
-            maxChildSize: 0.92,
-            minChildSize: 0.4,
-            builder:
-                (_, ctrl) => Container(
-                  decoration: const BoxDecoration(
-                    color: AppColors.bgSurface,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                  child: const Icon(
+                    Icons.assignment_outlined,
+                    color: AppColors.warning,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(child: _sheetHandle()),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '#${widget.mission.incidentId}',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                          _statusBadge(),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${widget.mission.type} — ${widget.mission.location}',
-                        style: const TextStyle(
+                      const Text(
+                        'You have an active mission',
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 3),
                       Text(
-                        widget.mission.description,
+                        '${widget.task.type} — ${widget.task.location}',
                         style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
-                          height: 1.5,
+                          color: Colors.white54,
+                          fontSize: 12,
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(color: AppColors.border),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: ListView(
-                          controller: ctrl,
-                          children: [
-                            _DetailRow(
-                              icon: Icons.location_on_outlined,
-                              label: 'GPS',
-                              value: widget.mission.location,
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.straighten_outlined,
-                              label: 'Distance',
-                              value: widget.mission.distance,
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.report_outlined,
-                              label: 'Report ID',
-                              value: '#${widget.mission.reportId}',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.image_outlined,
-                              label: 'Photos',
-                              value: '${widget.mission.photoCount} attached',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.access_time_outlined,
-                              label: 'Assigned',
-                              value: widget.mission.assignedAgo,
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.priority_high_outlined,
-                              label: 'Priority',
-                              value: widget.mission.priority,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.border),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Close',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white38,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
-    );
-  }
-
-  Widget _statusBadge() {
-    Color bg, text;
-    String label;
-    if (widget.status == 'Active') {
-      bg = AppColors.danger.withOpacity(0.18);
-      text = AppColors.danger;
-      label = 'Active';
-    } else if (widget.status == 'Pending') {
-      bg = AppColors.warning.withOpacity(0.15);
-      text = AppColors.warning;
-      label = 'Pending';
-    } else {
-      bg = AppColors.success.withOpacity(0.15);
-      text = AppColors.success;
-      label = 'Completed';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: text.withOpacity(0.4), width: 1),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: text,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
         ),
-      ),
-    );
-  }
-
-  Widget _sheetHandle() {
-    return Container(
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: Colors.white12,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = widget.status == 'Active';
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Stack(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color:
-                    _hovered
-                        ? widget.accentColor.withOpacity(0.4)
-                        : AppColors.border,
-                width: isActive ? 1.5 : 1,
-              ),
-              boxShadow:
-                  _hovered
-                      ? [
-                        BoxShadow(
-                          color: widget.accentColor.withOpacity(0.08),
-                          blurRadius: 14,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                      : [],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.mission.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      _PriorityBadge(priority: widget.mission.priority),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${widget.mission.incidentId} · ${widget.mission.assignedAgo}',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgDark,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      children: [
-                        _InfoRow(
-                          label: 'Location',
-                          value: widget.mission.location,
-                        ),
-                        const SizedBox(height: 8),
-                        _InfoRow(
-                          label: 'Distance',
-                          value: widget.mission.distance,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MissionButton(
-                          label: 'Accept mission',
-                          filled: true,
-                          color: widget.accentColor,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '✓ Mission ${widget.mission.incidentId} accepted',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                                backgroundColor: AppColors.success.withOpacity(
-                                  0.9,
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _MissionButton(
-                          label: 'View on map',
-                          filled: false,
-                          color: widget.accentColor,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  'Map feature coming soon',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                backgroundColor: AppColors.info.withOpacity(
-                                  0.9,
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Left accent stripe
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: widget.accentColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
 }
 
-// ─── Animated Mission Button (tap feedback) ──────────────────────────────────
+// ─── My Operation Card ────────────────────────────────────────────────────────
 
-class _MissionButton extends StatefulWidget {
-  final String label;
-  final bool filled;
-  final Color color;
+class _MyOperationCard extends StatefulWidget {
+  final RescueTask task;
+  final Color accentColor;
   final VoidCallback onTap;
-
-  const _MissionButton({
-    required this.label,
-    required this.filled,
-    required this.color,
+  const _MyOperationCard({
+    required this.task,
+    required this.accentColor,
     required this.onTap,
   });
 
   @override
-  State<_MissionButton> createState() => _MissionButtonState();
+  State<_MyOperationCard> createState() => _MyOperationCardState();
 }
 
-class _MissionButtonState extends State<_MissionButton>
-    with SingleTickerProviderStateMixin {
+class _MyOperationCardState extends State<_MyOperationCard> {
   bool _hovered = false;
-  late AnimationController _tapCtrl;
-  late Animation<double> _tapAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _tapCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-    );
-    _tapAnim = Tween<double>(
-      begin: 1.0,
-      end: 0.94,
-    ).animate(CurvedAnimation(parent: _tapCtrl, curve: Curves.easeIn));
-  }
-
-  @override
-  void dispose() {
-    _tapCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
+    final statusLabel =
+        widget.task.status == TaskStatus.completed
+            ? 'Controlled'
+            : 'In Progress';
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTapDown: (_) => _tapCtrl.forward(),
-        onTapUp: (_) {
-          _tapCtrl.reverse();
-          widget.onTap();
-        },
-        onTapCancel: () => _tapCtrl.reverse(),
-        child: ScaleTransition(
-          scale: _tapAnim,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            height: 48,
-            decoration: BoxDecoration(
-              color:
-                  widget.filled
-                      ? (_hovered
-                          ? widget.color.withOpacity(0.28)
-                          : widget.color.withOpacity(0.18))
-                      : (_hovered
-                          ? Colors.white.withOpacity(0.06)
-                          : Colors.transparent),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    widget.filled
-                        ? widget.color.withOpacity(_hovered ? 0.7 : 0.45)
-                        : (_hovered ? Colors.white54 : AppColors.border),
-                width: 1,
+        onTap: widget.onTap,
+        child: Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+              decoration: BoxDecoration(
+                color: _hovered ? AppColors.bgDark : AppColors.bgSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color:
+                      _hovered
+                          ? widget.accentColor.withOpacity(0.5)
+                          : AppColors.border,
+                ),
               ),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              widget.label,
-              style: TextStyle(
-                color: widget.filled ? widget.color : Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Today's Completed ────────────────────────────────────────────────────────
-
-class _TodaysCompleted extends StatelessWidget {
-  final List<_MissionData> missions;
-  const _TodaysCompleted({required this.missions});
-
-  @override
-  Widget build(BuildContext context) {
-    if (missions.isEmpty) return const SizedBox();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "TODAY'S COMPLETED",
-          style: TextStyle(
-            color: Colors.white38,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...missions.map((m) => _CompletedCard(mission: m)),
-      ],
-    );
-  }
-}
-
-class _CompletedCard extends StatefulWidget {
-  final _MissionData mission;
-  const _CompletedCard({required this.mission});
-
-  @override
-  State<_CompletedCard> createState() => _CompletedCardState();
-}
-
-class _CompletedCardState extends State<_CompletedCard> {
-  bool _hovering = false;
-
-  void _showDetail(BuildContext context) {
-    RescueMotion.showSweetDialog(
-      context: context,
-      builder:
-          (_) => Dialog(
-            backgroundColor: AppColors.bgSurface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.mission.title,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.task.type,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white38,
-                          size: 20,
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.task.location,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.mission.incidentId,
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                  const SizedBox(height: 18),
-                  _InfoRow(label: 'Type', value: widget.mission.type),
-                  const SizedBox(height: 10),
-                  _InfoRow(
-                    label: 'Completed',
-                    value: widget.mission.assignedAgo,
-                  ),
-                  const SizedBox(height: 10),
-                  _InfoRow(label: 'Location', value: widget.mission.location),
-                  const SizedBox(height: 10),
-                  _InfoRow(label: 'Distance', value: widget.mission.distance),
-                  const SizedBox(height: 18),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                      horizontal: 10,
+                      vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.15),
+                      color: widget.accentColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppColors.success.withOpacity(0.4),
-                        width: 1,
+                        color: widget.accentColor.withOpacity(0.4),
                       ),
                     ),
-                    child: const Text(
-                      'Controlled',
+                    child: Text(
+                      statusLabel,
                       style: TextStyle(
-                        color: AppColors.success,
-                        fontSize: 12,
+                        color: widget.accentColor,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1190,35 +797,85 @@ class _CompletedCardState extends State<_CompletedCard> {
                 ],
               ),
             ),
-          ),
+            // Left accent stripe
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 12,
+              child: Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: widget.accentColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    bottomLeft: Radius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+// ─── Verified Report Card (global queue) ──────────────────────────────────────
+
+class _VerifiedReportCard extends StatefulWidget {
+  final RescueTask task;
+  final VoidCallback onGoToTasks;
+  const _VerifiedReportCard({required this.task, required this.onGoToTasks});
+
+  @override
+  State<_VerifiedReportCard> createState() => _VerifiedReportCardState();
+}
+
+class _VerifiedReportCardState extends State<_VerifiedReportCard> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: () => _showDetail(context),
+        onTap: widget.onGoToTasks,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: _hovering ? AppColors.bgDark : AppColors.bgSurface,
+            color: _hovered ? AppColors.bgDark : AppColors.bgSurface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border, width: 1),
+            border: Border.all(
+              color:
+                  _hovered ? AppColors.info.withOpacity(0.5) : AppColors.border,
+            ),
           ),
           child: Row(
             children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.report_problem_outlined,
+                  color: AppColors.info,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.mission.title,
+                      widget.task.type,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -1227,9 +884,9 @@ class _CompletedCardState extends State<_CompletedCard> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Completed · ${widget.mission.assignedAgo}',
+                      widget.task.location,
                       style: const TextStyle(
-                        color: Colors.white38,
+                        color: Colors.white54,
                         fontSize: 12,
                       ),
                     ),
@@ -1237,23 +894,17 @@ class _CompletedCardState extends State<_CompletedCard> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.success.withOpacity(0.4),
-                    width: 1,
-                  ),
+                  color: AppColors.info.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
                 ),
                 child: const Text(
-                  'Controlled',
+                  'Verified',
                   style: TextStyle(
-                    color: AppColors.success,
-                    fontSize: 11,
+                    color: AppColors.info,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1266,6 +917,336 @@ class _CompletedCardState extends State<_CompletedCard> {
   }
 }
 
+// ─── Empty states ─────────────────────────────────────────────────────────────
+
+class _EmptyMyMissions extends StatelessWidget {
+  final VoidCallback onGoToTasks;
+  const _EmptyMyMissions({required this.onGoToTasks});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onGoToTasks,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.assignment_outlined,
+              color: Colors.white24,
+              size: 40,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'No missions assigned to you yet',
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Go to Tasks to accept an incoming incident',
+              style: TextStyle(color: Colors.white30, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptySection extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  const _EmptySection({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white24, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.white38, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Section label ────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white38,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.5,
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  RESPONSIVE LAYOUT & NAVIGATION CLASSES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _Breakpoint {
+  static bool isMobile(BuildContext ctx) => MediaQuery.of(ctx).size.width < 600;
+  static bool isTablet(BuildContext ctx) =>
+      MediaQuery.of(ctx).size.width >= 600 &&
+      MediaQuery.of(ctx).size.width < 1024;
+  static bool isDesktop(BuildContext ctx) =>
+      MediaQuery.of(ctx).size.width >= 1024;
+
+  static double horizontalPadding(BuildContext ctx) {
+    if (isDesktop(ctx)) return MediaQuery.of(ctx).size.width * 0.12;
+    if (isTablet(ctx)) return 32;
+    return 16;
+  }
+
+  static double contentMaxWidth(BuildContext ctx) {
+    if (isDesktop(ctx)) return 960;
+    if (isTablet(ctx)) return 720;
+    return double.infinity;
+  }
+}
+
+class _NavData {
+  final IconData icon;
+  final String label;
+  const _NavData(this.icon, this.label);
+}
+
+class _SideRail extends StatelessWidget {
+  final int activeNav;
+  final ValueChanged<int> onNavTap;
+  final bool expanded;
+
+  const _SideRail({
+    required this.activeNav,
+    required this.onNavTap,
+    required this.expanded,
+  });
+
+  static const _items = [
+    _NavData(Icons.home_rounded, 'Home'),
+    _NavData(Icons.map_outlined, 'Map'),
+    _NavData(Icons.checklist_rounded, 'Tasks'),
+    _NavData(Icons.insert_drive_file_outlined, 'All Reports'),
+    _NavData(Icons.person_outline_rounded, 'Profile'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      width: expanded ? 220 : 72,
+      decoration: const BoxDecoration(
+        color: AppColors.bgSurface,
+        border: Border(right: BorderSide(color: AppColors.border, width: 1)),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child:
+                  expanded
+                      ? const Text(
+                        'DISASTER360',
+                        style: TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      )
+                      : const Icon(
+                        Icons.shield_outlined,
+                        color: AppColors.orange,
+                        size: 28,
+                      ),
+            ),
+            const SizedBox(height: 28),
+            const Divider(color: AppColors.border),
+            const SizedBox(height: 8),
+            ...List.generate(
+              _items.length,
+              (i) => _SideRailItem(
+                icon: _items[i].icon,
+                label: _items[i].label,
+                isActive: activeNav == i,
+                expanded: expanded,
+                onTap: () => onNavTap(i),
+              ),
+            ),
+            const Spacer(),
+            const Divider(color: AppColors.border),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              child: Row(
+                mainAxisAlignment:
+                    expanded
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
+                children: [
+                  const CircleAvatar(
+                    radius: 16,
+                    backgroundColor: AppColors.bgDark,
+                    child: Icon(Icons.person, size: 18, color: Colors.white70),
+                  ),
+                  if (expanded) ...[
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Rescue Team',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'On Duty',
+                            style: TextStyle(
+                              color: AppColors.success,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SideRailItem extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  const _SideRailItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  @override
+  State<_SideRailItem> createState() => _SideRailItemState();
+}
+
+class _SideRailItemState extends State<_SideRailItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.isActive ? AppColors.orange : Colors.white38;
+    final bg =
+        widget.isActive
+            ? AppColors.bgDark
+            : _hovered
+            ? Colors.white.withOpacity(0.05)
+            : Colors.transparent;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.expanded ? 14 : 0,
+            vertical: 12,
+          ),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(10),
+            border:
+                widget.isActive
+                    ? Border.all(color: AppColors.border, width: 1)
+                    : null,
+          ),
+          child: Row(
+            mainAxisAlignment:
+                widget.expanded
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.center,
+            children: [
+              AnimatedScale(
+                scale: _hovered && !widget.isActive ? 1.12 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                child:
+                    widget.expanded
+                        ? Icon(widget.icon, color: color, size: 20)
+                        : Tooltip(
+                          message: widget.label,
+                          preferBelow: false,
+                          child: Icon(widget.icon, color: color, size: 20),
+                        ),
+              ),
+              if (widget.expanded) ...[
+                const SizedBox(width: 12),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 150),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: _hovered && !widget.isActive ? 13.5 : 13,
+                    fontWeight:
+                        widget.isActive ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                  child: Text(widget.label),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 // ═══════════════════════════════════════════════════════════════════════════════
 //  SUPPORTING WIDGETS (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1315,146 +1296,3 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white38, fontSize: 13),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, color: Colors.white38, size: 15),
-        const SizedBox(width: 8),
-        Text(
-          '$label  ',
-          style: const TextStyle(color: Colors.white38, fontSize: 12),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PriorityBadge extends StatelessWidget {
-  final String priority;
-  const _PriorityBadge({required this.priority});
-
-  @override
-  Widget build(BuildContext context) {
-    Color bg, text;
-    switch (priority) {
-      case 'Urgent':
-        bg = AppColors.danger.withOpacity(0.15);
-        text = AppColors.danger;
-        break;
-      case 'High':
-        bg = AppColors.orange.withOpacity(0.15);
-        text = AppColors.orange;
-        break;
-      case 'Medium':
-        bg = AppColors.warning.withOpacity(0.15);
-        text = AppColors.warning;
-        break;
-      default:
-        bg = AppColors.info.withOpacity(0.15);
-        text = AppColors.info;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: text.withOpacity(0.4), width: 1),
-      ),
-      child: Text(
-        priority,
-        style: TextStyle(
-          color: text,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Data Model ───────────────────────────────────────────────────────────────
-
-class _MissionData {
-  final String title;
-  final String incidentId;
-  final String assignedAgo;
-  final String location;
-  final String distance;
-  final String priority;
-  final String status;
-  final String type;
-  final String description;
-  final String lat;
-  final String lng;
-  final String reportId;
-  final int photoCount;
-
-  const _MissionData({
-    required this.title,
-    required this.incidentId,
-    required this.assignedAgo,
-    required this.location,
-    required this.distance,
-    required this.priority,
-    required this.status,
-    required this.type,
-    required this.description,
-    required this.lat,
-    required this.lng,
-    required this.reportId,
-    required this.photoCount,
-  });
-}
-

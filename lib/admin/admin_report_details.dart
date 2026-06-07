@@ -23,6 +23,7 @@ class AdminReportData {
   final int downvotes;
   final List<String> mediaUrls;
   final List<dynamic> submissions;
+  final String assignedRescueTeams;
 
   const AdminReportData({
     required this.reportId,
@@ -40,6 +41,7 @@ class AdminReportData {
     required this.downvotes,
     required this.mediaUrls,
     this.submissions = const [],
+    this.assignedRescueTeams = 'Not Assigned',
   });
 }
 
@@ -75,6 +77,8 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     with TickerProviderStateMixin {
   late String _decisionState;
   final List<String> _selectedTeams = [];
+  late bool _hasAssignedTeam;
+  late String _assignedTeamsStr;
 
   // Animation controllers
   late AnimationController _cardController;
@@ -88,6 +92,8 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
   @override
   void initState() {
     super.initState();
+    _assignedTeamsStr = widget.report.assignedRescueTeams;
+    _hasAssignedTeam = _assignedTeamsStr != 'Not Assigned' && _assignedTeamsStr.isNotEmpty;
     // Derive initial decision state from passed value or report status
     _decisionState = widget.initialDecisionState;
     try {
@@ -127,6 +133,42 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
 
     _cardController.forward();
     _decisionController.forward();
+
+    _fetchAvailableTeams();
+  }
+
+  List<Map<String, String>> _availableTeams = [];
+
+  void _fetchAvailableTeams() async {
+    try {
+      final api = ApiService();
+      final response = await api.get('/admin/users');
+      if (response is List) {
+        final teams =
+            response
+                .where(
+                  (u) => u['role'] == 'rescue' && u['is_rescueteam'] == true,
+                )
+                .map<Map<String, String>>((u) {
+                  final name = u['full_name'] as String?;
+                  final finalName =
+                      (name != null && name.trim().isNotEmpty)
+                          ? name
+                          : (u['email'] as String? ?? 'Unknown Team');
+                  final spec =
+                      (u['specialization'] as String?) ?? 'Not Specified';
+                  return {'name': finalName, 'specialization': spec};
+                })
+                .toList();
+        if (mounted) {
+          setState(() {
+            _availableTeams = teams;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching rescue teams: $e");
+    }
   }
 
   @override
@@ -136,16 +178,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     super.dispose();
   }
 
-  final List<String> _availableTeams = [
-    'Fire Response Team A',
-    'Fire Response Team B',
-    'Ambulance Unit 1',
-    'Ambulance Unit 2',
-    'Flood Response Team A',
-    'Flood Response Team B',
-    'Search & Rescue Unit',
-    'Police Response Unit',
-  ];
+  // Fetch real teams from API now
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
@@ -183,7 +216,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     final intId = int.tryParse(
       widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
     );
-    
+
     if (intId != null) {
       context.read<ReportProvider>().rejectReport(intId);
       Navigator.pop(context); // Navigate back to the dashboard immediately
@@ -259,12 +292,17 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
 
       if (intId != null) {
         final api = ApiService();
-        await api.post('/admin/reports/$intId/assign', body: {
-          'team_names': _selectedTeams,
-        });
+        await api.post(
+          '/admin/reports/$intId/assign',
+          body: {'team_names': _selectedTeams},
+        );
       }
 
       if (mounted) {
+        setState(() {
+          _assignedTeamsStr = _selectedTeams.join(', ');
+          _hasAssignedTeam = true;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -272,7 +310,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
             ),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -296,27 +336,43 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     if (intId == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Undo Verification?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: const Text(
-          'This will reset the report back to Pending status.',
-          style: TextStyle(color: Colors.white54),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white38)),
+      builder:
+          (_) => AlertDialog(
+            backgroundColor: AppColors.bgSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            title: const Text(
+              'Undo Verification?',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            content: const Text(
+              'This will reset the report back to Pending status.',
+              style: TextStyle(color: Colors.white54),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white38),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Unverify',
+                  style: TextStyle(
+                    color: AppColors.warning,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Unverify',
-                style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
     );
     if (confirmed != true || !mounted) return;
     try {
@@ -331,7 +387,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           content: Text('${widget.report.reportId} reset to Pending.'),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } catch (e) {
@@ -341,7 +399,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
             content: Text('Unverify failed: $e'),
             backgroundColor: AppColors.danger,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -708,11 +768,12 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                         opaque: false,
                         barrierColor: Colors.transparent,
                         transitionDuration: const Duration(milliseconds: 250),
-                        pageBuilder: (_, __, ___) => ImageViewerOverlay(
-                          mediaUrls: widget.report.mediaUrls,
-                          initialIndex: index,
-                          reportId: widget.report.reportId,
-                        ),
+                        pageBuilder:
+                            (_, __, ___) => ImageViewerOverlay(
+                              mediaUrls: widget.report.mediaUrls,
+                              initialIndex: index,
+                              reportId: widget.report.reportId,
+                            ),
                       ),
                     );
                   },
@@ -723,12 +784,16 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                       width: photoWidth,
                       height: photoHeight,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: photoWidth,
-                        height: photoHeight,
-                        color: Colors.white12,
-                        child: const Icon(Icons.broken_image, color: Colors.white38),
-                      ),
+                      errorBuilder:
+                          (_, __, ___) => Container(
+                            width: photoWidth,
+                            height: photoHeight,
+                            color: Colors.white12,
+                            child: const Icon(
+                              Icons.broken_image,
+                              color: Colors.white38,
+                            ),
+                          ),
                     ),
                   ),
                 ),
@@ -852,7 +917,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
               _decisionState == 'rejected'
                   ? _buildRejectedBanner()
                   : _decisionState == 'verified'
-                  ? _buildAssignTeamSection()
+                  ? (_hasAssignedTeam ? _buildAssignedTeamInfo() : _buildAssignTeamSection())
                   : _buildPendingButtons(),
         ),
       ),
@@ -928,16 +993,25 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           ),
         ),
         const SizedBox(height: 12),
+        if (_availableTeams.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Text(
+              'No rescue teams available',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ),
         ..._availableTeams.map(
           (team) => _TeamCheckTile(
-            label: team,
-            isSelected: _selectedTeams.contains(team),
+            title: team['specialization']!,
+            subtitle: team['name']!,
+            isSelected: _selectedTeams.contains(team['name']),
             onToggle: () {
               setState(() {
-                if (_selectedTeams.contains(team)) {
-                  _selectedTeams.remove(team);
+                if (_selectedTeams.contains(team['name'])) {
+                  _selectedTeams.remove(team['name']);
                 } else {
-                  _selectedTeams.add(team);
+                  _selectedTeams.add(team['name']!);
                 }
               });
             },
@@ -968,6 +1042,57 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     );
   }
 
+  Widget _buildAssignedTeamInfo() {
+    return Column(
+      key: const ValueKey('assigned'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.orange.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.group_rounded, color: AppColors.orange, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Assigned to: $_assignedTeamsStr',
+                  style: const TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _ActionButton(
+          fullWidth: true,
+          label: 'Undo Assignment',
+          icon: Icons.undo_rounded,
+          color: AppColors.warning,
+          filled: false,
+          onTap: () {
+            setState(() {
+              _hasAssignedTeam = false;
+              _assignedTeamsStr = '';
+              _selectedTeams.clear();
+            });
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildRejectedBanner() {
     return Column(
       key: const ValueKey('rejected'),
@@ -978,7 +1103,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           decoration: BoxDecoration(
             color: AppColors.danger.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.danger.withOpacity(0.3), width: 1),
+            border: Border.all(
+              color: AppColors.danger.withOpacity(0.3),
+              width: 1,
+            ),
           ),
           child: const Row(
             children: [
@@ -2022,12 +2150,14 @@ class _ActionButtonState extends State<_ActionButton>
 
 /// Team checkbox tile with hover + animated check
 class _TeamCheckTile extends StatefulWidget {
-  final String label;
+  final String title;
+  final String subtitle;
   final bool isSelected;
   final VoidCallback onToggle;
 
   const _TeamCheckTile({
-    required this.label,
+    required this.title,
+    required this.subtitle,
     required this.isSelected,
     required this.onToggle,
   });
@@ -2128,14 +2258,35 @@ class _TeamCheckTileState extends State<_TeamCheckTile>
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: widget.isSelected ? Colors.white : Colors.white54,
-                      fontSize: 13,
-                      fontWeight:
-                          widget.isSelected ? FontWeight.w600 : FontWeight.w400,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          color:
+                              widget.isSelected ? Colors.white : Colors.white70,
+                          fontSize: 14,
+                          fontWeight:
+                              widget.isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          color:
+                              widget.isSelected
+                                  ? Colors.white70
+                                  : Colors.white38,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

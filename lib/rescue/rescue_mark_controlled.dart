@@ -1,5 +1,7 @@
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -100,22 +102,47 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   Future<void> _submit() async {
-    // Validate all fields
     if (!_formKey.currentState!.validate()) return;
+
+    // Require that this task has been acknowledged (has a rescueUpdateId)
+    final rescueUpdateId = widget.task.rescueUpdateId;
+    if (rescueUpdateId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Cannot mark as controlled: task has not been acknowledged.',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.danger.withOpacity(0.92),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
 
-    // Simulate API call — replace with real service call
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // 1. Update status to Controlled via API
+      await context.read<RescueProvider>().updateOperationStatus(
+        rescueUpdateId,
+        'Controlled',
+      );
 
-    // Simulate success (set to false to test failure path)
-    const bool success = true;
-
-    if (!mounted) return;
-
-    if (success) {
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
-      // Navigate back to tasks screen and show success message
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -140,19 +167,23 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
           duration: const Duration(seconds: 4),
         ),
       );
-    } else {
-      // Stay on screen — show error
+    } catch (e) {
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
-            children: const [
-              Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
-              SizedBox(width: 10),
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Submission failed. Please check your connection and try again.',
-                  style: TextStyle(color: Colors.white, fontSize: 13),
+                  e.toString().replaceFirst('Exception: ', ''),
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
             ],

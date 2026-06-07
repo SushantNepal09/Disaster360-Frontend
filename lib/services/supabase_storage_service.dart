@@ -12,8 +12,9 @@ class SupabaseStorageService {
   Future<File> _compressImage(File file) async {
     try {
       final dir = await getTemporaryDirectory();
-      final targetPath = '${dir.absolute.path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
+      final targetPath =
+          '${dir.absolute.path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
       final result = await FlutterImageCompress.compressAndGetFile(
         file.absolute.path,
         targetPath,
@@ -21,7 +22,7 @@ class SupabaseStorageService {
         minWidth: 1080,
         minHeight: 1080,
       );
-      
+
       return result != null ? File(result.path) : file;
     } catch (e) {
       return file;
@@ -32,19 +33,24 @@ class SupabaseStorageService {
   Future<String> uploadImage(File file) async {
     try {
       final File compressedFile = await _compressImage(file);
-      
+
       final String fileExtension = compressedFile.path.split('.').last;
-      final String fileName = '${DateTime.now().millisecondsSinceEpoch}_${const Uuid().v4()}.$fileExtension';
+      final String fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${const Uuid().v4()}.$fileExtension';
 
       // Upload file to Supabase Storage
-      await _client.storage.from(_bucketName).upload(
-        fileName,
-        compressedFile,
-        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-      );
+      await _client.storage
+          .from(_bucketName)
+          .upload(
+            fileName,
+            compressedFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
 
       // Get public URL
-      final String publicUrl = _client.storage.from(_bucketName).getPublicUrl(fileName);
+      final String publicUrl = _client.storage
+          .from(_bucketName)
+          .getPublicUrl(fileName);
       return publicUrl;
     } catch (e) {
       throw Exception('Failed to upload image: $e');
@@ -59,8 +65,8 @@ class SupabaseStorageService {
       );
       return urls;
     } catch (e) {
-      // In a robust implementation, if an upload fails mid-way, you might want to 
-      // delete the already uploaded images. However, keeping them orphaned is 
+      // In a robust implementation, if an upload fails mid-way, you might want to
+      // delete the already uploaded images. However, keeping them orphaned is
       // safer than partial local state in most MVP scenarios.
       throw Exception('Failed to upload one or more images: $e');
     }

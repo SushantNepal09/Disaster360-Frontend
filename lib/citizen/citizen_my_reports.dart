@@ -21,7 +21,14 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
   List<ReportModel> _getFilteredReports(BuildContext context) {
     final userId = context.read<AuthProvider>().user?.id;
     final allReports = context.watch<ReportProvider>().reports;
-    final myReports = allReports.where((r) => r.userId == userId || r.submissions.any((s) => s['user_id'] == userId)).toList();
+    final myReports =
+        allReports
+            .where(
+              (r) =>
+                  r.userId == userId ||
+                  r.submissions.any((s) => s['user_id'] == userId),
+            )
+            .toList();
 
     return myReports.where((r) {
       final matchesFilter =
@@ -67,9 +74,7 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final report = _getFilteredReports(context)[index];
-                        return _ReportCard(
-                          data: report,
-                        );
+                        return _ReportCard(data: report);
                       },
                     ),
           ),
@@ -132,7 +137,11 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.filter_list_rounded, color: AppColors.orange, size: 20),
+                const Icon(
+                  Icons.filter_list_rounded,
+                  color: AppColors.orange,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 const Text(
                   'Filter: ',
@@ -148,7 +157,11 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
                 ),
               ],
             ),
-            const Icon(Icons.keyboard_arrow_down, color: Colors.white54, size: 20),
+            const Icon(
+              Icons.keyboard_arrow_down,
+              color: Colors.white54,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -165,8 +178,15 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
       isScrollControlled: true,
       builder: (BuildContext ctx) {
         return Container(
-          padding: const EdgeInsets.only(top: 16, bottom: 24, left: 20, right: 20),
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+          padding: const EdgeInsets.only(
+            top: 16,
+            bottom: 24,
+            left: 20,
+            right: 20,
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.7,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -195,7 +215,9 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _filters.length,
-                  separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                  separatorBuilder:
+                      (_, __) =>
+                          const Divider(color: Colors.white12, height: 1),
                   itemBuilder: (ctx, index) {
                     final filter = _filters[index];
                     final isSelected = filter == _selectedFilter;
@@ -205,13 +227,19 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
                         filter,
                         style: TextStyle(
                           color: isSelected ? AppColors.orange : Colors.white70,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 15,
                         ),
                       ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: AppColors.orange, size: 22)
-                          : null,
+                      trailing:
+                          isSelected
+                              ? const Icon(
+                                Icons.check_circle,
+                                color: AppColors.orange,
+                                size: 22,
+                              )
+                              : null,
                       onTap: () {
                         Navigator.pop(ctx);
                         setState(() => _selectedFilter = filter);
@@ -252,29 +280,34 @@ class _ReportCard extends StatelessWidget {
   void _showFullScreenImage(BuildContext context, String imageUrl) {
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(10),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            InteractiveViewer(
-              panEnabled: true,
-              minScale: 0.5,
-              maxScale: 4,
-              child: Image.network(imageUrl, fit: BoxFit.contain),
+      builder:
+          (ctx) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(10),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                InteractiveViewer(
+                  panEnabled: true,
+                  minScale: 0.5,
+                  maxScale: 4,
+                  child: Image.network(imageUrl, fit: BoxFit.contain),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ),
+              ],
             ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -283,14 +316,19 @@ class _ReportCard extends StatelessWidget {
     final currentUserId = context.read<AuthProvider>().user?.id;
     dynamic mySubmission;
     try {
-      mySubmission = data.submissions.firstWhere((s) => s['user_id'] == currentUserId);
+      mySubmission = data.submissions.firstWhere(
+        (s) => s['user_id'] == currentUserId,
+      );
     } catch (e) {
       mySubmission = null;
     }
 
     List<String> displayMediaUrls = data.mediaUrls;
     if (mySubmission != null && mySubmission['media_urls'] != null) {
-      displayMediaUrls = (mySubmission['media_urls'] as List).map((e) => e.toString()).toList();
+      displayMediaUrls =
+          (mySubmission['media_urls'] as List)
+              .map((e) => e.toString())
+              .toList();
     }
 
     return Material(
@@ -325,163 +363,196 @@ class _ReportCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _relativeDate(data.createdAt),
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _StatusBadge(status: data.status),
+                ],
+              ),
+              if (data.description.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  data.description,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (displayMediaUrls.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: displayMediaUrls.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap:
+                            () => _showFullScreenImage(
+                              context,
+                              displayMediaUrls[index],
+                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            displayMediaUrls[index],
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.white12,
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white38,
+                                  ),
+                                ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    children: [_TagChip(label: data.disasterType)],
+                  ),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.thumb_up,
+                        size: 14,
+                        color: AppColors.success,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        _relativeDate(data.createdAt),
+                        '${data.likes}',
                         style: const TextStyle(
-                          color: Colors.white38,
+                          color: AppColors.success,
                           fontSize: 12,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                _StatusBadge(status: data.status),
-              ],
-            ),
-            if (data.description.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                data.description,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                ],
               ),
-            ],
-            if (displayMediaUrls.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 80,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: displayMediaUrls.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () => _showFullScreenImage(context, displayMediaUrls[index]),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          displayMediaUrls[index],
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.white12,
-                            child: const Icon(Icons.broken_image, color: Colors.white38),
-                          ),
+              if (data.status != 'Verified' && !data.verified) ...[
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white12, height: 1),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _showUpdateDialog(context),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Update'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.white24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    _TagChip(label: data.disasterType),
-                  ]
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    const Icon(Icons.thumb_up, size: 14, color: AppColors.success),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${data.likes}',
-                      style: const TextStyle(
-                        color: AppColors.success,
-                        fontSize: 12,
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _showDeleteConfirm(context),
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('Delete'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.danger.withOpacity(0.8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ],
-            ),
-            if (data.status != 'Verified' && !data.verified) ...[
-              const SizedBox(height: 16),
-              const Divider(color: Colors.white12, height: 1),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => _showUpdateDialog(context),
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Update'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Colors.white24),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: () => _showDeleteConfirm(context),
-                    icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: AppColors.danger.withOpacity(0.8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                  ),
-                ],
-              ),
             ],
-          ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _showDeleteConfirm(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgSurface,
-        title: const Text('Delete Report', style: TextStyle(color: Colors.white)),
-        content: const Text('Are you sure you want to delete this report? This action cannot be undone.', style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.bgSurface,
+            title: const Text(
+              'Delete Report',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Text(
+              'Are you sure you want to delete this report? This action cannot be undone.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.read<ReportProvider>().deleteReport(data.id);
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: AppColors.danger),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<ReportProvider>().deleteReport(data.id);
-            },
-            child: const Text('Delete', style: TextStyle(color: AppColors.danger)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -491,53 +562,67 @@ class _ReportCard extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgSurface,
-        title: const Text('Update Report', style: TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  labelStyle: TextStyle(color: Colors.white54),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.bgSurface,
+            title: const Text(
+              'Update Report',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      labelStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white24),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      labelStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white24),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white54),
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descCtrl,
-                style: const TextStyle(color: Colors.white),
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: TextStyle(color: Colors.white54),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.read<ReportProvider>().updateReport(data.id, {
+                    'title': titleCtrl.text.trim(),
+                    'description': descCtrl.text.trim(),
+                  });
+                },
+                child: const Text(
+                  'Save',
+                  style: TextStyle(color: AppColors.orange),
                 ),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<ReportProvider>().updateReport(data.id, {
-                'title': titleCtrl.text.trim(),
-                'description': descCtrl.text.trim(),
-              });
-            },
-            child: const Text('Save', style: TextStyle(color: AppColors.orange)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -558,7 +643,6 @@ class _ReportCard extends StatelessWidget {
       return dateStr.split("T").first;
     }
   }
-
 }
 
 class _TagChip extends StatelessWidget {
@@ -590,23 +674,23 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bg;
     Color text;
-    
+
     final lowercaseStatus = status.toLowerCase();
     if (lowercaseStatus.contains('progress')) {
-        bg = AppColors.orange.withOpacity(0.18);
-        text = AppColors.orange;
+      bg = AppColors.orange.withOpacity(0.18);
+      text = AppColors.orange;
     } else if (lowercaseStatus.contains('controlled')) {
-        bg = AppColors.success.withOpacity(0.15);
-        text = AppColors.success;
+      bg = AppColors.success.withOpacity(0.15);
+      text = AppColors.success;
     } else if (lowercaseStatus.contains('verified')) {
-        bg = AppColors.info.withOpacity(0.18);
-        text = AppColors.info;
+      bg = AppColors.info.withOpacity(0.18);
+      text = AppColors.info;
     } else if (lowercaseStatus.contains('rejected')) {
-        bg = AppColors.danger.withOpacity(0.18);
-        text = AppColors.danger;
+      bg = AppColors.danger.withOpacity(0.18);
+      text = AppColors.danger;
     } else {
-        bg = AppColors.warning.withOpacity(0.15);
-        text = AppColors.warning;
+      bg = AppColors.warning.withOpacity(0.15);
+      text = AppColors.warning;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

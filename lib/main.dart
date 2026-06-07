@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/auth/auth_wrapper.dart';
 import 'package:disaster360/services/session_service.dart';
 import 'package:disaster360/services/deep_link_router.dart';
@@ -23,18 +24,18 @@ Future<void> main() async {
   final router = DeepLinkRouter();
   router.initialize(); // Internally buffers until first frame
 
-
-   await Supabase.initialize(
+  await Supabase.initialize(
     url: 'https://lavkbxvdjzyhznixpche.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhdmtieHZkanp5aHpuaXhwY2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDcyODIsImV4cCI6MjA5NTE4MzI4Mn0.hxsjmII5VEL3EwJX1IA1cp2RfjUXb-motsaUo4bHTiI',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhdmtieHZkanp5aHpuaXhwY2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDcyODIsImV4cCI6MjA5NTE4MzI4Mn0.hxsjmII5VEL3EwJX1IA1cp2RfjUXb-motsaUo4bHTiI',
   );
 
   runApp(
-    
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ReportProvider()),
+        ChangeNotifierProvider(create: (_) => RescueProvider()),
       ],
       child: DisasterApp(router: router),
     ),
@@ -43,7 +44,7 @@ Future<void> main() async {
 
 class DisasterApp extends StatelessWidget {
   final DeepLinkRouter router;
-  
+
   const DisasterApp({super.key, required this.router});
 
   @override

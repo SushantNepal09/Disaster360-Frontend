@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -8,6 +9,7 @@ import 'package:disaster360/providers/report_provider.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:disaster360/colors.dart';
+import 'package:disaster360/services/gis_service.dart';
 
 // ─────────────────────────────────────────────
 //  DISASTER STYLE HELPERS  (uses AppColors)
@@ -104,9 +106,20 @@ class DisasterMapScreen extends StatefulWidget {
 class _DisasterMapScreenState extends State<DisasterMapScreen>
     with TickerProviderStateMixin {
   final MapController _mapController = MapController();
+  final GisService _gisService = GisService();
+  
+  String _activeBoundaryLayer = 'None';
+  List<MapRegion> _cachedProvinces = [];
+  List<MapRegion> _cachedDistricts = [];
+  List<MapRegion> _cachedWards = [];
+  bool _isLoadingBoundaries = false;
+  bool _isBoundaryMenuOpen = false;
 
   String? _activeFilter;
   ReportModel? _selectedIncident;
+  String? _tappedRegionName;
+  String? _tappedRegionLayer;
+  Timer? _regionInfoTimer;
   bool _showLegend = false;
   bool _showZones = true;
   bool _isSatellite = false;
@@ -180,6 +193,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   @override
   void initState() {
     super.initState();
+    _loadAllBoundaries();
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -219,6 +233,33 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     _panelCtrl.reverse().then((_) => setState(() => _selectedIncident = null));
   }
 
+  Future<void> _loadAllBoundaries() async {
+    setState(() => _isLoadingBoundaries = true);
+    try {
+      debugPrint("Loading province boundaries...");
+      final prov = await _gisService.loadLayer('Province', 'assets/maps/province0.json');
+      
+      debugPrint("Loading district boundaries...");
+      final dist = await _gisService.loadLayer('District', 'assets/maps/districts0.json');
+      
+      debugPrint("Loading LocalUnit boundaries...");
+      final LocalUnit = await _gisService.loadLayer('LocalUnit', 'assets/maps/local_unit.json');
+      
+      debugPrint("All boundaries loaded successfully.");
+      if (mounted) {
+        setState(() {
+          _cachedProvinces = prov;
+          _cachedDistricts = dist;
+          _cachedWards = LocalUnit;
+          _isLoadingBoundaries = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading boundaries: $e");
+      if (mounted) setState(() => _isLoadingBoundaries = false);
+    }
+  }
+
   // ─── BUILD ───────────────────────────────────
 
   @override
@@ -233,6 +274,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
           _buildFilterBar(),
           if (_showLegend) _buildLegend(),
           _buildMapControls(),
+          _buildBoundaryToggle(),
+          if (_tappedRegionName != null) _buildRegionInfoPopup(),
           if (_selectedIncident != null) _buildDetailPanel(),
         ],
       ),
@@ -247,14 +290,33 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
       options: MapOptions(
         initialCenter: _nepalCenter,
         initialZoom: 7.0,
-        minZoom: 6.5,
+        minZoom: 6.0,
         maxZoom: 18,
         cameraConstraint: CameraConstraint.containCenter(
           bounds: LatLngBounds(_nepalSW, _nepalNE),
         ),
-        onTap: (_, __) {
+        onTap: (_, point) {
           if (_selectedIncident != null) _closePanel();
           if (_showLegend) setState(() => _showLegend = false);
+
+          if (_activeBoundaryLayer != 'None') {
+            List<MapRegion> activeRegions = [];
+            if (_activeBoundaryLayer == 'Province') activeRegions = _cachedProvinces;
+            if (_activeBoundaryLayer == 'District') activeRegions = _cachedDistricts;
+            if (_activeBoundaryLayer == 'LocalUnit') activeRegions = _cachedWards;
+
+            final regionName = _gisService.identifyRegion(point, activeRegions);
+            if (regionName != null) {
+              setState(() {
+                _tappedRegionName = regionName;
+                _tappedRegionLayer = _activeBoundaryLayer == 'LocalUnit' ? 'Local Unit' : _activeBoundaryLayer;
+              });
+              _regionInfoTimer?.cancel();
+              _regionInfoTimer = Timer(const Duration(seconds: 4), () {
+                if (mounted) setState(() => _tappedRegionName = null);
+              });
+            }
+          }
         },
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all,
@@ -269,6 +331,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
           userAgentPackageName: 'com.disaster360.app',
           maxZoom: 18,
         ),
+        if (_activeBoundaryLayer != 'None') _buildBoundaryLayer(),
         if (_showZones) _buildZoneLayer(),
         MarkerLayer(markers: _buildMarkers()),
         RichAttributionWidget(
@@ -283,6 +346,160 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
           ],
         ),
       ],
+    );
+  }
+
+  PolygonLayer _buildBoundaryLayer() {
+    List<MapRegion> activeRegions = [];
+    if (_activeBoundaryLayer == 'Province') activeRegions = _cachedProvinces;
+    if (_activeBoundaryLayer == 'District') activeRegions = _cachedDistricts;
+    if (_activeBoundaryLayer == 'LocalUnit') activeRegions = _cachedWards;
+
+    final color = _activeBoundaryLayer == 'Province' 
+        ? Colors.deepPurpleAccent 
+        : _activeBoundaryLayer == 'District' 
+            ? Colors.blueAccent 
+            : Colors.teal;
+
+    return PolygonLayer(
+      simplificationTolerance: 0.5,
+      polygons: activeRegions.expand((r) => r.polygons).map<Polygon>((polyCoords) {
+        return Polygon(
+          points: polyCoords,
+          color: color.withOpacity(0.15),
+          borderColor: color.withOpacity(0.8),
+          borderStrokeWidth: 2.0,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildBoundaryToggle() {
+    return Positioned(
+      top: 230,
+      right: 16,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isBoundaryMenuOpen = !_isBoundaryMenuOpen;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8),
+                ],
+              ),
+              child: _isLoadingBoundaries 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54))
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.layers_rounded, 
+                          color: _activeBoundaryLayer != 'None' ? AppColors.info : Colors.white54, 
+                          size: 20
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Boundary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                        const SizedBox(width: 4),
+                        Icon(_isBoundaryMenuOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down, color: Colors.white54, size: 18),
+                      ],
+                    ),
+            ),
+          ),
+          if (_isBoundaryMenuOpen) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: 140,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _BoundaryBtn(label: 'None', active: _activeBoundaryLayer == 'None', onTap: () => setState(() { _activeBoundaryLayer = 'None'; _isBoundaryMenuOpen = false; })),
+                  _BoundaryBtn(label: 'Province', active: _activeBoundaryLayer == 'Province', onTap: () => setState(() { _activeBoundaryLayer = 'Province'; _isBoundaryMenuOpen = false; })),
+                  _BoundaryBtn(label: 'District', active: _activeBoundaryLayer == 'District', onTap: () => setState(() { _activeBoundaryLayer = 'District'; _isBoundaryMenuOpen = false; })),
+                  _BoundaryBtn(label: 'LocalUnit', active: _activeBoundaryLayer == 'LocalUnit', onTap: () => setState(() { _activeBoundaryLayer = 'LocalUnit'; _isBoundaryMenuOpen = false; })),
+                ],
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegionInfoPopup() {
+    return Positioned(
+      top: 100,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutBack,
+          tween: Tween<double>(begin: 0.8, end: 1.0),
+          builder: (context, scale, child) {
+            return Transform.scale(
+              scale: scale,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _tappedRegionName != null ? 1.0 : 0.0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgSurface.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border.withOpacity(0.5), width: 1),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        _tappedRegionLayer?.toUpperCase() ?? '',
+                        style: const TextStyle(
+                          color: AppColors.info,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _tappedRegionName ?? '',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -1582,6 +1799,40 @@ class _PulseDot extends StatefulWidget {
   const _PulseDot({required this.color});
   @override
   State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _BoundaryBtn extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _BoundaryBtn({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.info.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: active ? AppColors.info.withOpacity(0.5) : Colors.transparent),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? AppColors.info : Colors.white54,
+              fontSize: 12,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _PulseDotState extends State<_PulseDot>

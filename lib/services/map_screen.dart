@@ -351,7 +351,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
 
   Widget _buildBoundaryToggle() {
     return Positioned(
-      top: 180,
+      top: 230,
       right: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,

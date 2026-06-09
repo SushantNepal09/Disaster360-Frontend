@@ -74,6 +74,9 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Fetch Verified Reports (unacknowledged verified incidents = "active" tasks)
   // ---------------------------------------------------------------------------
+  String _debugString = '';
+  String get debugString => _debugString;
+
   Future<void> fetchVerifiedReports() async {
     try {
       final data = await _service.getVerifiedReports();
@@ -104,9 +107,12 @@ class RescueProvider extends ChangeNotifier {
                 return t.assignedTeams.any((assigned) => assigned.trim().toLowerCase() == myTeam);
               })
               .toList();
+      
+      _debugString = 'Team: $teamName | Verified API count: \${data.length} | Matched: \${_verifiedReports.length}';
       notifyListeners();
     } catch (e) {
       // Silently handle — allTasks will just show empty active list
+      _debugString = 'Error: $e';
       debugPrint('fetchVerifiedReports error: $e');
     }
   }

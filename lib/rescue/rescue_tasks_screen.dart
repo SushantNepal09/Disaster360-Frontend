@@ -117,7 +117,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
                   child: Column(
                     children: [
-                      _buildHeader(activeCount),
+                      _buildHeader(context, activeCount),
                       const SizedBox(height: 16),
                       _buildSearchBar(),
                       const SizedBox(height: 14),
@@ -178,7 +178,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   }
 
   // ── Header ─────────────────────────────────────────────────────────────────
-  Widget _buildHeader(int activeCount) {
+  Widget _buildHeader(BuildContext context, int activeCount) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -191,10 +191,26 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
             fontFamily: 'monospace',
           ),
         ),
-        AnimatedBuilder(
-          animation: _pulseAnim,
-          builder:
-              (_, __) => Opacity(
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white70),
+              onPressed: () async {
+                final provider = context.read<RescueProvider>();
+                await provider.fetchAll();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(provider.debugString)),
+                  );
+                }
+              },
+              tooltip: 'Refresh tasks',
+            ),
+            const SizedBox(width: 8),
+            AnimatedBuilder(
+              animation: _pulseAnim,
+              builder:
+                  (_, __) => Opacity(
                 opacity: _pulseAnim.value,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -232,6 +248,8 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                   ),
                 ),
               ),
+            ),
+          ],
         ),
       ],
     );

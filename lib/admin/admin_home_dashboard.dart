@@ -1055,9 +1055,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
           );
         }).toList();
 
-    final isWide =
-        _Breakpoint.isTablet(context) || _Breakpoint.isDesktop(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1071,28 +1068,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
               style: TextStyle(color: Colors.white54),
             ),
           )
-        else if (isWide)
-          _threeColumnGrid(
-            teams
-                .map(
-                  (team) => _AnimatedRescueCard(
-                    team: team,
-                    onTap: () => _showRescueTeamDialog(context, team),
-                  ),
-                )
-                .toList(),
-          )
         else
-          Column(
-            children:
-                teams
-                    .map(
-                      (team) => _AnimatedRescueCard(
-                        team: team,
-                        onTap: () => _showRescueTeamDialog(context, team),
-                      ),
-                    )
-                    .toList(),
+          ...teams.map(
+            (team) => _AnimatedRescueCard(
+              team: team,
+              onTap: () => _showRescueTeamDialog(context, team),
+            ),
           ),
       ],
     );
@@ -2353,8 +2334,10 @@ class _AnimatedRescueCardState extends State<_AnimatedRescueCard> {
                       ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            runSpacing: 8,
                             children: [
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 180),

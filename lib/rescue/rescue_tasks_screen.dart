@@ -579,7 +579,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                             _DetailRow(
                               icon: Icons.image_outlined,
                               label: 'Photos',
-                              value: '${task.photoCount} attached',
+                              value: '${task.mediaUrls.length} attached',
                             ),
                             const SizedBox(height: 10),
                             _DetailRow(
@@ -1002,12 +1002,12 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _ImageViewerOverlay extends StatefulWidget {
-  final int photoCount;
+  final List<String> mediaUrls;
   final int initialIndex;
   final String reportId;
 
   const _ImageViewerOverlay({
-    required this.photoCount,
+    this.mediaUrls = const [],
     required this.initialIndex,
     required this.reportId,
   });
@@ -1072,7 +1072,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
               }
               return KeyEventResult.handled;
             } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              if (_currentIndex < widget.photoCount - 1) {
+              if (_currentIndex < widget.mediaUrls.length - 1) {
                 _pageCtrl.nextPage(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -1100,7 +1100,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
             // Full-screen swipeable image pages – edge‑to‑edge
             PageView.builder(
               controller: _pageCtrl,
-              itemCount: widget.photoCount,
+              itemCount: widget.mediaUrls.length,
               onPageChanged: (i) => setState(() => _currentIndex = i),
               itemBuilder: (_, i) {
                 return Container(
@@ -1141,7 +1141,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
             ),
 
             // Next/Prev Arrows (Desktop navigation)
-            if (widget.photoCount > 1) ...[
+            if (widget.mediaUrls.length > 1) ...[
               if (_currentIndex > 0)
                 Positioned(
                   left: 20,
@@ -1167,7 +1167,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
                     ),
                   ),
                 ),
-              if (_currentIndex < widget.photoCount - 1)
+              if (_currentIndex < widget.mediaUrls.length - 1)
                 Positioned(
                   right: 20,
                   top: 0,
@@ -1236,7 +1236,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
                         border: Border.all(color: Colors.white12),
                       ),
                       child: Text(
-                        'Photo ${_currentIndex + 1} of ${widget.photoCount}',
+                        'Photo ${_currentIndex + 1} of ${widget.mediaUrls.length}',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
@@ -1269,14 +1269,14 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
             ),
 
             // Dot indicators at bottom
-            if (widget.photoCount > 1)
+            if (widget.mediaUrls.length > 1)
               Positioned(
                 bottom: MediaQuery.of(context).padding.bottom + 24,
                 left: 0,
                 right: 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(widget.photoCount, (i) {
+                  children: List.generate(widget.mediaUrls.length, (i) {
                     final active = i == _currentIndex;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
@@ -1340,7 +1340,7 @@ class _TaskCardState extends State<_TaskCard> {
   }
 
   void _openImageViewer(int index) {
-    final count = widget.task.photoCount.clamp(1, 5);
+    final count = widget.task.mediaUrls.length.clamp(1, 5);
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -1349,7 +1349,7 @@ class _TaskCardState extends State<_TaskCard> {
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder:
           (_, __, ___) => _ImageViewerOverlay(
-            photoCount: count,
+            mediaUrls: widget.task.mediaUrls,
             initialIndex: index,
             reportId: widget.task.reportId,
           ),
@@ -1361,7 +1361,7 @@ class _TaskCardState extends State<_TaskCard> {
     final isActive = widget.task.status == TaskStatus.active;
     final isPending = widget.task.status == TaskStatus.pending;
     final isCompleted = widget.task.status == TaskStatus.completed;
-    final photoCount = widget.task.photoCount.clamp(1, 5);
+    final photoCount = widget.task.mediaUrls.length.clamp(1, 5);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1516,8 +1516,8 @@ class _TaskCardState extends State<_TaskCard> {
                   const SizedBox(height: 14),
 
                   // ── TWO-IMAGE GRID (same as citizen home) ───────────────
-                  if (photoCount > 0) _buildImageGrid(photoCount),
-                  if (photoCount > 0) const SizedBox(height: 14),
+                  if (widget.task.mediaUrls.isNotEmpty) _buildImageGrid(widget.task.mediaUrls),
+                  if (widget.task.mediaUrls.isNotEmpty) const SizedBox(height: 14),
 
                   // Action buttons
                   if (isActive)
@@ -1552,8 +1552,8 @@ class _TaskCardState extends State<_TaskCard> {
   }
 
   // ── TWO-IMAGE GRID (identical to citizen home) ────────────────────────────
-  Widget _buildImageGrid(int totalPhotos) {
-    final actualCount = totalPhotos.clamp(1, 5);
+  Widget _buildImageGrid(List<String> mediaUrls) {
+    final actualCount = mediaUrls.length.clamp(1, 5);
     final visibleCards = actualCount == 1 ? 1 : 2;
     final extraCount = actualCount - visibleCards;
 
@@ -1577,36 +1577,23 @@ class _TaskCardState extends State<_TaskCard> {
                   fit: StackFit.expand,
                   alignment: Alignment.center,
                   children: [
-                    // Placeholder image content
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_outlined,
-                          color:
-                              isLast
-                                  ? Colors.white10
-                                  : Colors.white.withOpacity(0.2),
-                          size: 32,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Photo ${i + 1}',
-                          style: TextStyle(
-                            color:
-                                isLast
-                                    ? Colors.white10
-                                    : Colors.white.withOpacity(0.22),
-                            fontSize: 11,
-                            decoration: TextDecoration.none,
+                    Image.network(
+                      mediaUrls[i],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.image_outlined,
+                            color: isLast ? Colors.white10 : Colors.white.withValues(alpha: 0.2),
+                            size: 32,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    // +N overlay on last visible card
                     if (isLast)
                       Container(
-                        color: Colors.black.withOpacity(0.65),
+                        color: Colors.black.withValues(alpha: 0.65),
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1624,7 +1611,7 @@ class _TaskCardState extends State<_TaskCard> {
                               Text(
                                 'more',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
+                                  color: Colors.white.withValues(alpha: 0.6),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.none,
@@ -2012,7 +1999,7 @@ class RescueTask {
   final String assignedAgo;
   final int severityLevel;
   final String verifiedByAdmin;
-  final int photoCount;
+  final List<String> mediaUrls;
   final String lat;
   final String lng;
   final String reportId;
@@ -2029,7 +2016,7 @@ class RescueTask {
     required this.assignedAgo,
     required this.severityLevel,
     required this.verifiedByAdmin,
-    required this.photoCount,
+    this.mediaUrls = const [],
     required this.lat,
     required this.lng,
     required this.reportId,
@@ -2082,7 +2069,7 @@ class RescueTask {
       assignedAgo: _timeAgo(json['created_at']?.toString()),
       severityLevel: _parseSeverity(json['severity']?.toString()),
       verifiedByAdmin: 'Admin',
-      photoCount: 0,
+      mediaUrls: (json['media_urls'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       lat: '${json['latitude'] ?? 0.0}',
       lng: '${json['longitude'] ?? 0.0}',
       reportId: '${json['id']}',
@@ -2115,7 +2102,7 @@ class RescueTask {
       assignedAgo: _timeAgo(json['acknowledged_at']?.toString()),
       severityLevel: _parseSeverity(json['severity']?.toString()),
       verifiedByAdmin: 'Admin',
-      photoCount: 0,
+      mediaUrls: (json['media_urls'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       lat: '${json['latitude'] ?? 0.0}',
       lng: '${json['longitude'] ?? 0.0}',
       reportId: '${json['incident_id']}',

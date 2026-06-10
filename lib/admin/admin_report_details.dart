@@ -159,7 +159,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                           : (u['email'] as String? ?? 'Unknown Team');
                   final spec =
                       (u['specialization'] as String?) ?? 'Not Specified';
-                  return {'name': finalName, 'specialization': spec};
+                  return {'id': u['id'] as String, 'name': finalName, 'specialization': spec};
                 })
                 .toList();
         if (mounted) {
@@ -296,7 +296,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
         final api = ApiService();
         await api.post(
           '/admin/reports/$intId/assign',
-          body: {'team_names': _selectedTeams},
+          body: {'team_ids': _selectedTeams.toList()},
         );
         if (mounted) {
           context.read<ReportProvider>().fetchReports();
@@ -305,7 +305,14 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
 
       if (mounted) {
         setState(() {
-          _assignedTeamsStr = _selectedTeams.join(', ');
+          final selectedNames = _selectedTeams.map((id) {
+            final team = _availableTeams.firstWhere(
+              (t) => t['id'] == id,
+              orElse: () => {'name': id},
+            );
+            return team['name']!;
+          }).toList();
+          _assignedTeamsStr = selectedNames.join(', ');
           _hasAssignedTeam = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1010,13 +1017,13 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           (team) => _TeamCheckTile(
             title: team['specialization']!,
             subtitle: team['name']!,
-            isSelected: _selectedTeams.contains(team['name']),
+            isSelected: _selectedTeams.contains(team['id']),
             onToggle: () {
               setState(() {
-                if (_selectedTeams.contains(team['name'])) {
-                  _selectedTeams.remove(team['name']);
+                if (_selectedTeams.contains(team['id'])) {
+                  _selectedTeams.remove(team['id']);
                 } else {
-                  _selectedTeams.add(team['name']!);
+                  _selectedTeams.add(team['id']!);
                 }
               });
             },
@@ -1132,7 +1139,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                 final api = ApiService();
                 await api.post(
                   '/admin/reports/$intId/assign',
-                  body: {'team_names': []},
+                  body: {'team_ids': []},
                 );
                 if (mounted) {
                   context.read<ReportProvider>().fetchReports();

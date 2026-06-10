@@ -1,6 +1,7 @@
 import 'dart:math' as Math;
 import 'package:flutter/material.dart';
 import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/utils/status_helper.dart';
 
 class CitizenReportDetailScreen extends StatelessWidget {
   final ReportModel report;
@@ -9,8 +10,8 @@ class CitizenReportDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final steps = ['Submitted', 'Pending', 'Verified', 'In Progress', 'Controlled'];
-    final currentIndex = _currentStepIndex(report.status, steps);
+    final steps = ['Pending', 'Verified', 'Assigned', 'In Progress', 'Resolved'];
+    final currentIndex = _currentStepIndex(report.status);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F1117),
@@ -88,7 +89,7 @@ class CitizenReportDetailScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 _buildPill('SEV: ${report.severity.toUpperCase()}'),
                 const SizedBox(width: 8),
-                _buildPill(report.status.toUpperCase(), isPrimary: true),
+                _buildDynamicStatusPill(report.status),
               ],
             ),
             
@@ -157,6 +158,27 @@ class CitizenReportDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDynamicStatusPill(String status) {
+    final color = StatusHelper.getStatusColor(status);
+    final text = StatusHelper.getStatusText(status).toUpperCase();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
   String _relativeDate(String dateStr) {
     if (dateStr.isEmpty) return 'Just now';
     try {
@@ -175,14 +197,15 @@ class CitizenReportDetailScreen extends StatelessWidget {
     }
   }
 
-  int _currentStepIndex(String status, List<String> steps) {
-    switch (status) {
-      case 'Pending': return 1;
-      case 'Verified': return 2;
-      case 'In Progress': return 3;
-      case 'Controlled': return 4;
-      default: return 0; // Submitted
-    }
+  int _currentStepIndex(String status) {
+    final s = status.toLowerCase();
+    if (s == 'pending') return 0;
+    if (s == 'verified') return 1;
+    if (s == 'assigned') return 2;
+    if (s == 'acknowledged') return 2;
+    if (s.contains('progress')) return 3;
+    if (s.contains('resolved') || s.contains('controlled')) return 4;
+    return 0;
   }
 }
 

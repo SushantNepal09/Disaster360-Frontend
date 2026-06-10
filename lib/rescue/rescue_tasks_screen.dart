@@ -1506,13 +1506,13 @@ class _TaskStatusBadge extends StatelessWidget {
     String label;
     switch (status) {
       case TaskStatus.active:
-        bg = AppColors.danger.withOpacity(0.18);
-        text = AppColors.danger;
+        bg = AppColors.info.withOpacity(0.18);
+        text = AppColors.info;
         label = 'Active';
         break;
       case TaskStatus.pending:
-        bg = AppColors.warning.withOpacity(0.15);
-        text = AppColors.warning;
+        bg = AppColors.orange.withOpacity(0.15);
+        text = AppColors.orange;
         label = 'Pending';
         break;
       case TaskStatus.completed:

@@ -61,3 +61,12 @@ Thumbs.db
 
 # Node dependencies (if any web/firebase functions exist)
 node_modules/
+
+# Python Scripts (e.g. fix.py, rewrite.py)
+*.py
+*.pyc
+__pycache__/
+
+# Scratch / Temp Dart Files
+temp.dart
+icons.dart

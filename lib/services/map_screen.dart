@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/services/gis_service.dart';
+import 'package:disaster360/utils/status_helper.dart';
 
 // ─────────────────────────────────────────────
 //  DISASTER STYLE HELPERS  (uses AppColors)
@@ -50,16 +51,7 @@ class DisasterStyle {
   }
 
   static Color statusColor(String s) {
-    switch (s.toLowerCase()) {
-      case 'pending':
-        return AppColors.warning;
-      case 'verified':
-        return AppColors.successGreen;
-      case 'controlled':
-        return Colors.teal;
-      default:
-        return Colors.grey;
-    }
+    return StatusHelper.getStatusColor(s);
   }
 
   static IconData iconForType(String t) {
@@ -128,10 +120,11 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   Future<void> _locateMe() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Location services are disabled.')),
         );
+      }
       return;
     }
     LocationPermission permission = await Geolocator.checkPermission();

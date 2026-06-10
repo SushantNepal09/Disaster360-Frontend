@@ -99,242 +99,187 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Consumer<RescueProvider>(
       builder: (context, provider, _) {
         final allTasks = provider.allTasks;
         final filtered = _filteredTasks(allTasks);
-        final activeCount =
-            allTasks.where((t) => t.status == TaskStatus.active).length;
 
-        return Scaffold(
-          backgroundColor: AppColors.bgPrimary,
-          body: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                  child: Column(
-                    children: [
-                      _buildHeader(activeCount),
-                      const SizedBox(height: 16),
-                      _buildSearchBar(),
-                      const SizedBox(height: 14),
-                      _buildFilterTabs(),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Expanded(
-                  child:
-                      provider.isLoading && allTasks.isEmpty
-                          ? const Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.orange,
-                              ),
-                            ),
-                          )
-                          : filtered.isEmpty
-                          ? _buildEmptyState()
-                          : RefreshIndicator(
-                            color: AppColors.orange,
-                            backgroundColor: AppColors.bgSurface,
-                            onRefresh: () => provider.fetchAll(),
-                            child: ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                              itemCount: filtered.length,
-                              separatorBuilder:
-                                  (_, __) => const SizedBox(height: 14),
-                              itemBuilder: (context, i) {
-                                final task = filtered[i];
-                                return _TaskCard(
-                                  task: task,
-                                  pulseAnim: _pulseAnim,
-                                  onAccept: () => _handleAccept(context, task),
-                                  onDetails:
-                                      () => _handleDetails(context, task),
-                                  onStatusReport:
-                                      () => _handleStatusReport(context, task),
-                                  onMarkDone:
-                                      () => _handleMarkDone(context, task),
-                                  onCompletionReport:
-                                      () => _handleCompletionReport(
-                                        context,
-                                        task,
+        Widget content = Scaffold(
+          backgroundColor: const Color(0xFF0F0F0F),
+          body: Column(
+            children: [
+              _buildStickyTopBar(),
+              Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 680),
+                          child: provider.isLoading && allTasks.isEmpty
+                              ? const Center(child: CircularProgressIndicator(color: AppColors.orange))
+                              : RefreshIndicator(
+                                  color: AppColors.orange,
+                                  backgroundColor: const Color(0xFF1F1F1F),
+                                  onRefresh: () => provider.fetchAll(),
+                                  child: CustomScrollView(
+                                    slivers: [
+                                      SliverToBoxAdapter(
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                          child: _buildFilterTabs(),
+                                        ),
                                       ),
-                                );
-                              },
-                            ),
-                          ),
-                ),
-              ],
-            ),
-          ),
-        );
+                                      if (filtered.isEmpty)
+                                        SliverFillRemaining(
+                                          child: _buildEmptyState(),
+                                        )
+                                      else
+                                        SliverList(
+                                          delegate: SliverChildBuilderDelegate(
+                                            (context, i) {
+                                              return Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                child: _FacebookReportCard(
+                                                  task: filtered[i],
+                                                  onAccept: () => _handleAccept(context, filtered[i]),
+                                                  onDetails: () => _handleDetails(context, filtered[i]),
+                                                ),
+                                              );
+                                            },
+                                            childCount: filtered.length,
+                                          ),
+                                        ),
+                                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                                    ],
+                                  ),
+                                ),
+                        ), // ConstrainedBox
+                      ), // Center
+                    ), // Expanded
+                  ], // children
+                ), // Column
+              ); // Scaffold
+        return content;
       },
     );
   }
 
-  // ── Header ─────────────────────────────────────────────────────────────────
-  Widget _buildHeader(int activeCount) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'My Tasks',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            fontFamily: 'monospace',
+  Widget _buildStickyTopBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F0F0F),
+        border: Border(bottom: BorderSide(color: Color(0x0FFFFFFF), width: 1)),
+      ),
+      child: Row(
+        children: [
+
+          const Text(
+            'Your Tasks',
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
-        ),
-        AnimatedBuilder(
-          animation: _pulseAnim,
-          builder:
-              (_, __) => Opacity(
-                opacity: _pulseAnim.value,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.danger.withOpacity(0.4),
+          const Spacer(),
+          Container(
+            width: 200,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1F1F1F),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0x0FFFFFFF)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.search, color: Colors.white54, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: const InputDecoration(
+                      hintText: 'Search...',
+                      hintStyle: TextStyle(color: Colors.white30),
+                      border: InputBorder.none,
+                      isDense: true,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: AppColors.danger,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '$activeCount Active',
-                        style: const TextStyle(
-                          color: AppColors.danger,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            tooltip: 'Refresh',
+            onPressed: () {
+              context.read<RescueProvider>().fetchAll();
+            },
+          ),
+          const SizedBox(width: 8),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                onPressed: () {},
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                ),
+              )
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildFilterTabs() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _filters.map((filter) {
+          final isActive = _selectedFilter == filter;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedFilter = filter),
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isActive ? Colors.white : const Color(0xFF1F1F1F),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isActive ? Colors.white : const Color(0x0FFFFFFF)),
+              ),
+              child: Text(
+                filter,
+                style: TextStyle(
+                  color: isActive ? Colors.black : Colors.white54,
+                  fontSize: 13,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
-        ),
-      ],
-    );
-  }
-
-  // ── Search bar ─────────────────────────────────────────────────────────────
-  Widget _buildSearchBar() {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: TextField(
-        onChanged: (val) => setState(() => _searchQuery = val),
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-        decoration: const InputDecoration(
-          hintText: 'Search tasks...',
-          hintStyle: TextStyle(color: Colors.white30, fontSize: 14),
-          prefixIcon: Icon(Icons.search, color: Colors.white30, size: 20),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 14),
-        ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  // ── Filter tabs ────────────────────────────────────────────────────────────
-  Widget _buildFilterTabs() {
-    return SizedBox(
-      height: 36,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children:
-            _filters.map((filter) {
-              final isActive = _selectedFilter == filter;
-              Color activeColor;
-              switch (filter) {
-                case 'Active':
-                  activeColor = AppColors.danger;
-                  break;
-                case 'Pending':
-                  activeColor = AppColors.warning;
-                  break;
-                case 'Completed':
-                  activeColor = AppColors.success;
-                  break;
-                default:
-                  activeColor = AppColors.orange;
-              }
-
-              return MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedFilter = filter),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive ? activeColor : AppColors.bgSurface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color:
-                            isActive
-                                ? activeColor
-                                : Colors.white.withOpacity(0.12),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      filter,
-                      style: TextStyle(
-                        color: isActive ? Colors.white : Colors.white54,
-                        fontSize: 13,
-                        fontWeight:
-                            isActive ? FontWeight.w700 : FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-      ),
-    );
-  }
-
-  // ── Empty state ────────────────────────────────────────────────────────────
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_outlined, color: Colors.white24, size: 56),
-          const SizedBox(height: 14),
-          const Text(
-            'No tasks found',
-            style: TextStyle(color: Colors.white38, fontSize: 15),
-          ),
+          Icon(Icons.inbox_outlined, color: Colors.white24, size: 64),
+          SizedBox(height: 16),
+          Text('No tasks available', style: TextStyle(color: Colors.white54, fontSize: 16)),
         ],
       ),
     );
@@ -561,7 +506,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                             _DetailRow(
                               icon: Icons.image_outlined,
                               label: 'Photos',
-                              value: '${task.photoCount} attached',
+                              value: '${task.mediaUrls.length} attached',
                             ),
                             const SizedBox(height: 10),
                             _DetailRow(
@@ -984,12 +929,12 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _ImageViewerOverlay extends StatefulWidget {
-  final int photoCount;
+  final List<String> mediaUrls;
   final int initialIndex;
   final String reportId;
 
   const _ImageViewerOverlay({
-    required this.photoCount,
+    this.mediaUrls = const [],
     required this.initialIndex,
     required this.reportId,
   });
@@ -1054,7 +999,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
               }
               return KeyEventResult.handled;
             } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              if (_currentIndex < widget.photoCount - 1) {
+              if (_currentIndex < widget.mediaUrls.length - 1) {
                 _pageCtrl.nextPage(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -1082,7 +1027,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
             // Full-screen swipeable image pages – edge‑to‑edge
             PageView.builder(
               controller: _pageCtrl,
-              itemCount: widget.photoCount,
+              itemCount: widget.mediaUrls.length,
               onPageChanged: (i) => setState(() => _currentIndex = i),
               itemBuilder: (_, i) {
                 return Container(
@@ -1123,7 +1068,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
             ),
 
             // Next/Prev Arrows (Desktop navigation)
-            if (widget.photoCount > 1) ...[
+            if (widget.mediaUrls.length > 1) ...[
               if (_currentIndex > 0)
                 Positioned(
                   left: 20,
@@ -1149,7 +1094,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
                     ),
                   ),
                 ),
-              if (_currentIndex < widget.photoCount - 1)
+              if (_currentIndex < widget.mediaUrls.length - 1)
                 Positioned(
                   right: 20,
                   top: 0,
@@ -1218,7 +1163,7 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
                         border: Border.all(color: Colors.white12),
                       ),
                       child: Text(
-                        'Photo ${_currentIndex + 1} of ${widget.photoCount}',
+                        'Photo ${_currentIndex + 1} of ${widget.mediaUrls.length}',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
@@ -1251,14 +1196,14 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
             ),
 
             // Dot indicators at bottom
-            if (widget.photoCount > 1)
+            if (widget.mediaUrls.length > 1)
               Positioned(
                 bottom: MediaQuery.of(context).padding.bottom + 24,
                 left: 0,
                 right: 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(widget.photoCount, (i) {
+                  children: List.generate(widget.mediaUrls.length, (i) {
                     final active = i == _currentIndex;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
@@ -1284,561 +1229,272 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
 //  TASK CARD — with two‑image grid + full‑screen viewer
 // ══════════════════════════════════════════════════════════════════════════════
 
-class _TaskCard extends StatefulWidget {
+
+class _FacebookReportCard extends StatelessWidget {
   final RescueTask task;
-  final Animation<double> pulseAnim;
   final VoidCallback onAccept;
   final VoidCallback onDetails;
-  final VoidCallback onStatusReport;
-  final VoidCallback onMarkDone;
-  final VoidCallback onCompletionReport;
 
-  const _TaskCard({
+  const _FacebookReportCard({
     required this.task,
-    required this.pulseAnim,
     required this.onAccept,
     required this.onDetails,
-    required this.onStatusReport,
-    required this.onMarkDone,
-    required this.onCompletionReport,
   });
 
   @override
-  State<_TaskCard> createState() => _TaskCardState();
-}
-
-class _TaskCardState extends State<_TaskCard> {
-  bool _hovered = false;
-
-  Color get _statusAccent {
-    switch (widget.task.status) {
-      case TaskStatus.active:
-        return AppColors.danger;
-      case TaskStatus.pending:
-        return AppColors.warning;
-      case TaskStatus.completed:
-        return AppColors.success;
-    }
-  }
-
-  void _openImageViewer(int index) {
-    final count = widget.task.photoCount.clamp(1, 5);
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'close',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder:
-          (_, __, ___) => _ImageViewerOverlay(
-            photoCount: count,
-            initialIndex: index,
-            reportId: widget.task.reportId,
-          ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isActive = widget.task.status == TaskStatus.active;
-    final isPending = widget.task.status == TaskStatus.pending;
-    final isCompleted = widget.task.status == TaskStatus.completed;
-    final photoCount = widget.task.photoCount.clamp(1, 5);
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Stack(
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1F1F1F),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0x0FFFFFFF), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 0),
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color:
-                    _hovered
-                        ? _statusAccent.withOpacity(0.4)
-                        : AppColors.border,
-                width: 1,
-              ),
-              boxShadow:
-                  _hovered
-                      ? [
-                        BoxShadow(
-                          color: _statusAccent.withOpacity(0.08),
-                          blurRadius: 14,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                      : [],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top row
-                  Row(
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.orange.withOpacity(0.2),
+                  child: const Icon(Icons.person, color: AppColors.orange, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (isActive) ...[
-                        AnimatedBuilder(
-                          animation: widget.pulseAnim,
-                          builder:
-                              (_, __) => Opacity(
-                                opacity: widget.pulseAnim.value,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  margin: const EdgeInsets.only(right: 8),
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.danger,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                        ),
-                      ],
-                      Text(
-                        '#${widget.task.taskId}',
-                        style: TextStyle(
-                          color:
-                              isActive
-                                  ? AppColors.danger.withOpacity(0.85)
-                                  : Colors.white54,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'monospace',
-                        ),
+                      Row(
+                        children: [
+                          const Text('Citizen Reporter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                          const SizedBox(width: 8),
+                          _TaskStatusBadge(status: task.status),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      _TaskStatusBadge(status: widget.task.status),
-                      const Spacer(),
-                      Text(
-                        widget.task.assignedAgo,
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const SizedBox(height: 2),
+                      Text(task.assignedAgo, style: const TextStyle(color: Colors.white38, fontSize: 12)),
                     ],
                   ),
-                  const SizedBox(height: 10),
-
-                  // Type + location
-                  Text(
-                    widget.task.type,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        color: Colors.white38,
-                        size: 13,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          widget.task.location,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 13,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Description
-                  Text(
-                    widget.task.description,
-                    style: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Severity + Verified by
-                  Row(
-                    children: [
-                      _SeverityBadge(level: widget.task.severityLevel),
-                      const SizedBox(width: 10),
-                      const Icon(
-                        Icons.verified_user_outlined,
-                        color: Colors.white38,
-                        size: 13,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          'Admin: ${widget.task.verifiedByAdmin}',
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // ── TWO-IMAGE GRID (same as citizen home) ───────────────
-                  if (photoCount > 0) _buildImageGrid(photoCount),
-                  if (photoCount > 0) const SizedBox(height: 14),
-
-                  // Action buttons
-                  if (isActive)
-                    _buildActiveButtons()
-                  else if (isPending)
-                    _buildPendingButtons()
-                  else if (isCompleted)
-                    _buildCompletedButtons(),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.more_horiz, color: Colors.white54),
+                  onPressed: onDetails, // Map details to more_horiz
+                )
+              ],
             ),
           ),
-          // Left accent stripe
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: isActive ? 4 : 3,
-              decoration: BoxDecoration(
-                color: _statusAccent,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
+          
+          // Body
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        task.type,
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    _SeverityBadge(level: task.severityLevel),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.white38, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(task.location, style: const TextStyle(color: Colors.white70, fontSize: 13))),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  task.description,
+                  style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+
+          // Photo Gallery
+          if (task.mediaUrls.isNotEmpty)
+            _FacebookPhotoGallery(
+              mediaUrls: task.mediaUrls,
+              reportId: task.reportId,
+            ),
+            
+          // Action Row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Color(0x0FFFFFFF))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (task.status == TaskStatus.active)
+                  ElevatedButton.icon(
+                    onPressed: onAccept,
+                    icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
+                    label: const Text('Accept', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: onDetails,
+                    icon: const Icon(Icons.info_outline, size: 18, color: Colors.white70),
+                    label: const Text('View Details', style: TextStyle(color: Colors.white70)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0x0FFFFFFF)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
-
-  // ── TWO-IMAGE GRID (identical to citizen home) ────────────────────────────
-  Widget _buildImageGrid(int totalPhotos) {
-    final actualCount = totalPhotos.clamp(1, 5);
-    final visibleCards = actualCount == 1 ? 1 : 2;
-    final extraCount = actualCount - visibleCards;
-
-    return Row(
-      children: List.generate(visibleCards, (i) {
-        final isLast = i == visibleCards - 1 && extraCount > 0;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => _openImageViewer(i),
-            child: Container(
-              height: 130,
-              margin: EdgeInsets.only(right: i < visibleCards - 1 ? 8 : 0),
-              decoration: BoxDecoration(
-                color: AppColors.bgDark,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  fit: StackFit.expand,
-                  alignment: Alignment.center,
-                  children: [
-                    // Placeholder image content
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_outlined,
-                          color:
-                              isLast
-                                  ? Colors.white10
-                                  : Colors.white.withOpacity(0.2),
-                          size: 32,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Photo ${i + 1}',
-                          style: TextStyle(
-                            color:
-                                isLast
-                                    ? Colors.white10
-                                    : Colors.white.withOpacity(0.22),
-                            fontSize: 11,
-                            decoration: TextDecoration.none,
-                          ),
-                        ),
-                      ],
-                    ),
-                    // +N overlay on last visible card
-                    if (isLast)
-                      Container(
-                        color: Colors.black.withOpacity(0.65),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '+$extraCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  decoration: TextDecoration.none,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'more',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.none,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildActiveButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: _TaskButton(
-            label: 'Accept',
-            icon: Icons.check_rounded,
-            color: AppColors.success,
-            onTap: widget.onAccept,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _TaskButton(
-            label: 'Details',
-            icon: Icons.info_outline_rounded,
-            color: Colors.white54,
-            outlined: true,
-            onTap: widget.onDetails,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPendingButtons() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _TaskButton(
-                label: 'Status Report',
-                icon: Icons.assessment_outlined,
-                color: AppColors.info,
-                onTap: widget.onStatusReport,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _TaskButton(
-                label: 'Mark as Done',
-                icon: Icons.task_alt_rounded,
-                color: AppColors.success,
-                onTap: widget.onMarkDone,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _TaskButton(
-          label: 'Details',
-          icon: Icons.info_outline_rounded,
-          color: Colors.white54,
-          outlined: true,
-          fullWidth: true,
-          onTap: widget.onDetails,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompletedButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: _TaskButton(
-            label: 'Completion Report',
-            icon: Icons.send_rounded,
-            color: AppColors.success,
-            onTap: widget.onCompletionReport,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _TaskButton(
-            label: 'Details',
-            icon: Icons.info_outline_rounded,
-            color: Colors.white54,
-            outlined: true,
-            onTap: widget.onDetails,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  TASK BUTTON — animated tap + hover (unchanged)
-// ══════════════════════════════════════════════════════════════════════════════
+class _FacebookPhotoGallery extends StatelessWidget {
+  final List<String> mediaUrls;
+  final String reportId;
 
-class _TaskButton extends StatefulWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final bool outlined;
-  final bool fullWidth;
-  final VoidCallback onTap;
+  const _FacebookPhotoGallery({required this.mediaUrls, required this.reportId});
 
-  const _TaskButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    this.outlined = false,
-    this.fullWidth = false,
-  });
-
-  @override
-  State<_TaskButton> createState() => _TaskButtonState();
-}
-
-class _TaskButtonState extends State<_TaskButton>
-    with SingleTickerProviderStateMixin {
-  bool _hovered = false;
-  late AnimationController _tapCtrl;
-  late Animation<double> _tapAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _tapCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
+  void _open(BuildContext context, int index) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'close',
+      barrierColor: Colors.transparent,
+      pageBuilder: (_, __, ___) => _ImageViewerOverlay(
+        mediaUrls: mediaUrls,
+        initialIndex: index,
+        reportId: reportId,
+      ),
     );
-    _tapAnim = Tween<double>(
-      begin: 1.0,
-      end: 0.94,
-    ).animate(CurvedAnimation(parent: _tapCtrl, curve: Curves.easeIn));
   }
 
-  @override
-  void dispose() {
-    _tapCtrl.dispose();
-    super.dispose();
+  Widget _buildImage(BuildContext context, int index, {BoxFit fit = BoxFit.cover}) {
+    return GestureDetector(
+      onTap: () => _open(context, index),
+      child: Image.network(
+        mediaUrls[index],
+        fit: fit,
+        errorBuilder: (_, __, ___) => Container(color: Colors.white12, child: const Icon(Icons.broken_image, color: Colors.white38)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTapDown: (_) => _tapCtrl.forward(),
-        onTapUp: (_) {
-          _tapCtrl.reverse();
-          widget.onTap();
-        },
-        onTapCancel: () => _tapCtrl.reverse(),
-        child: ScaleTransition(
-          scale: _tapAnim,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            width: widget.fullWidth ? double.infinity : null,
-            padding: const EdgeInsets.symmetric(vertical: 11),
-            decoration: BoxDecoration(
-              color:
-                  widget.outlined
-                      ? (_hovered
-                          ? Colors.white.withOpacity(0.06)
-                          : Colors.transparent)
-                      : (_hovered
-                          ? widget.color.withOpacity(0.28)
-                          : widget.color.withOpacity(0.18)),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color:
-                    widget.outlined
-                        ? (_hovered ? Colors.white54 : AppColors.border)
-                        : widget.color.withOpacity(_hovered ? 0.7 : 0.45),
-                width: 1,
+    final count = mediaUrls.length;
+    if (count == 0) return const SizedBox.shrink();
+
+    if (count == 1) {
+      return SizedBox(
+        width: double.infinity,
+        height: 300,
+        child: _buildImage(context, 0, fit: BoxFit.cover),
+      );
+    } else if (count == 2) {
+      return SizedBox(
+        height: 300,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: _buildImage(context, 0)),
+            const SizedBox(width: 2),
+            Expanded(child: _buildImage(context, 1)),
+          ],
+        ),
+      );
+    } else if (count == 3) {
+      return SizedBox(
+        height: 300,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(flex: 2, child: _buildImage(context, 0)),
+            const SizedBox(width: 2),
+            Expanded(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _buildImage(context, 1)),
+                  const SizedBox(height: 2),
+                  Expanded(child: _buildImage(context, 2)),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  widget.icon,
-                  color:
-                      widget.outlined
-                          ? (_hovered ? Colors.white70 : Colors.white54)
-                          : widget.color,
-                  size: 14,
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    widget.label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color:
-                          widget.outlined
-                              ? (_hovered ? Colors.white70 : Colors.white54)
-                              : widget.color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+          ],
+        ),
+      );
+    } else {
+      return SizedBox(
+        height: 300,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _buildImage(context, 0)),
+                  const SizedBox(width: 2),
+                  Expanded(child: _buildImage(context, 1)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _buildImage(context, 2)),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildImage(context, 3),
+                        if (count > 4)
+                          GestureDetector(
+                            onTap: () => _open(context, 3),
+                            child: Container(
+                              color: Colors.black54,
+                              child: Center(
+                                child: Text('+${count - 4}', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
-      ),
-    );
+      );
+    }
   }
 }
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  SUPPORTING WIDGETS (unchanged)
-// ══════════════════════════════════════════════════════════════════════════════
 
 class _TaskStatusBadge extends StatelessWidget {
   final TaskStatus status;
@@ -1850,13 +1506,13 @@ class _TaskStatusBadge extends StatelessWidget {
     String label;
     switch (status) {
       case TaskStatus.active:
-        bg = AppColors.danger.withOpacity(0.18);
-        text = AppColors.danger;
+        bg = AppColors.info.withOpacity(0.18);
+        text = AppColors.info;
         label = 'Active';
         break;
       case TaskStatus.pending:
-        bg = AppColors.warning.withOpacity(0.15);
-        text = AppColors.warning;
+        bg = AppColors.orange.withOpacity(0.15);
+        text = AppColors.orange;
         label = 'Pending';
         break;
       case TaskStatus.completed:
@@ -1922,7 +1578,7 @@ class _SeverityBadge extends StatelessWidget {
           Icon(Icons.local_fire_department_rounded, color: _color, size: 11),
           const SizedBox(width: 4),
           Text(
-            'L$level · ${_labels[level]}',
+            'L$level ┬╖ ${_labels[level]}',
             style: TextStyle(
               color: _color,
               fontSize: 10,
@@ -1979,9 +1635,9 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
 //  DATA MODELS
-// ══════════════════════════════════════════════════════════════════════════════
+// ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
 
 enum TaskStatus { active, pending, completed }
 
@@ -1994,7 +1650,7 @@ class RescueTask {
   final String assignedAgo;
   final int severityLevel;
   final String verifiedByAdmin;
-  final int photoCount;
+  final List<String> mediaUrls;
   final String lat;
   final String lng;
   final String reportId;
@@ -2011,7 +1667,7 @@ class RescueTask {
     required this.assignedAgo,
     required this.severityLevel,
     required this.verifiedByAdmin,
-    required this.photoCount,
+    this.mediaUrls = const [],
     required this.lat,
     required this.lng,
     required this.reportId,
@@ -2064,7 +1720,7 @@ class RescueTask {
       assignedAgo: _timeAgo(json['created_at']?.toString()),
       severityLevel: _parseSeverity(json['severity']?.toString()),
       verifiedByAdmin: 'Admin',
-      photoCount: 0,
+      mediaUrls: (json['media_urls'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       lat: '${json['latitude'] ?? 0.0}',
       lng: '${json['longitude'] ?? 0.0}',
       reportId: '${json['id']}',
@@ -2097,7 +1753,7 @@ class RescueTask {
       assignedAgo: _timeAgo(json['acknowledged_at']?.toString()),
       severityLevel: _parseSeverity(json['severity']?.toString()),
       verifiedByAdmin: 'Admin',
-      photoCount: 0,
+      mediaUrls: (json['media_urls'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       lat: '${json['latitude'] ?? 0.0}',
       lng: '${json['longitude'] ?? 0.0}',
       reportId: '${json['incident_id']}',

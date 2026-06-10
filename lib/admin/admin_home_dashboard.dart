@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/colors.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:disaster360/utils/status_helper.dart';
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ADMIN HOME SCREEN — Disaster360
 //  Enhanced with:
@@ -621,6 +622,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       mediaUrls: p.mediaUrls,
       submissions: p.submissions,
       assignedRescueTeams: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).rescueTeam,
+      isAccepted: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).isAccepted,
     );
   }
 
@@ -1055,9 +1057,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
           );
         }).toList();
 
-    final isWide =
-        _Breakpoint.isTablet(context) || _Breakpoint.isDesktop(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1071,28 +1070,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
               style: TextStyle(color: Colors.white54),
             ),
           )
-        else if (isWide)
-          _threeColumnGrid(
-            teams
-                .map(
-                  (team) => _AnimatedRescueCard(
-                    team: team,
-                    onTap: () => _showRescueTeamDialog(context, team),
-                  ),
-                )
-                .toList(),
-          )
         else
-          Column(
-            children:
-                teams
-                    .map(
-                      (team) => _AnimatedRescueCard(
-                        team: team,
-                        onTap: () => _showRescueTeamDialog(context, team),
-                      ),
-                    )
-                    .toList(),
+          ...teams.map(
+            (team) => _AnimatedRescueCard(
+              team: team,
+              onTap: () => _showRescueTeamDialog(context, team),
+            ),
           ),
       ],
     );
@@ -2353,8 +2336,10 @@ class _AnimatedRescueCardState extends State<_AnimatedRescueCard> {
                       ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            runSpacing: 8,
                             children: [
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 180),
@@ -2771,26 +2756,9 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
-    Color text;
-    switch (status) {
-      case 'In Progress':
-        bg = AppColors.orange.withOpacity(0.18);
-        text = AppColors.orange;
-        break;
-      case 'Controlled':
-      case 'Verified':
-        bg = AppColors.success.withOpacity(0.15);
-        text = AppColors.success;
-        break;
-      case 'Rejected':
-        bg = AppColors.danger.withOpacity(0.15);
-        text = AppColors.danger;
-        break;
-      default:
-        bg = AppColors.warning.withOpacity(0.15);
-        text = AppColors.warning;
-    }
+    final bg = StatusHelper.getStatusBgColor(status);
+    final text = StatusHelper.getStatusColor(status);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -2799,7 +2767,7 @@ class _StatusBadge extends StatelessWidget {
         border: Border.all(color: text.withOpacity(0.4), width: 1),
       ),
       child: Text(
-        status,
+        StatusHelper.getStatusText(status),
         style: TextStyle(
           color: text,
           fontSize: 11,

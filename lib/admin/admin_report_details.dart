@@ -24,6 +24,7 @@ class AdminReportData {
   final List<String> mediaUrls;
   final List<dynamic> submissions;
   final String assignedRescueTeams;
+  final bool isAccepted;
 
   const AdminReportData({
     required this.reportId,
@@ -40,8 +41,9 @@ class AdminReportData {
     required this.upvotes,
     required this.downvotes,
     required this.mediaUrls,
-    this.submissions = const [],
-    this.assignedRescueTeams = 'Not Assigned',
+    required this.submissions,
+    required this.assignedRescueTeams,
+    required this.isAccepted,
   });
 }
 
@@ -97,7 +99,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     // Derive initial decision state from passed value or report status
     _decisionState = widget.initialDecisionState;
     try {
-      if (widget.report.status.toLowerCase() == 'verified') {
+      if (widget.report.status.toLowerCase() == 'verified' || widget.report.status.toLowerCase() == 'assigned') {
         _decisionState = 'verified';
       } else if (widget.report.status.toLowerCase() == 'rejected') {
         _decisionState = 'rejected';
@@ -296,6 +298,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           '/admin/reports/$intId/assign',
           body: {'team_names': _selectedTeams},
         );
+        if (mounted) {
+          context.read<ReportProvider>().fetchReports();
+        }
       }
 
       if (mounted) {
@@ -1074,6 +1079,42 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: widget.report.isAccepted 
+              ? AppColors.success.withOpacity(0.1) 
+              : AppColors.warning.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: widget.report.isAccepted 
+                ? AppColors.success.withOpacity(0.3) 
+                : AppColors.warning.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                widget.report.isAccepted ? Icons.check_circle_rounded : Icons.pending_actions_rounded, 
+                color: widget.report.isAccepted ? AppColors.success : AppColors.warning, 
+                size: 18
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  widget.report.isAccepted ? 'Accepted by Rescue Team' : 'Awaiting Acceptance from Rescue Team',
+                  style: TextStyle(
+                    color: widget.report.isAccepted ? AppColors.success : AppColors.warning,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
         _ActionButton(
           fullWidth: true,
@@ -1081,12 +1122,54 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           icon: Icons.undo_rounded,
           color: AppColors.warning,
           filled: false,
-          onTap: () {
-            setState(() {
-              _hasAssignedTeam = false;
-              _assignedTeamsStr = '';
-              _selectedTeams.clear();
-            });
+          onTap: () async {
+            try {
+              final intId = int.tryParse(
+                widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+              );
+
+              if (intId != null) {
+                final api = ApiService();
+                await api.post(
+                  '/admin/reports/$intId/assign',
+                  body: {'team_names': []},
+                );
+                if (mounted) {
+                  context.read<ReportProvider>().fetchReports();
+                }
+              }
+
+              if (mounted) {
+                setState(() {
+                  _hasAssignedTeam = false;
+                  _assignedTeamsStr = '';
+                  _selectedTeams.clear();
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Assignment cleared successfully'),
+                    backgroundColor: AppColors.success,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to clear assignment: $e'),
+                    backgroundColor: AppColors.danger,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+              }
+            }
           },
         ),
       ],
@@ -2366,6 +2449,10 @@ class _StatusBadge extends StatelessWidget {
       case 'Verified':
         bg = AppColors.success.withOpacity(0.15);
         text = AppColors.success;
+        break;
+      case 'Assigned':
+        bg = AppColors.info.withOpacity(0.15);
+        text = AppColors.info;
         break;
       case 'Rejected':
         bg = AppColors.danger.withOpacity(0.15);

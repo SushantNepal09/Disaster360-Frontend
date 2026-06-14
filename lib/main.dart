@@ -3,14 +3,26 @@ import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/providers/notification_provider.dart';
 import 'package:disaster360/auth/auth_wrapper.dart';
 import 'package:disaster360/services/session_service.dart';
 import 'package:disaster360/services/deep_link_router.dart';
+import 'package:disaster360/services/notification_service.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+// Required by Firebase for background/terminated state messages
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint("Background message received: ${message.messageId}");
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +35,22 @@ Future<void> main() async {
   // 2. Initialize DeepLinkRouter ONLY after session is ready
   final router = DeepLinkRouter();
   router.initialize(); // Internally buffers until first frame
+  
+  // Initialize Firebase conditionally (Firebase Messaging is not supported on Windows/Linux)
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
+    try {
+      await Firebase.initializeApp();
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    } catch (e) {
+      debugPrint("Firebase init error: $e");
+    }
+  } else {
+    debugPrint("Firebase is not supported or configured on this platform. Skipping.");
+  }
+
+  // Initialize the dedicated Notification Service
+  final notificationService = NotificationService();
+  await notificationService.initialize();
 
   await Supabase.initialize(
     url: 'https://lavkbxvdjzyhznixpche.supabase.co',
@@ -36,6 +64,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ReportProvider()),
         ChangeNotifierProvider(create: (_) => RescueProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: DisasterApp(router: router),
     ),

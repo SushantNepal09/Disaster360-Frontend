@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart' hide TextDirection;
 
 // ─── COLOR PALETTE ──────────────────────────────────────────────────────────
 const Color _bg = Color(0xFF0F1117);

@@ -10,6 +10,9 @@ import 'package:disaster360/services/map_screen.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/services/fab_add_report.dart';
 import 'package:disaster360/services/notification_alert.dart';
+import 'package:disaster360/services/notification_service.dart';
+import 'package:disaster360/providers/notification_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:disaster360/citizen/citizen_report_detail_screen.dart';
 
 class AlertData {
@@ -89,19 +92,7 @@ class ReportModelMock {
 }
 
 /// Mutable wrapper for each card — upvotes/downvotes change on tap
-class _ReportCardModel {
-  final ReportModelMock alert;
-  final List<String> tags;
-  int upvotes;
-  int downvotes;
-  // -1 = downvoted, 0 = none, 1 = upvoted
-  int voteState;
 
-  _ReportCardModel({required this.alert, required this.tags})
-    : upvotes = alert.upvotes,
-      downvotes = alert.downvotes,
-      voteState = 0;
-}
 
 class _NavData {
   final IconData icon;
@@ -166,6 +157,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReportProvider>().fetchReports();
+      NotificationService().checkAndPromptPermission(context);
     });
   }
 
@@ -287,17 +279,22 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                     size: 22,
                   ),
                 ),
-                Positioned(
-                  top: 7,
-                  right: 7,
-                  child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: const BoxDecoration(
-                      color: AppColors.danger,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                Consumer<NotificationProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.unreadCount == 0) return const SizedBox.shrink();
+                    return Positioned(
+                      top: 7,
+                      right: 7,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: const BoxDecoration(
+                          color: AppColors.danger,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -1650,17 +1647,12 @@ class _ReportCardWidgetState extends State<_ReportCard>
                 ),
                 const SizedBox(height: 16),
 
-                // Nested Image
+                // Nested Image Grid
                 if (sub['media_urls'] != null &&
                     (sub['media_urls'] as List).isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      (sub['media_urls'] as List).first.toString(),
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
+                  _buildSubImageGrid(
+                    (sub['media_urls'] as List).map((e) => e.toString()).toList(),
+                    sub['id'].toString(),
                   )
                 else
                   ClipRRect(
@@ -1712,43 +1704,41 @@ class _ReportCardWidgetState extends State<_ReportCard>
                 ),
                 const SizedBox(height: 24),
 
-                // Likes/Dislikes (Using main report's for now as nested reports don't have separate likes strictly in the DB design yet, or we show 0)
+                // Likes/Dislikes for Child Report
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.thumb_up_alt_outlined,
-                          color: AppColors.success,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${mainReport.likes}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    Expanded(
+                      child: _VoteButton(
+                        label: '${sub['likes'] ?? 0}',
+                        icon: Icons.thumb_up_alt_outlined,
+                        activeIcon: Icons.thumb_up_alt_rounded,
+                        color: AppColors.success,
+                        active: sub['user_reaction'] == 'LIKE',
+                        onTap: () {
+                          context.read<ReportProvider>().reactToSubmission(
+                            mainReport.id,
+                            sub['id'],
+                            'LIKE',
+                          );
+                        },
+                      ),
                     ),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.thumb_down_alt_outlined,
-                          color: AppColors.danger,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${mainReport.dislikes}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _VoteButton(
+                        label: '${sub['dislikes'] ?? 0}',
+                        icon: Icons.thumb_down_alt_outlined,
+                        activeIcon: Icons.thumb_down_alt_rounded,
+                        color: AppColors.danger,
+                        active: sub['user_reaction'] == 'DISLIKE',
+                        onTap: () {
+                          context.read<ReportProvider>().reactToSubmission(
+                            mainReport.id,
+                            sub['id'],
+                            'DISLIKE',
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -1758,6 +1748,104 @@ class _ReportCardWidgetState extends State<_ReportCard>
           ),
         );
       },
+    );
+  }
+
+  void _openImageViewerFromSub(int index, List<String> mediaUrls, String reportId) {
+    if (mediaUrls.isEmpty) return;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'close',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder:
+          (_, __, ___) => ImageViewerOverlay(
+            mediaUrls: mediaUrls,
+            initialIndex: index,
+            reportId: reportId,
+          ),
+    );
+  }
+
+  Widget _buildSubImageGrid(List<String> mediaUrls, String reportId) {
+    if (mediaUrls.isEmpty) return const SizedBox.shrink();
+    final actualCount = mediaUrls.length.clamp(1, 5);
+    final visibleCards = actualCount == 1 ? 1 : 2;
+    final extraCount = actualCount - visibleCards;
+
+    return Row(
+      children: List.generate(visibleCards, (i) {
+        final isLast = i == visibleCards - 1 && extraCount > 0;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => _openImageViewerFromSub(i, mediaUrls, reportId),
+            child: Container(
+              height: 160,
+              margin: EdgeInsets.only(right: i < visibleCards - 1 ? 8 : 0),
+              decoration: BoxDecoration(
+                color: AppColors.bgDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  alignment: Alignment.center,
+                  children: [
+                    Image.network(
+                      mediaUrls[i],
+                      fit: BoxFit.cover,
+                      errorBuilder:
+                          (context, error, stackTrace) => Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.white.withOpacity(0.2),
+                                size: 32,
+                              ),
+                            ],
+                          ),
+                    ),
+                    if (isLast)
+                      Container(
+                        color: Colors.black.withOpacity(0.65),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '+$extraCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'more',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 

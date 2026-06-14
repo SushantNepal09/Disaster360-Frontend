@@ -1,7 +1,7 @@
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
-import 'package:disaster360/auth/auth_wrapper.dart';
+import 'package:disaster360/utils/secure_logout.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/services/feedback.dart';
 import 'package:flutter/material.dart';
@@ -798,17 +798,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
                 ),
               ),
               ElevatedButton(
-                onPressed:
-                    () => context.read<AuthProvider>().logout().then((_) {
-                      if (context.mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (_) => const AuthWrapper(),
-                          ),
-                          (route) => false,
-                        );
-                      }
-                    }),
+                onPressed: () => SecureLogout.performLogout(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.danger,
                   shape: RoundedRectangleBorder(

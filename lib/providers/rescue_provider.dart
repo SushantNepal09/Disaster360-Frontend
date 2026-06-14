@@ -41,6 +41,16 @@ class RescueProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  void clear() {
+    _verifiedReports.clear();
+    _myOperations.clear();
+    _allVerifiedReports.clear();
+    _profile = null;
+    _isLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   /// All tasks combined: verified (active) + my operations (pending/completed)
   List<RescueTask> get allTasks => [..._verifiedReports, ..._myOperations];
 
@@ -87,15 +97,12 @@ class RescueProvider extends ChangeNotifier {
               ? _profile!['full_name']
               : _profile?['email'];
 
-      debugPrint('RescueProvider teamName: $teamName');
-
       // Only include reports NOT yet acknowledged by this member AND assigned to this team
       _verifiedReports =
           data
               .where((r) => r['rescue_status'] == 'Not Acknowledged')
               .map((r) {
                 final task = RescueTask.fromJson(r);
-                debugPrint('Task ${task.taskId} assignedTeams: ${task.assignedTeams}');
                 return task;
               })
               .where((t) {

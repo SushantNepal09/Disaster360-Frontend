@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:disaster360/services/session_service.dart';
@@ -77,6 +75,16 @@ class ApiService {
   Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     final response = await http.put(
+      uri,
+      headers: await _getHeaders(),
+      body: body != null ? jsonEncode(body) : null,
+    );
+    return _handleResponse(response);
+  }
+
+  Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final response = await http.patch(
       uri,
       headers: await _getHeaders(),
       body: body != null ? jsonEncode(body) : null,

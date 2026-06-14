@@ -87,6 +87,14 @@ class ReportProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get duplicateReports => _duplicateReports;
   bool get isLoading => _isLoading;
 
+  void clear() {
+    _reports.clear();
+    _activeRescues.clear();
+    _duplicateReports.clear();
+    _isLoading = false;
+    notifyListeners();
+  }
+
   Future<void> fetchReports() async {
     _isLoading = true;
     notifyListeners();
@@ -146,6 +154,30 @@ class ReportProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint("Error reacting to report: $e");
+    }
+  }
+
+  Future<void> reactToSubmission(int reportId, int subId, String reactionType) async {
+    try {
+      final response = await _apiService.post(
+        '/reports/submissions/$subId/react?reaction=$reactionType',
+      );
+      final newLikes = response['likes'];
+      final newDislikes = response['dislikes'];
+      final newReaction = response['user_reaction'];
+
+      final index = _reports.indexWhere((r) => r.id == reportId);
+      if (index != -1) {
+        final subIndex = _reports[index].submissions.indexWhere((s) => s['id'] == subId);
+        if (subIndex != -1) {
+          _reports[index].submissions[subIndex]['likes'] = newLikes;
+          _reports[index].submissions[subIndex]['dislikes'] = newDislikes;
+          _reports[index].submissions[subIndex]['user_reaction'] = newReaction;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint("Error reacting to submission: $e");
     }
   }
 
@@ -212,6 +244,20 @@ class ReportProvider extends ChangeNotifier {
       _deletionTimers[reportId]?.cancel();
       _deletionTimers.remove(reportId);
       notifyListeners();
+    }
+  }
+
+  Future<void> updateSubmissionStatus(int subId, String status) async {
+    try {
+      await _apiService.put(
+        '/admin/submissions/$subId/status',
+        body: {'status': status},
+      );
+      // Refresh duplicate reports to get the updated status
+      await fetchDuplicateReports();
+    } catch (e) {
+      debugPrint("Error updating submission status: $e");
+      rethrow;
     }
   }
 

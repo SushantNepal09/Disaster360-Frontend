@@ -267,7 +267,7 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
           ),
           _AnimatedNavItem(
             icon: Icons.checklist_rounded,
-            label: 'Tasks',
+            label: 'Your Tasks',
             isActive: _activeNav == 2,
             onTap: () => _switchNav(2),
           ),
@@ -1063,7 +1063,7 @@ class _SideRail extends StatelessWidget {
   static const _items = [
     _NavData(Icons.home_rounded, 'Home'),
     _NavData(Icons.map_outlined, 'Map'),
-    _NavData(Icons.checklist_rounded, 'Tasks'),
+    _NavData(Icons.checklist_rounded, 'Your Tasks'),
     _NavData(Icons.insert_drive_file_outlined, 'All Reports'),
     _NavData(Icons.person_outline_rounded, 'Profile'),
   ];
@@ -1104,16 +1104,69 @@ class _SideRail extends StatelessWidget {
             const SizedBox(height: 28),
             const Divider(color: AppColors.border),
             const SizedBox(height: 8),
-            ...List.generate(
-              _items.length,
-              (i) => _SideRailItem(
-                icon: _items[i].icon,
-                label: _items[i].label,
-                isActive: activeNav == i,
-                expanded: expanded,
-                onTap: () => onNavTap(i),
+            
+            _SideRailItem(icon: _items[0].icon, label: _items[0].label, isActive: activeNav == 0, expanded: expanded, onTap: () => onNavTap(0)),
+            _SideRailItem(icon: _items[1].icon, label: _items[1].label, isActive: activeNav == 1, expanded: expanded, onTap: () => onNavTap(1)),
+            
+            if (expanded) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: const Text(
+                    'REPORTS & TASKS',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: TextAlign.left,
+                  ),
+                ),
               ),
-            ),
+            ] else ...[
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(color: Colors.white12, height: 1),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
+            _SideRailItem(icon: _items[2].icon, label: _items[2].label, isActive: activeNav == 2, expanded: expanded, onTap: () => onNavTap(2)),
+            _SideRailItem(icon: _items[3].icon, label: _items[3].label, isActive: activeNav == 3, expanded: expanded, onTap: () => onNavTap(3)),
+            
+            if (expanded) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: const Text(
+                    'ACCOUNT',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(color: Colors.white12, height: 1),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
+            _SideRailItem(icon: _items[4].icon, label: _items[4].label, isActive: activeNav == 4, expanded: expanded, onTap: () => onNavTap(4)),
+            
             const Spacer(),
             const Divider(color: AppColors.border),
             Padding(

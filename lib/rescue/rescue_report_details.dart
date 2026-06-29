@@ -1,53 +1,13 @@
 import 'package:disaster360/colors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:disaster360/utils/status_helper.dart';
 import 'package:disaster360/services/api_service.dart';
 import 'package:provider/provider.dart';
-import 'package:disaster360/providers/report_provider.dart';
+
 import 'package:disaster360/citizen/citizen_home_screen.dart';
+import 'package:disaster360/rescue/rescue_tasks_screen.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
 
 // ─── Data Model ───────────────────────────────────────────────────────────────
-
-class AdminReportData {
-  final String reportId;
-  final String status;
-  final String type;
-  final String title;
-  final String description;
-  final String date;
-  final String location;
-  final String lat;
-  final String lng;
-  final String reporter;
-  final int trustScore;
-  final int upvotes;
-  final int downvotes;
-  final List<String> mediaUrls;
-  final List<dynamic> submissions;
-  final String assignedRescueTeams;
-  final bool isAccepted;
-
-  const AdminReportData({
-    required this.reportId,
-    required this.status,
-    required this.type,
-    required this.title,
-    required this.description,
-    required this.date,
-    required this.location,
-    required this.lat,
-    required this.lng,
-    required this.reporter,
-    required this.trustScore,
-    required this.upvotes,
-    required this.downvotes,
-    required this.mediaUrls,
-    required this.submissions,
-    required this.assignedRescueTeams,
-    required this.isAccepted,
-  });
-}
 
 // ─── Breakpoints ──────────────────────────────────────────────────────────────
 
@@ -62,28 +22,24 @@ class _BP {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-class AdminReportDetailScreen extends StatefulWidget {
-  final AdminReportData report;
+class RescueReportDetailScreen extends StatefulWidget {
+  final RescueTask task;
   final String initialDecisionState;
 
-  const AdminReportDetailScreen({
+  const RescueReportDetailScreen({
     super.key,
-    required this.report,
+    required this.task,
     this.initialDecisionState = 'pending',
   });
 
   @override
-  State<AdminReportDetailScreen> createState() =>
-      _AdminReportDetailScreenState();
+  State<RescueReportDetailScreen> createState() =>
+      _RescueReportDetailScreenState();
 }
 
-class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
+class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
     with TickerProviderStateMixin {
-  late String _decisionState;
-  final List<String> _selectedTeams = [];
-  late bool _hasAssignedTeam;
-  late String _assignedTeamsStr;
-
+  
   // Animation controllers
   late AnimationController _cardController;
   late Animation<double> _cardFade;
@@ -96,18 +52,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
   @override
   void initState() {
     super.initState();
-    _assignedTeamsStr = widget.report.assignedRescueTeams;
-    _hasAssignedTeam = _assignedTeamsStr != 'Not Assigned' && _assignedTeamsStr.isNotEmpty;
-    // Derive initial decision state from passed value or report status
-    _decisionState = widget.initialDecisionState;
-    try {
-      if (widget.report.status.toLowerCase() == 'verified' || widget.report.status.toLowerCase() == 'assigned') {
-        _decisionState = 'verified';
-      } else if (widget.report.status.toLowerCase() == 'rejected') {
-        _decisionState = 'rejected';
-      }
-    } catch (_) {}
-
+    
     // Card entrance animation
     _cardController = AnimationController(
       vsync: this,
@@ -138,325 +83,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     _cardController.forward();
     _decisionController.forward();
 
-    _fetchAvailableTeams();
+    
   }
 
-  List<Map<String, String>> _availableTeams = [];
-
-  void _fetchAvailableTeams() async {
-    try {
-      final api = ApiService();
-      final response = await api.get('/admin/users');
-      if (response is List) {
-        final teams =
-            response
-                .where(
-                  (u) => u['role'] == 'rescue' && u['is_rescueteam'] == true,
-                )
-                .map<Map<String, String>>((u) {
-                  final name = u['full_name'] as String?;
-                  final finalName =
-                      (name != null && name.trim().isNotEmpty)
-                          ? name
-                          : (u['email'] as String? ?? 'Unknown Team');
-                  final spec =
-                      (u['specialization'] as String?) ?? 'Not Specified';
-                  return {'id': u['id'] as String, 'name': finalName, 'specialization': spec};
-                })
-                .toList();
-        if (mounted) {
-          setState(() {
-            _availableTeams = teams;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint("Error fetching rescue teams: $e");
-    }
-  }
-
-  @override
-  void dispose() {
-    _cardController.dispose();
-    _decisionController.dispose();
-    super.dispose();
-  }
-
-  // Fetch real teams from API now
-
-  // ─── Actions ────────────────────────────────────────────────────────────
-
-  void _verifyApiCall() async {
-    try {
-      final api = ApiService();
-      // Handle mock UI report ID (e.g. "RPT-00420") vs actual API ID logic
-      final intId = int.tryParse(
-        widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-      );
-
-      if (intId != null) {
-        await api.put('/admin/reports/$intId/verify');
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Verified successfully')));
-        _decisionController.reverse().then((_) {
-          setState(() => _decisionState = 'verified');
-          _decisionController.forward();
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
-      }
-    }
-  }
-
-  void _rejectApiCall(String reason) {
-    final intId = int.tryParse(
-      widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-    );
-
-    if (intId != null) {
-      context.read<ReportProvider>().rejectReport(intId);
-      Navigator.pop(context); // Navigate back to the dashboard immediately
-    }
-  }
-
-  void _onUndoReject() async {
-    final intId = int.tryParse(
-      widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-    );
-    if (intId != null) {
-      await context.read<ReportProvider>().undoRejectReport(intId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Report reverted to Pending')),
-        );
-        _decisionController.reverse().then((_) {
-          setState(() => _decisionState = 'pending');
-          _decisionController.forward();
-        });
-      }
-    }
-  }
-
-  void _onVerify() {
-    _verifyApiCall();
-  }
-
-  void _onReject() {
-    if (_BP.isMobile(context)) {
-      _showRejectionBottomSheet();
-    } else {
-      _showRejectionDialog();
-    }
-  }
-
-  void _showRejectionDialog() {
-    final TextEditingController reasonController = TextEditingController();
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.65),
-      builder:
-          (_) => _RejectionDialog(
-            report: widget.report,
-            reasonController: reasonController,
-            onConfirmReject: (reason) {
-              Navigator.pop(context);
-              _rejectApiCall(reason);
-            },
-          ),
-    );
-  }
-
-  void _onAssign() async {
-    if (_selectedTeams.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please select at least one rescue team.'),
-          backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final intId = int.tryParse(
-        widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-      );
-
-      if (intId != null) {
-        final api = ApiService();
-        await api.post(
-          '/admin/reports/$intId/assign',
-          body: {'team_ids': _selectedTeams.toList()},
-        );
-        if (mounted) {
-          context.read<ReportProvider>().fetchReports();
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          final selectedNames = _selectedTeams.map((id) {
-            final team = _availableTeams.firstWhere(
-              (t) => t['id'] == id,
-              orElse: () => {'name': id},
-            );
-            return team['name']!;
-          }).toList();
-          _assignedTeamsStr = selectedNames.join(', ');
-          _hasAssignedTeam = true;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${_selectedTeams.length} team(s) assigned to ${widget.report.reportId}',
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to assign teams: $e'),
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  void _onUnverify() async {
-    final intId = int.tryParse(
-      widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-    );
-    if (intId == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            backgroundColor: AppColors.bgSurface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            title: const Text(
-              'Undo Verification?',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            content: const Text(
-              'This will reset the report back to Pending status.',
-              style: TextStyle(color: Colors.white54),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white38),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Unverify',
-                  style: TextStyle(
-                    color: AppColors.warning,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
-    if (confirmed != true || !mounted) return;
-    try {
-      await context.read<ReportProvider>().unverifyReport(intId);
-      if (!mounted) return;
-      _decisionController.reverse().then((_) {
-        setState(() => _decisionState = 'pending');
-        _decisionController.forward();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${widget.report.reportId} reset to Pending.'),
-          backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Unverify failed: $e'),
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  void _showRejectionBottomSheet() {
-    final TextEditingController reasonController = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (_) => RejectionBottomSheet(
-            report: widget.report,
-            reasonController: reasonController,
-            onConfirmReject: (reason) {
-              Navigator.pop(context);
-              _rejectApiCall(reason);
-            },
-          ),
-    );
-  }
-
-  String _relativeDate(String dateStr) {
-    if (dateStr.isEmpty) return 'Just now';
-    try {
-      if (!dateStr.endsWith('Z') && !dateStr.contains('+')) {
-        dateStr += 'Z';
-      }
-      final dt = DateTime.parse(dateStr).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-      if (diff.inHours < 24) return '${diff.inHours} hours ago';
-      if (diff.inDays < 7) return '${diff.inDays} days ago';
-      return '${dt.day}/${dt.month}/${dt.year}';
-    } catch (e) {
-      return dateStr.split("T").first;
-    }
-  }
+  
 
   // ─── Build ───────────────────────────────────────────────────────────────
 
@@ -484,7 +114,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
         onTap: () => Navigator.pop(context),
       ),
       title: Text(
-        'Report #${widget.report.reportId}',
+        'Report #${widget.task.reportId}',
         style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
@@ -494,7 +124,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 12),
-          child: _StatusBadge(status: widget.report.status),
+          child: _StatusBadge(status: widget.task.status.name),
         ),
       ],
     );
@@ -647,14 +277,14 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
         children: [
           Row(
             children: [
-              _TypeChip(label: widget.report.type),
+              _TypeChip(label: widget.task.type),
               const Spacer(),
-              _StatusBadge(status: widget.report.status),
+              _StatusBadge(status: widget.task.status.name),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            widget.report.title,
+            widget.task.type,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -663,7 +293,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            widget.report.description,
+            widget.task.description,
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 13,
@@ -677,11 +307,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
             children: [
               _MetaItem(
                 icon: Icons.access_time_rounded,
-                label: _relativeDate(widget.report.date),
+                label: widget.task.assignedAgo,
               ),
               _MetaItem(
                 icon: Icons.location_on_outlined,
-                label: widget.report.location,
+                label: widget.task.location,
               ),
             ],
           ),
@@ -709,7 +339,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                 size: 18,
               ),
               Text(
-                '${widget.report.lat}, ${widget.report.lng}',
+                '${widget.task.lat}, ${widget.task.lng}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13,
@@ -743,7 +373,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
               const Icon(Icons.image_outlined, color: Colors.white38, size: 15),
               const SizedBox(width: 6),
               Text(
-                '${widget.report.mediaUrls.length} photo(s) attached',
+                '${widget.task.mediaUrls.length} photo(s) attached',
                 style: const TextStyle(color: Colors.white38, fontSize: 13),
               ),
             ],
@@ -761,9 +391,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
   // We use intrinsic sizing so it never overflows regardless of screen width.
 
   Widget _buildPhotoGrid() {
-    if (widget.report.mediaUrls.isEmpty) return const SizedBox.shrink();
+    if (widget.task.mediaUrls.isEmpty) return const SizedBox.shrink();
 
-    final count = widget.report.mediaUrls.length.clamp(1, 5);
+    final count = widget.task.mediaUrls.length.clamp(1, 5);
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalGap = 8.0 * (count - 1);
@@ -784,9 +414,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                         transitionDuration: const Duration(milliseconds: 250),
                         pageBuilder:
                             (_, __, ___) => ImageViewerOverlay(
-                              mediaUrls: widget.report.mediaUrls,
+                              mediaUrls: widget.task.mediaUrls,
                               initialIndex: index,
-                              reportId: widget.report.reportId,
+                              reportId: widget.task.reportId,
                             ),
                       ),
                     );
@@ -794,7 +424,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      widget.report.mediaUrls[index],
+                      widget.task.mediaUrls[index],
                       width: photoWidth,
                       height: photoHeight,
                       fit: BoxFit.cover,
@@ -845,7 +475,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.report.reporter,
+                  widget.task.verifiedByAdmin,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -865,7 +495,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                       ),
                     ),
                     Text(
-                      'Trust Score: ${widget.report.trustScore}/100',
+                      'Trust Score: ${100}/100',
                       style: const TextStyle(
                         color: Colors.white38,
                         fontSize: 12,
@@ -889,7 +519,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
         Expanded(
           child: _AnimatedVoteBox(
             icon: Icons.thumb_up_alt_outlined,
-            label: '+${widget.report.upvotes}  Upvotes',
+            label: '+${0}  Upvotes',
             color: AppColors.success,
           ),
         ),
@@ -897,7 +527,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
         Expanded(
           child: _AnimatedVoteBox(
             icon: Icons.thumb_down_alt_outlined,
-            label: '-${widget.report.downvotes}  Downvotes',
+            label: '-${0}  Downvotes',
             color: AppColors.danger,
           ),
         ),
@@ -912,327 +542,28 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
       opacity: _decisionFade,
       child: SlideTransition(
         position: _decisionSlide,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 320),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          transitionBuilder:
-              (child, anim) => FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.06),
-                    end: Offset.zero,
-                  ).animate(anim),
-                  child: child,
-                ),
-              ),
-          child:
-              _decisionState == 'rejected'
-                  ? _buildRejectedBanner()
-                  : _decisionState == 'verified'
-                  ? (_hasAssignedTeam ? _buildAssignedTeamInfo() : _buildAssignTeamSection())
-                  : _buildPendingButtons(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPendingButtons() {
-    return Row(
-      key: const ValueKey('pending'),
-      children: [
-        Expanded(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _ActionButton(
-            label: 'Verify',
-            icon: Icons.check_rounded,
-            color: AppColors.success,
-            onTap: _onVerify,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _ActionButton(
-            label: 'Reject',
-            icon: Icons.close_rounded,
-            color: AppColors.danger,
-            onTap: _onReject,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAssignTeamSection() {
-    return Column(
-      key: const ValueKey('verified'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Verified banner
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          margin: const EdgeInsets.only(bottom: 20),
-          decoration: BoxDecoration(
-            color: AppColors.success.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: AppColors.success.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.verified_rounded, color: AppColors.success, size: 16),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Report verified. Assign rescue team(s) below.',
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Text(
-          'ASSIGN RESCUE TEAMS',
-          style: TextStyle(
-            color: Colors.white38,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (_availableTeams.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-            child: Text(
-              'No rescue teams available',
-              style: TextStyle(color: Colors.white54, fontSize: 12),
-            ),
-          ),
-        ..._availableTeams.map(
-          (team) => _TeamCheckTile(
-            title: team['specialization']!,
-            subtitle: team['name']!,
-            isSelected: _selectedTeams.contains(team['id']),
-            onToggle: () {
-              setState(() {
-                if (_selectedTeams.contains(team['id'])) {
-                  _selectedTeams.remove(team['id']);
-                } else {
-                  _selectedTeams.add(team['id']!);
-                }
-              });
+            fullWidth: true,
+            label: 'Review Task',
+            icon: Icons.rate_review_rounded,
+            color: AppColors.info,
+            filled: true,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Review mode activated')),
+              );
             },
           ),
         ),
-        const SizedBox(height: 16),
-        _ActionButton(
-          fullWidth: true,
-          label:
-              _selectedTeams.isEmpty
-                  ? 'Assign Team'
-                  : 'Assign ${_selectedTeams.length} Team(s)',
-          icon: Icons.group_rounded,
-          color: AppColors.orange,
-          filled: true,
-          onTap: _onAssign,
-        ),
-        const SizedBox(height: 10),
-        _ActionButton(
-          fullWidth: true,
-          label: 'Undo Verification',
-          icon: Icons.undo_rounded,
-          color: AppColors.warning,
-          filled: false,
-          onTap: _onUnverify,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAssignedTeamInfo() {
-    return Column(
-      key: const ValueKey('assigned'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.orange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.orange.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.group_rounded, color: AppColors.orange, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Assigned to: $_assignedTeamsStr',
-                  style: const TextStyle(
-                    color: AppColors.orange,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: widget.report.isAccepted 
-              ? AppColors.success.withOpacity(0.1) 
-              : AppColors.warning.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: widget.report.isAccepted 
-                ? AppColors.success.withOpacity(0.3) 
-                : AppColors.warning.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                widget.report.isAccepted ? Icons.check_circle_rounded : Icons.pending_actions_rounded, 
-                color: widget.report.isAccepted ? AppColors.success : AppColors.warning, 
-                size: 18
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  widget.report.isAccepted ? 'Accepted by Rescue Team' : 'Awaiting Acceptance from Rescue Team',
-                  style: TextStyle(
-                    color: widget.report.isAccepted ? AppColors.success : AppColors.warning,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _ActionButton(
-          fullWidth: true,
-          label: 'Undo Assignment',
-          icon: Icons.undo_rounded,
-          color: AppColors.warning,
-          filled: false,
-          onTap: () async {
-            try {
-              final intId = int.tryParse(
-                widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-              );
-
-              if (intId != null) {
-                final api = ApiService();
-                await api.post(
-                  '/admin/reports/$intId/assign',
-                  body: {'team_ids': []},
-                );
-                if (mounted) {
-                  context.read<ReportProvider>().fetchReports();
-                }
-              }
-
-              if (mounted) {
-                setState(() {
-                  _hasAssignedTeam = false;
-                  _assignedTeamsStr = '';
-                  _selectedTeams.clear();
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Assignment cleared successfully'),
-                    backgroundColor: AppColors.success,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to clear assignment: $e'),
-                    backgroundColor: AppColors.danger,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              }
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRejectedBanner() {
-    return Column(
-      key: const ValueKey('rejected'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.danger.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.danger.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.cancel_rounded, color: AppColors.danger, size: 18),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'This report has been rejected.',
-                  style: TextStyle(
-                    color: AppColors.danger,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _ActionButton(
-          fullWidth: true,
-          label: 'Undo Rejection',
-          icon: Icons.undo_rounded,
-          color: AppColors.orange,
-          filled: false,
-          onTap: _onUndoReject,
-        ),
-      ],
+      ),
     );
   }
 }
 
 // ─── Photo Thumb (full-screen on tap) ────────────────────────────────────────
-
 class _PhotoThumb extends StatefulWidget {
   final int index;
   final double width;
@@ -1507,220 +838,15 @@ class _FullScreenPhotoViewer extends StatelessWidget {
 
 // ─── Rejection Dialog (tablet & desktop) ─────────────────────────────────────
 
-class _RejectionDialog extends StatelessWidget {
-  final AdminReportData report;
-  final TextEditingController reasonController;
-  final void Function(String reason) onConfirmReject;
-
-  const _RejectionDialog({
-    required this.report,
-    required this.reasonController,
-    required this.onConfirmReject,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.danger.withOpacity(0.3),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.55),
-                  blurRadius: 48,
-                  offset: const Offset(0, 20),
-                ),
-                BoxShadow(
-                  color: AppColors.danger.withOpacity(0.08),
-                  blurRadius: 32,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header row
-                Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.warning_amber_rounded,
-                        color: AppColors.danger,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Reject Report',
-                      style: TextStyle(
-                        color: AppColors.danger,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Close X
-                    _AnimatedIconButton(
-                      icon: Icons.close_rounded,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Minimal report info card
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.bgDark,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border, width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '#${report.reportId}',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _TypeChip(label: report.type),
-                          const Spacer(),
-                          _StatusBadge(status: report.status),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        report.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${report.date}  ·  ${report.location}',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                // Reason label
-                const Text(
-                  'Reason for Rejection',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: reasonController,
-                  maxLines: 4,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Describe why this report is being rejected...',
-                    hintStyle: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 13,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.bgDark,
-                    contentPadding: const EdgeInsets.all(14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: AppColors.danger.withOpacity(0.5),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Action row — Cancel + Confirm
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionButton(
-                        label: 'Cancel',
-                        icon: Icons.arrow_back_rounded,
-                        color: Colors.white38,
-                        fullWidth: true,
-                        onTap: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _ActionButton(
-                        label: 'Confirm Rejection',
-                        icon: Icons.close_rounded,
-                        color: AppColors.danger,
-                        filled: true,
-                        fullWidth: true,
-                        onTap: () => onConfirmReject(reasonController.text),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Rejection Bottom Sheet (mobile only) ────────────────────────────────────
 
 class RejectionBottomSheet extends StatelessWidget {
-  final AdminReportData report;
+  final RescueTask task;
   final TextEditingController reasonController;
   final void Function(String reason) onConfirmReject;
 
   const RejectionBottomSheet({
     super.key,
-    required this.report,
+    required this.task,
     required this.reasonController,
     required this.onConfirmReject,
   });
@@ -1776,21 +902,21 @@ class RejectionBottomSheet extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '#${report.reportId}',
+                        '#${task.reportId}',
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 11,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _TypeChip(label: report.type),
+                      _TypeChip(label: task.type),
                       const Spacer(),
-                      _StatusBadge(status: report.status),
+                      _StatusBadge(status: task.status.name),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    report.title,
+                    task.type.toUpperCase(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -1799,7 +925,7 @@ class RejectionBottomSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${report.date}  ·  ${report.location}',
+                    '${task.assignedAgo}  ·  ${task.location}',
                     style: const TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                 ],
@@ -2447,9 +1573,26 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = StatusHelper.getStatusBgColor(status);
-    final text = StatusHelper.getStatusColor(status);
-    
+    Color bg;
+    Color text;
+    switch (status) {
+      case 'In Progress':
+        bg = AppColors.orange.withOpacity(0.18);
+        text = AppColors.orange;
+        break;
+      case 'Controlled':
+      case 'Verified':
+        bg = AppColors.success.withOpacity(0.15);
+        text = AppColors.success;
+        break;
+      case 'Rejected':
+        bg = AppColors.danger.withOpacity(0.15);
+        text = AppColors.danger;
+        break;
+      default:
+        bg = AppColors.warning.withOpacity(0.15);
+        text = AppColors.warning;
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -2458,7 +1601,7 @@ class _StatusBadge extends StatelessWidget {
         border: Border.all(color: text.withOpacity(0.4), width: 1),
       ),
       child: Text(
-        StatusHelper.getStatusText(status),
+        status,
         style: TextStyle(
           color: text,
           fontSize: 11,

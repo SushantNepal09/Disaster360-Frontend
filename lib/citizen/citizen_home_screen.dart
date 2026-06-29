@@ -14,6 +14,7 @@ import 'package:disaster360/services/notification_service.dart';
 import 'package:disaster360/providers/notification_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/citizen/citizen_report_detail_screen.dart';
+import 'package:disaster360/utils/status_helper.dart';
 
 class AlertData {
   final String title;
@@ -105,20 +106,15 @@ class _NavData {
 // ══════════════════════════════════════════════════════════════════════════════
 
 int _statusSortOrder(String status) {
-  switch (status) {
-    case 'Pending':
-      return 0;
-    case 'Verified':
-      return 1;
-    case 'In Progress':
-      return 2;
-    case 'Controlled':
-      return 3;
-    case 'Rejected':
-      return 4;
-    default:
-      return 5;
-  }
+  final s = status.toLowerCase();
+  if (s == 'pending') return 0;
+  if (s == 'verified') return 1;
+  if (s == 'assigned') return 2;
+  if (s == 'acknowledged') return 3;
+  if (s.contains('progress')) return 4;
+  if (s.contains('resolved') || s.contains('controlled')) return 5;
+  if (s == 'rejected') return 6;
+  return 7;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2175,24 +2171,9 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg, text;
-    final lowercaseStatus = status.toLowerCase();
-
-    if (lowercaseStatus.contains('progress')) {
-      bg = AppColors.orange.withOpacity(0.18);
-      text = AppColors.orange;
-    } else if (lowercaseStatus.contains('controlled') ||
-        lowercaseStatus.contains('verified')) {
-      bg = AppColors.success.withOpacity(0.15);
-      text = AppColors.success;
-    } else if (lowercaseStatus.contains('rejected')) {
-      bg = AppColors.danger.withOpacity(0.15);
-      text = AppColors.danger;
-    } else {
-      // Pending
-      bg = AppColors.warning.withOpacity(0.15);
-      text = AppColors.warning;
-    }
+    final bg = StatusHelper.getStatusBgColor(status);
+    final text = StatusHelper.getStatusColor(status);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -2201,7 +2182,7 @@ class _StatusBadge extends StatelessWidget {
         border: Border.all(color: text.withOpacity(0.4), width: 1),
       ),
       child: Text(
-        status,
+        StatusHelper.getStatusText(status),
         style: TextStyle(
           color: text,
           fontSize: 11,

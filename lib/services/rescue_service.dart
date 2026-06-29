@@ -16,23 +16,29 @@ class RescueService {
   }
 
   // ---------------------------------------------------------------------------
-  // GET /rescue/verified-reports — All verified incidents (active queue)
-  // Returns [] when empty (backend no longer throws 404)
+  // GET /rescue/my-assignments — All incidents explicitly assigned to this team
   // ---------------------------------------------------------------------------
-  Future<List<Map<String, dynamic>>> getVerifiedReports() async {
-    final response = await _api.get('/rescue/verified-reports');
-    final list = response as List;
-    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<List<Map<String, dynamic>>> getMyAssignments() async {
+    final response = await _api.get('/rescue/my-assignments');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true) {
+      final list = map['data'] as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
   }
 
   // ---------------------------------------------------------------------------
-  // GET /rescue/my-operations — This rescue team's acknowledged operations
-  // Returns [] when empty
+  // GET /rescue/all-reports — All verified incidents available to rescue teams
   // ---------------------------------------------------------------------------
-  Future<List<Map<String, dynamic>>> getMyOperations() async {
-    final response = await _api.get('/rescue/my-operations');
-    final list = response as List;
-    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<List<Map<String, dynamic>>> getAllReports() async {
+    final response = await _api.get('/rescue/all-reports');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true) {
+      final list = map['data'] as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
   }
 
   // ---------------------------------------------------------------------------

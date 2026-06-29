@@ -85,7 +85,7 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
       final provider = context.read<RescueProvider>();
       setState(() {
         _completedTasks =
-            provider.myOperations
+            provider.myAssignments
                 .where((t) => t.status == TaskStatus.completed)
                 .toList();
       });

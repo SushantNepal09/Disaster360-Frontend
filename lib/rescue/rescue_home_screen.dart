@@ -116,8 +116,8 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
                 builder:
                     (context, provider, _) => _RescueHomeBody(
                       onGoToTasks: () => _switchNav(2),
-                      myOperations: provider.myOperations,
-                      verifiedReports: provider.verifiedReports,
+                      myAssignments: provider.myAssignments,
+                      allReports: provider.allReports,
                       isLoading: provider.isLoading,
                     ),
               ),
@@ -451,29 +451,29 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem>
 
 class _RescueHomeBody extends StatelessWidget {
   final VoidCallback onGoToTasks;
-  final List<RescueTask> myOperations;
-  final List<RescueTask> verifiedReports;
+  final List<RescueTask> myAssignments;
+  final List<RescueTask> allReports;
   final bool isLoading;
 
   const _RescueHomeBody({
     required this.onGoToTasks,
-    this.myOperations = const [],
-    this.verifiedReports = const [],
+    this.myAssignments = const [],
+    this.allReports = const [],
     this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Split myOperations by status
+    // Split myAssignments by status
     final inProgress =
-        myOperations.where((t) => t.status == TaskStatus.pending).toList();
+        myAssignments.where((t) => t.status == TaskStatus.pending).toList();
     final completed =
-        myOperations.where((t) => t.status == TaskStatus.completed).toList();
+        myAssignments.where((t) => t.status == TaskStatus.completed).toList();
 
     // Banner: show latest in-progress assignment
-    final latestAssigned = myOperations.isNotEmpty ? myOperations.first : null;
+    final latestAssigned = myAssignments.isNotEmpty ? myAssignments.first : null;
 
-    if (isLoading && myOperations.isEmpty && verifiedReports.isEmpty) {
+    if (isLoading && myAssignments.isEmpty && allReports.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
@@ -508,16 +508,16 @@ class _RescueHomeBody extends StatelessWidget {
                   const SizedBox(height: 20),
                 ],
 
-                // Stats: only from MY operations
+                // Stats: only from MY assignments
                 _buildStatCards(
                   inProgress: inProgress.length,
                   completed: completed.length,
-                  total: myOperations.length,
+                  total: myAssignments.length,
                 ),
                 const SizedBox(height: 28),
 
                 // ── MY ASSIGNED MISSIONS ──────────────────────────────
-                if (myOperations.isEmpty)
+                if (myAssignments.isEmpty)
                   _EmptyMyMissions(onGoToTasks: onGoToTasks)
                 else ...[
                   if (inProgress.isNotEmpty) ...[
@@ -554,13 +554,13 @@ class _RescueHomeBody extends StatelessWidget {
                   style: TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 const SizedBox(height: 14),
-                if (verifiedReports.isEmpty)
+                if (allReports.isEmpty)
                   _EmptySection(
                     icon: Icons.check_circle_outline,
                     message: 'No verified reports in queue',
                   )
                 else
-                  ...verifiedReports.map(
+                  ...allReports.map(
                     (t) =>
                         _VerifiedReportCard(task: t, onGoToTasks: onGoToTasks),
                   ),

@@ -59,7 +59,7 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen>
 
   List<RescueTask> get _filteredReports {
     final rescueProvider = context.watch<RescueProvider>();
-    final allTasks = rescueProvider.allVerifiedReports;
+    final allTasks = rescueProvider.allReports;
 
     return allTasks.where((r) {
       final matchesFilter =

@@ -104,7 +104,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   Widget build(BuildContext context) {
     return Consumer<RescueProvider>(
       builder: (context, provider, _) {
-        final allTasks = provider.allTasks;
+        final allTasks = provider.myAssignments;
         final filtered = _filteredTasks(allTasks);
 
         Widget content = Scaffold(
@@ -279,7 +279,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
         children: [
           Icon(Icons.inbox_outlined, color: Colors.white24, size: 64),
           SizedBox(height: 16),
-          Text('No tasks available', style: TextStyle(color: Colors.white54, fontSize: 16)),
+          Text('No assignments yet', style: TextStyle(color: Colors.white54, fontSize: 16)),
         ],
       ),
     );
@@ -330,7 +330,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   void _handleMarkDone(BuildContext context, RescueTask task) {
     RescueMotion.push(context, MarkAsControlledScreen(task: task)).then((_) {
       // Refresh tasks after returning from mark controlled screen
-      if (context.mounted) context.read<RescueProvider>().fetchMyOperations();
+      if (context.mounted) context.read<RescueProvider>().fetchMyAssignments();
     });
   }
 
@@ -1096,9 +1096,23 @@ class _FacebookReportCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          const Text('Citizen Reporter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(task.reporterName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                           const SizedBox(width: 8),
-                          _TaskStatusBadge(status: task.status),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: task.reporterStatus.toLowerCase() == 'active' ? AppColors.success.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              task.reporterStatus, 
+                              style: TextStyle(
+                                color: task.reporterStatus.toLowerCase() == 'active' ? AppColors.success : Colors.grey, 
+                                fontSize: 10, 
+                                fontWeight: FontWeight.w600
+                              )
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 2),
@@ -1126,7 +1140,7 @@ class _FacebookReportCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        task.type,
+                        task.title,
                         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -1406,7 +1420,7 @@ class _SeverityBadge extends StatelessWidget {
           Icon(Icons.local_fire_department_rounded, color: _color, size: 11),
           const SizedBox(width: 4),
           Text(
-            'L$level ┬╖ ${_labels[level]}',
+            _labels[level],
             style: TextStyle(
               color: _color,
               fontSize: 10,
@@ -1482,8 +1496,13 @@ class RescueTask {
   final String lat;
   final String lng;
   final String reportId;
-  // For operations that have been acknowledged — used for status updates
+  final String reporterName;
+  final String reporterStatus;
+  final String title;
   final int? rescueUpdateId;
+  final bool canAcknowledge;
+  final bool canUpdateStatus;
+  final bool canSubmitReport;
   final List<String> assignedTeams;
 
   const RescueTask({
@@ -1499,7 +1518,13 @@ class RescueTask {
     required this.lat,
     required this.lng,
     required this.reportId,
+    required this.reporterName,
+    required this.reporterStatus,
+    required this.title,
     this.rescueUpdateId,
+    this.canAcknowledge = false,
+    this.canUpdateStatus = false,
+    this.canSubmitReport = false,
     this.assignedTeams = const [],
   });
 
@@ -1536,58 +1561,57 @@ class RescueTask {
     }
   }
 
-  // ── Build from GET /rescue/verified-reports item ──────────────────────────
-  // These are verified incidents NOT yet acknowledged by this member
+  // ── Build from new Backend JSON Envelope ──────────────────────────────────
   factory RescueTask.fromJson(Map<String, dynamic> json) {
-    return RescueTask(
-      taskId: '${json['id']}',
-      status: TaskStatus.active,
-      type: json['disaster_type'] ?? 'Unknown',
-      location: json['location'] ?? 'Unknown',
-      description: json['description'] ?? '',
-      assignedAgo: _timeAgo(json['created_at']?.toString()),
-      severityLevel: _parseSeverity(json['severity']?.toString()),
-      verifiedByAdmin: 'Admin',
-      mediaUrls: (json['media_urls'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      lat: '${json['latitude'] ?? 0.0}',
-      lng: '${json['longitude'] ?? 0.0}',
-      reportId: '${json['id']}',
-      rescueUpdateId: json['rescue_update_id'] as int?,
-      assignedTeams:
-          (json['assigned_teams'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-    );
-  }
-
-  // ── Build from GET /rescue/my-operations item ─────────────────────────────
-  // These are incidents this member has acknowledged (pending / completed)
-  factory RescueTask.fromMyOperation(Map<String, dynamic> json) {
-    final rescueStatus = json['rescue_status'] ?? 'Acknowledged';
-    TaskStatus status;
-    if (rescueStatus == 'Controlled' || rescueStatus == 'Closed') {
-      status = TaskStatus.completed;
+    final statusStr = json['status'] ?? '';
+    TaskStatus tStatus;
+    if (statusStr == 'Controlled' || statusStr == 'Closed') {
+      tStatus = TaskStatus.completed;
+    } else if (statusStr == 'Acknowledged' || statusStr == 'Rescue In Progress') {
+      tStatus = TaskStatus.pending;
     } else {
-      status = TaskStatus.pending;
+      tStatus = TaskStatus.active;
+    }
+
+    final loc = json['location'] as Map<String, dynamic>? ?? {};
+    final mediaList = json['media'] as List<dynamic>? ?? [];
+    final actions = json['actions'] as Map<String, dynamic>? ?? {};
+    
+    // Parse rescueUpdateId which might be inside actions or root
+    int? parsedRescueUpdateId;
+    if (json['rescueUpdateId'] != null) {
+      parsedRescueUpdateId = int.tryParse(json['rescueUpdateId'].toString());
+    } else if (actions['rescueUpdateId'] != null) {
+      parsedRescueUpdateId = int.tryParse(actions['rescueUpdateId'].toString());
+    }
+
+    final rescueTeam = json['rescueTeam'] as Map<String, dynamic>?;
+    final List<String> parsedAssignedTeams = [];
+    if (rescueTeam != null && rescueTeam['name'] != null) {
+      parsedAssignedTeams.add(rescueTeam['name'].toString());
     }
 
     return RescueTask(
-      taskId: '${json['incident_id']}',
-      status: status,
-      type: json['disaster_type'] ?? 'Unknown',
-      location: json['location'] ?? 'Unknown',
+      taskId: json['incidentId']?.toString() ?? '',
+      status: tStatus,
+      type: json['disasterType'] ?? 'Unknown',
+      location: loc['address'] ?? 'Unknown',
       description: json['description'] ?? '',
-      assignedAgo: _timeAgo(json['acknowledged_at']?.toString()),
+      assignedAgo: _timeAgo((json['assignedAt'] ?? json['reportedAt'])?.toString()),
       severityLevel: _parseSeverity(json['severity']?.toString()),
-      verifiedByAdmin: 'Admin',
-      mediaUrls: (json['media_urls'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      lat: '${json['latitude'] ?? 0.0}',
-      lng: '${json['longitude'] ?? 0.0}',
-      reportId: '${json['incident_id']}',
-      rescueUpdateId: json['rescue_update_id'] as int?,
-      assignedTeams:
-          const [], // my-operations doesn't need assignedTeams as they are already accepted
+      verifiedByAdmin: json['verificationStatus'] ?? 'Admin',
+      mediaUrls: mediaList.map((m) => m['url'].toString()).toList(),
+      lat: loc['latitude']?.toString() ?? '0.0',
+      lng: loc['longitude']?.toString() ?? '0.0',
+      reportId: json['incidentId']?.toString() ?? '',
+      reporterName: json['reporterName'] ?? 'Unknown Reporter',
+      reporterStatus: json['reporterStatus'] ?? 'Unknown',
+      title: json['title'] ?? 'Untitled Report',
+      rescueUpdateId: parsedRescueUpdateId,
+      canAcknowledge: actions['canAcknowledge'] == true,
+      canUpdateStatus: actions['canUpdateStatus'] == true,
+      canSubmitReport: actions['canSubmitReport'] == true,
+      assignedTeams: parsedAssignedTeams,
     );
   }
 }

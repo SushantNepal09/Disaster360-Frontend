@@ -114,12 +114,13 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
         onTap: () => Navigator.pop(context),
       ),
       title: Text(
-        'Report #${widget.task.reportId}',
+        widget.task.title,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
           fontWeight: FontWeight.w700,
         ),
+        overflow: TextOverflow.ellipsis,
       ),
       actions: [
         Padding(
@@ -147,8 +148,6 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
               _buildGpsPhotosCard(),
               const SizedBox(height: 14),
               _buildReporterCard(),
-              const SizedBox(height: 14),
-              _buildVotesRow(),
               const SizedBox(height: 24),
               _buildDecisionArea(),
               const SizedBox(height: 24),
@@ -185,8 +184,6 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
                           _buildReportInfoCard(),
                           const SizedBox(height: 14),
                           _buildGpsPhotosCard(),
-                          const SizedBox(height: 14),
-                          _buildVotesRow(),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -241,8 +238,6 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
                           _buildReportInfoCard(),
                           const SizedBox(height: 16),
                           _buildGpsPhotosCard(),
-                          const SizedBox(height: 16),
-                          _buildVotesRow(),
                         ],
                       ),
                     ),
@@ -279,12 +274,12 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
             children: [
               _TypeChip(label: widget.task.type),
               const Spacer(),
-              _StatusBadge(status: widget.task.status.name),
+              _SeverityBadge(level: widget.task.severityLevel),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            widget.task.type,
+            widget.task.title,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -293,10 +288,10 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            widget.task.description,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 13,
+            widget.task.description.isEmpty ? "No description provided." : widget.task.description,
+            style: TextStyle(
+              color: widget.task.description.isEmpty ? Colors.white38 : Colors.white70,
+              fontSize: 14,
               height: 1.55,
             ),
           ),
@@ -311,7 +306,7 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
               ),
               _MetaItem(
                 icon: Icons.location_on_outlined,
-                label: widget.task.location,
+                label: widget.task.location.isEmpty ? "Location unknown" : widget.task.location,
               ),
             ],
           ),
@@ -391,7 +386,22 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
   // We use intrinsic sizing so it never overflows regardless of screen width.
 
   Widget _buildPhotoGrid() {
-    if (widget.task.mediaUrls.isEmpty) return const SizedBox.shrink();
+    if (widget.task.mediaUrls.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Text(
+            'No photos available',
+            style: TextStyle(color: Colors.white38, fontSize: 13),
+          ),
+        ),
+      );
+    }
 
     final count = widget.task.mediaUrls.length.clamp(1, 5);
     return LayoutBuilder(
@@ -475,7 +485,7 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.task.verifiedByAdmin,
+                  widget.task.reporterName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -489,13 +499,15 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
                       width: 7,
                       height: 7,
                       margin: const EdgeInsets.only(right: 5),
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
+                      decoration: BoxDecoration(
+                        color: widget.task.reporterStatus.toLowerCase() == 'active' 
+                               ? AppColors.success 
+                               : Colors.grey,
                         shape: BoxShape.circle,
                       ),
                     ),
                     Text(
-                      'Trust Score: ${100}/100',
+                      widget.task.reporterStatus,
                       style: const TextStyle(
                         color: Colors.white38,
                         fontSize: 12,
@@ -511,29 +523,7 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
     );
   }
 
-  // ─── Votes Row ─────────────────────────────────────────────────────────────
-
-  Widget _buildVotesRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _AnimatedVoteBox(
-            icon: Icons.thumb_up_alt_outlined,
-            label: '+${0}  Upvotes',
-            color: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _AnimatedVoteBox(
-            icon: Icons.thumb_down_alt_outlined,
-            label: '-${0}  Downvotes',
-            color: AppColors.danger,
-          ),
-        ),
-      ],
-    );
-  }
+  // ─── Removed Votes Row ───────────────────────────────────────────────────
 
   // ─── Decision Area ─────────────────────────────────────────────────────────
 
@@ -545,17 +535,58 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _ActionButton(
-            fullWidth: true,
-            label: 'Review Task',
-            icon: Icons.rate_review_rounded,
-            color: AppColors.info,
-            filled: true,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Review mode activated')),
-              );
-            },
+          child: Row(
+            children: [
+              Expanded(
+                child: _ActionButton(
+                  fullWidth: true,
+                  label: 'Reject',
+                  icon: Icons.close_rounded,
+                  color: AppColors.danger,
+                  filled: false,
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder:
+                          (_) => RejectionBottomSheet(
+                            task: widget.task,
+                            reasonController: TextEditingController(),
+                            onConfirmReject: (reason) {
+                              Navigator.pop(context); // close sheet
+                              Navigator.pop(context); // close screen
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Report rejected')),
+                              );
+                            },
+                          ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ActionButton(
+                  fullWidth: true,
+                  label: 'Accept',
+                  icon: Icons.check_rounded,
+                  color: AppColors.success,
+                  filled: true,
+                  onTap: () async {
+                    if (widget.task.canAcknowledge) {
+                      await context.read<RescueProvider>().acknowledgeReport(int.parse(widget.task.reportId));
+                    }
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Assignment accepted')),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1607,6 +1638,69 @@ class _StatusBadge extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+class _SeverityBadge extends StatelessWidget {
+  final int level;
+
+  const _SeverityBadge({required this.level});
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg;
+    Color text;
+    String label;
+    switch (level) {
+      case 1:
+        bg = AppColors.info.withOpacity(0.15);
+        text = AppColors.info;
+        label = 'Low Severity';
+        break;
+      case 2:
+        bg = AppColors.success.withOpacity(0.15);
+        text = AppColors.success;
+        label = 'Medium Severity';
+        break;
+      case 3:
+        bg = AppColors.warning.withOpacity(0.15);
+        text = AppColors.warning;
+        label = 'High Severity';
+        break;
+      case 4:
+      case 5:
+        bg = AppColors.danger.withOpacity(0.15);
+        text = AppColors.danger;
+        label = 'Critical Severity';
+        break;
+      default:
+        bg = AppColors.warning.withOpacity(0.15);
+        text = AppColors.warning;
+        label = 'Unknown Severity';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: text.withOpacity(0.4), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.warning_rounded, color: text, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: text,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -140,6 +140,24 @@ class RescueProvider extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // Accept a Rescue Assignment
+  // ---------------------------------------------------------------------------
+  Future<String> acceptAssignment(int assignmentId) async {
+    final result = await _service.acceptAssignment(assignmentId);
+    await fetchMyAssignments();
+    return result['message'] ?? 'Assignment accepted successfully';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reject a Rescue Assignment
+  // ---------------------------------------------------------------------------
+  Future<String> rejectAssignment(int assignmentId, {String? reason}) async {
+    final result = await _service.rejectAssignment(assignmentId, reason: reason);
+    await fetchMyAssignments();
+    return result['message'] ?? 'Assignment rejected successfully';
+  }
+
+  // ---------------------------------------------------------------------------
   // Update operation status (e.g. → "Controlled")
   // ---------------------------------------------------------------------------
   Future<void> updateOperationStatus(int rescueUpdateId, String status) async {

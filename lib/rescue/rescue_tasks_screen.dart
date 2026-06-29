@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
@@ -143,6 +144,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                                                 child: _FacebookReportCard(
                                                   task: filtered[i],
                                                   onAccept: () => _handleAccept(context, filtered[i]),
+                                                  onReject: () => _handleReject(context, filtered[i]),
                                                   onDetails: () => _handleDetails(context, filtered[i]),
                                                 ),
                                               );
@@ -286,6 +288,40 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   }
 
   // ── Button handlers ────────────────────────────────────────────────────────
+
+  void _handleReject(BuildContext context, RescueTask task) {
+    _showActionDialog(
+      context: context,
+      title: 'Reject Task',
+      message: 'Are you sure you want to reject this assignment?',
+      confirmLabel: 'Reject',
+      confirmColor: AppColors.danger,
+      onConfirm: () async {
+        Navigator.pop(context);
+        try {
+          final provider = context.read<RescueProvider>();
+          await provider.rejectAssignment(int.parse(task.assignmentId));
+          if (context.mounted) {
+            _showSnack(
+              context,
+              '✓ Task assignment rejected.',
+              color: AppColors.success,
+            );
+            context.read<RescueProvider>().fetchAll();
+          }
+        } catch (e) {
+          if (context.mounted) {
+            _showSnack(
+              context,
+              e.toString().replaceFirst('Exception: ', ''),
+              color: AppColors.danger,
+            );
+          }
+        }
+      },
+    );
+  }
+
   void _handleAccept(BuildContext context, RescueTask task) {
     _showActionDialog(
       context: context,
@@ -298,7 +334,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
         Navigator.pop(context);
         try {
           final provider = context.read<RescueProvider>();
-          await provider.acknowledgeReport(int.parse(task.taskId));
+          await provider.acceptAssignment(int.parse(task.assignmentId));
           if (context.mounted) {
             _showSnack(
               context,
@@ -1061,11 +1097,13 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
 class _FacebookReportCard extends StatelessWidget {
   final RescueTask task;
   final VoidCallback onAccept;
+  final VoidCallback onReject;
   final VoidCallback onDetails;
 
   const _FacebookReportCard({
     required this.task,
     required this.onAccept,
+    required this.onReject,
     required this.onDetails,
   });
 
@@ -1181,18 +1219,33 @@ class _FacebookReportCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (task.status == TaskStatus.active)
-                  ElevatedButton.icon(
-                    onPressed: onAccept,
-                    icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
-                    label: const Text('Accept', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                if (task.status == TaskStatus.active) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onReject,
+                      icon: const Icon(Icons.cancel_outlined, size: 18, color: AppColors.danger),
+                      label: const Text('Reject', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.danger),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
-                  )
-                else
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onAccept,
+                      icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
+                      label: const Text('Accept', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ] else
                   OutlinedButton.icon(
                     onPressed: onDetails,
                     icon: const Icon(Icons.info_outline, size: 18, color: Colors.white70),
@@ -1484,6 +1537,9 @@ class _DetailRow extends StatelessWidget {
 enum TaskStatus { active, pending, completed }
 
 class RescueTask {
+  final String assignmentId;
+  final String assignmentStatus;
+  final String? rejectionReason;
   final String taskId;
   final TaskStatus status;
   final String type;
@@ -1506,6 +1562,9 @@ class RescueTask {
   final List<String> assignedTeams;
 
   const RescueTask({
+    required this.assignmentId,
+    required this.assignmentStatus,
+    this.rejectionReason,
     required this.taskId,
     required this.status,
     required this.type,
@@ -1563,11 +1622,11 @@ class RescueTask {
 
   // ── Build from new Backend JSON Envelope ──────────────────────────────────
   factory RescueTask.fromJson(Map<String, dynamic> json) {
-    final statusStr = json['status'] ?? '';
+    final assignmentStatus = json['assignmentStatus'] ?? '';
     TaskStatus tStatus;
-    if (statusStr == 'Controlled' || statusStr == 'Closed') {
+    if (assignmentStatus == 'Completed') {
       tStatus = TaskStatus.completed;
-    } else if (statusStr == 'Acknowledged' || statusStr == 'Rescue In Progress') {
+    } else if (assignmentStatus == 'Accepted' || assignmentStatus == 'In Progress') {
       tStatus = TaskStatus.pending;
     } else {
       tStatus = TaskStatus.active;
@@ -1592,6 +1651,9 @@ class RescueTask {
     }
 
     return RescueTask(
+      assignmentId: json['assignmentId']?.toString() ?? '',
+      assignmentStatus: json['assignmentStatus']?.toString() ?? '',
+      rejectionReason: json['rejectionReason']?.toString(),
       taskId: json['incidentId']?.toString() ?? '',
       status: tStatus,
       type: json['disasterType'] ?? 'Unknown',

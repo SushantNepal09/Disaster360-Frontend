@@ -625,6 +625,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       submissions: p.submissions,
       assignedRescueTeams: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).rescueTeam,
       isAccepted: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).isAccepted,
+      assignments: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).assignments,
     );
   }
 

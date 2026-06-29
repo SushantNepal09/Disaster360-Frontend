@@ -22,6 +22,7 @@ class ReportModel {
   final List<String> mediaUrls;
   final String rescueTeam;
   final bool isAccepted;
+  final List<dynamic> assignments;
 
   ReportModel({
     required this.id,
@@ -43,6 +44,7 @@ class ReportModel {
     this.mediaUrls = const [],
     this.rescueTeam = 'Not Assigned',
     this.isAccepted = false,
+    this.assignments = const [],
   });
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {
@@ -282,6 +284,7 @@ class ReportProvider extends ChangeNotifier {
           createdAt: _reports[index].createdAt,
           submissions: _reports[index].submissions,
           mediaUrls: _reports[index].mediaUrls,
+          assignments: _reports[index].assignments,
         );
         notifyListeners();
       }
@@ -313,6 +316,7 @@ class ReportProvider extends ChangeNotifier {
           createdAt: _reports[index].createdAt,
           submissions: _reports[index].submissions,
           mediaUrls: _reports[index].mediaUrls,
+          assignments: _reports[index].assignments,
         );
         notifyListeners();
       }
@@ -344,6 +348,7 @@ class ReportProvider extends ChangeNotifier {
           createdAt: _reports[index].createdAt,
           submissions: _reports[index].submissions,
           mediaUrls: _reports[index].mediaUrls,
+          assignments: _reports[index].assignments,
         );
         notifyListeners();
       }
@@ -375,11 +380,21 @@ class ReportProvider extends ChangeNotifier {
           createdAt: _reports[index].createdAt,
           submissions: _reports[index].submissions,
           mediaUrls: _reports[index].mediaUrls,
+          assignments: _reports[index].assignments,
         );
         notifyListeners();
       }
     } catch (e) {
       debugPrint('Error unverifying report: $e');
+      rethrow;
+    }
+  }
+  Future<void> undoAssignment(int assignmentId) async {
+    try {
+      await _apiService.delete('/admin/assignments/$assignmentId');
+      await fetchReports(); // Refresh everything to ensure UI state sync
+    } catch (e) {
+      debugPrint('Error undoing assignment: $e');
       rethrow;
     }
   }

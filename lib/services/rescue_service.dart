@@ -42,6 +42,23 @@ class RescueService {
   }
 
   // ---------------------------------------------------------------------------
+  // PUT /rescue/assignments/{assignmentId}/accept
+  // ---------------------------------------------------------------------------
+  Future<Map<String, dynamic>> acceptAssignment(int assignmentId) async {
+    final response = await _api.put('/rescue/assignments/$assignmentId/accept');
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /rescue/assignments/{assignmentId}/reject
+  // ---------------------------------------------------------------------------
+  Future<Map<String, dynamic>> rejectAssignment(int assignmentId, {String? reason}) async {
+    final Map<String, dynamic> body = reason != null ? {'reason': reason} : {};
+    final response = await _api.put('/rescue/assignments/$assignmentId/reject', body: body);
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  // ---------------------------------------------------------------------------
   // POST /rescue/acknowledge — Acknowledge / accept a verified incident
   // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> acknowledgeReport(int incidentId) async {

@@ -1,5 +1,4 @@
 import 'package:disaster360/rescue/rescue_all_reports_screen.dart';
-import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/rescue/rescue_profile_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
@@ -8,7 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/providers/notification_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:disaster360/services/notification_alert.dart';
+import 'package:disaster360/services/notification_service.dart';
 import 'package:disaster360/colors.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -36,6 +38,7 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReportProvider>().fetchReports();
       context.read<RescueProvider>().fetchAll();
+      NotificationService().checkAndPromptPermission(context);
     });
     _fadeController = AnimationController(
       vsync: this,
@@ -209,17 +212,22 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
                         size: 22,
                       ),
                     ),
-                    Positioned(
-                      top: 7,
-                      right: 7,
-                      child: Container(
-                        width: 9,
-                        height: 9,
-                        decoration: const BoxDecoration(
-                          color: AppColors.danger,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                    Consumer<NotificationProvider>(
+                      builder: (context, provider, _) {
+                        if (provider.unreadCount == 0) return const SizedBox.shrink();
+                        return Positioned(
+                          top: 7,
+                          right: 7,
+                          child: Container(
+                            width: 9,
+                            height: 9,
+                            decoration: const BoxDecoration(
+                              color: AppColors.danger,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

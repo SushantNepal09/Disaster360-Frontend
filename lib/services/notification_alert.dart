@@ -1,5 +1,8 @@
 import 'package:disaster360/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:disaster360/providers/notification_provider.dart';
+import 'package:intl/intl.dart';
 
 // ─── Data model ───────────────────────────────────────────────────────────────
 
@@ -27,6 +30,57 @@ class AppNotification {
     required this.time,
     this.isRead = false,
   });
+
+  factory AppNotification.fromJson(Map<String, dynamic> json) {
+    NotificationType parsedType;
+    switch (json['type']) {
+      case 'incident_created':
+      case 'earthquake_alert':
+        parsedType = NotificationType.proximityAlert;
+        break;
+      case 'incident_verified':
+        parsedType = NotificationType.reportVerified;
+        break;
+      case 'rescue_update':
+      case 'rescue_assigned':
+        parsedType = NotificationType.statusUpdate;
+        break;
+      case 'incident_closed':
+        parsedType = NotificationType.reportRejected;
+        break;
+      default:
+        parsedType = NotificationType.proximityAlert;
+    }
+
+    // Format relative time
+    String formattedTime = 'Just now';
+    if (json['time'] != null) {
+      try {
+        final dateTime = DateTime.parse(json['time']).toLocal();
+        final diff = DateTime.now().difference(dateTime);
+        if (diff.inMinutes < 60) {
+          formattedTime = diff.inMinutes <= 1 ? 'Just now' : '${diff.inMinutes} min ago';
+        } else if (diff.inHours < 24) {
+          formattedTime = '${diff.inHours} hours ago';
+        } else if (diff.inDays < 7) {
+          formattedTime = '${diff.inDays} days ago';
+        } else {
+          formattedTime = DateFormat('MMM d, yyyy').format(dateTime);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    return AppNotification(
+      id: json['id'].toString(),
+      type: parsedType,
+      title: json['title'] ?? 'Notification',
+      body: json['message'] ?? '',
+      time: formattedTime,
+      isRead: json['is_read'] ?? false,
+    );
+  }
 
   String get typeLabel {
     switch (type) {
@@ -84,66 +138,20 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final List<AppNotification> _notifications = [
-    AppNotification(
-      id: 'N001',
-      type: NotificationType.proximityAlert,
-      title: 'Landslide 0.8km from you, Ward 7 Dharan',
-      body:
-          'A verified landslide has been reported very close to your current location. Move to higher ground immediately and avoid the area.',
-      time: '2 hours ago',
-      isRead: false,
-    ),
-    AppNotification(
-      id: 'N002',
-      type: NotificationType.reportVerified,
-      title: '#RPT-00389 Landslide report has been verified by admin',
-      body:
-          'Your submitted report has passed verification. Response teams have been notified and are being dispatched to the area.',
-      time: '5 hours ago',
-      isRead: false,
-    ),
-    AppNotification(
-      id: 'N003',
-      type: NotificationType.statusUpdate,
-      title: 'Flood Team B is now on scene at Itahari',
-      body:
-          'Emergency response Team B has arrived at Itahari, Ward 3. Rescue operations are underway. Residents in affected areas please cooperate.',
-      time: '6 hours ago',
-      isRead: false,
-    ),
-    AppNotification(
-      id: 'N004',
-      type: NotificationType.riskZone,
-      title: 'Ward 7, Dharan elevated to High Risk zone',
-      body:
-          'Based on recent incident density and verified reports, Ward 7 Dharan has been reclassified as a High Risk zone. Exercise extreme caution.',
-      time: 'Yesterday',
-      isRead: true,
-    ),
-    AppNotification(
-      id: 'N005',
-      type: NotificationType.reportRejected,
-      title: '#RPT-00371 was merged with existing report',
-      body:
-          'Your report was found to be a duplicate of an existing verified report for the same area. No action is needed from you.',
-      time: 'Mar 9',
-      isRead: true,
-    ),
-  ];
-
-  int get _unreadCount => _notifications.where((n) => !n.isRead).length;
-
-  void _markAllRead() {
-    setState(() {
-      for (final n in _notifications) {
-        n.isRead = true;
-      }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationProvider>().fetchNotifications();
     });
   }
 
+
   void _showDetail(AppNotification notification) {
-    final captured = notification;
+    if (!notification.isRead) {
+      context.read<NotificationProvider>().markAsRead(notification.id);
+    }
+    
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.bgSurface,
@@ -151,39 +159,50 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _NotificationDetailSheet(notification: captured),
-    ).then((_) {
-      if (!captured.isRead && mounted) {
-        setState(() => captured.isRead = true);
-      }
-    });
+      builder: (_) => _NotificationDetailSheet(notification: notification),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
-      appBar: _buildAppBar(context),
-      body:
-          _notifications.isEmpty
-              ? _buildEmptyState()
-              : ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                itemCount: _notifications.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder:
-                    (_, i) => _NotificationCard(
-                      notification: _notifications[i],
-                      onTap: () => _showDetail(_notifications[i]),
+    return Consumer<NotificationProvider>(
+      builder: (context, provider, _) {
+        return Scaffold(
+          backgroundColor: AppColors.bgPrimary,
+          appBar: _buildAppBar(context, provider),
+          body: provider.isLoading && provider.notifications.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
+                  ),
+                )
+              : provider.notifications.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      color: AppColors.orange,
+                      backgroundColor: AppColors.bgSurface,
+                      onRefresh: () => provider.fetchNotifications(),
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        itemCount: provider.notifications.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, i) => _NotificationCard(
+                          notification: provider.notifications[i],
+                          onTap: () => _showDetail(provider.notifications[i]),
+                        ),
+                      ),
                     ),
-              ),
+        );
+      },
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, NotificationProvider provider) {
+    final unreadCount = provider.unreadCount;
     return AppBar(
       backgroundColor: AppColors.bgPrimary,
       elevation: 0,
@@ -203,7 +222,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               fontFamily: 'monospace',
             ),
           ),
-          if (_unreadCount > 0) ...[
+          if (unreadCount > 0) ...[
             const SizedBox(width: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -212,7 +231,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '$_unreadCount',
+                '$unreadCount',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 11,
@@ -224,9 +243,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       actions: [
-        if (_unreadCount > 0)
+        if (unreadCount > 0)
           TextButton(
-            onPressed: _markAllRead,
+            onPressed: () => provider.markAllAsRead(),
             child: const Text(
               'Mark all read',
               style: TextStyle(
@@ -240,6 +259,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ],
     );
   }
+
+
 
   Widget _buildEmptyState() {
     return const Center(

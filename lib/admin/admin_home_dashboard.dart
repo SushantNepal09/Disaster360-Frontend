@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/colors.dart';
+import 'package:disaster360/services/notification_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:disaster360/utils/status_helper.dart';
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -76,6 +77,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       provider.fetchReports();
       provider.fetchActiveRescues();
       provider.fetchDuplicateReports();
+      NotificationService().checkAndPromptPermission(context);
     });
     _pageEntryCtrl = AnimationController(
       vsync: this,
@@ -1197,9 +1199,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
               mergedReportsRaw.map((r) {
                 return _MergedReportItem(
                   id: r['id'] ?? 'Unknown',
+                  intId: r['intId'] ?? 0,
                   title: r['title'] ?? 'Unknown',
                   date: r['date'] ?? 'Unknown',
                   reporter: r['reporter'] ?? 'Unknown',
+                  status: r['status'] ?? 'Pending',
                 );
               }).toList();
 
@@ -1329,6 +1333,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: report.status == 'Verified' ? AppColors.success.withOpacity(0.2) : (report.status == 'Rejected' ? AppColors.danger.withOpacity(0.2) : AppColors.warning.withOpacity(0.2)),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      report.status,
+                                      style: TextStyle(
+                                        color: report.status == 'Verified' ? AppColors.success : (report.status == 'Rejected' ? AppColors.danger : AppColors.warning),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                                   const Spacer(),
                                   Text(
                                     report.date,
@@ -1356,6 +1376,44 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                   fontSize: 12,
                                 ),
                               ),
+                              if (report.status == 'Pending') ...[
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        onPressed: () {
+                                          context.read<ReportProvider>().updateSubmissionStatus(report.intId, 'Rejected').then((_) {
+                                            Navigator.pop(context);
+                                          });
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: AppColors.danger,
+                                          side: const BorderSide(color: AppColors.danger),
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                        ),
+                                        child: const Text('Reject', style: TextStyle(fontSize: 12)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          context.read<ReportProvider>().updateSubmissionStatus(report.intId, 'Verified').then((_) {
+                                            Navigator.pop(context);
+                                          });
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.success,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                        ),
+                                        child: const Text('Verify', style: TextStyle(fontSize: 12)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ]
                             ],
                           ),
                         ),
@@ -3299,14 +3357,18 @@ class _DuplicateReportData {
 
 class _MergedReportItem {
   final String id;
+  final int intId;
   final String title;
   final String date;
   final String reporter;
+  final String status;
 
   const _MergedReportItem({
     required this.id,
+    required this.intId,
     required this.title,
     required this.date,
     required this.reporter,
+    required this.status,
   });
 }

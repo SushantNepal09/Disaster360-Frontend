@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:disaster360/utils/secure_logout.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
-import 'package:disaster360/auth/auth_wrapper.dart';
-import 'package:disaster360/colors.dart';
-import 'package:disaster360/main.dart';
 import 'package:disaster360/services/feedback.dart';
 import 'package:disaster360/services/api_service.dart';
 import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/colors.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ADMIN PROFILE SCREEN — Disaster360
@@ -769,7 +768,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
           _HoverMenuTile(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Provide Feedback',
-            onTap: () => _showFeedbackPanel(context), // <-- call our new method
+            onTap: () => _showFeedbackPanel(context),
           ),
 
           const Divider(height: 1, color: AppColors.border, indent: 56),
@@ -1628,13 +1627,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
         context: context,
         title: 'Provide Feedback',
         sheetSize: 0.7,
-        content: const FeedbackScreen(isInDialog: true), // <-- pass true
+        content: const FeedbackScreen(isInDialog: true),
       );
     } else {
       // Mobile: push full screen
       Navigator.push(
         context,
-        _fadeRoute(const FeedbackScreen()), // default isInDialog = false
+        _fadeRoute(const FeedbackScreen()),
       );
     }
   }
@@ -1671,15 +1670,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
               _HoverElevatedButton(
                 label: 'Sign Out',
                 color: AppColors.danger,
-                onTap: () async {
-                  await context.read<AuthProvider>().logout();
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const AuthWrapper()),
-                      (route) => false,
-                    );
-                  }
-                },
+                onTap: () => SecureLogout.performLogout(context),
               ),
             ],
           ),
@@ -2333,37 +2324,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 // ── Dialog text field ──────────────────────────────────────────────────────────
-class _DialogField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  const _DialogField({required this.controller, required this.label});
 
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-        filled: true,
-        fillColor: AppColors.bgPrimary,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.orange, width: 1.5),
-        ),
-      ),
-    );
-  }
-}
 
 // ── Fade route transition ──────────────────────────────────────────────────────
 PageRouteBuilder _fadeRoute(Widget page) {

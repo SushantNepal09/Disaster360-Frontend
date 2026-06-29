@@ -10,7 +10,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/services/gis_service.dart';
-import 'package:disaster360/utils/status_helper.dart';
+import 'package:disaster360/services/notification_service.dart';
 
 // ─────────────────────────────────────────────
 //  DISASTER STYLE HELPERS  (uses AppColors)
@@ -155,6 +155,17 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     setState(() {
       _myLocation = LatLng(position.latitude, position.longitude);
     });
+
+    // Send location to backend for notifications
+    final notifService = NotificationService();
+    if (notifService.fcmToken != null) {
+      notifService.sendTokenToBackend(
+        notifService.fcmToken!,
+        lat: position.latitude,
+        lon: position.longitude,
+      );
+    }
+
     _mapController.move(_myLocation!, 14.0);
   }
 
@@ -229,16 +240,9 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   Future<void> _loadAllBoundaries() async {
     setState(() => _isLoadingBoundaries = true);
     try {
-      debugPrint("Loading province boundaries...");
       final prov = await _gisService.loadLayer('Province', 'assets/maps/province0.json');
-      
-      debugPrint("Loading district boundaries...");
       final dist = await _gisService.loadLayer('District', 'assets/maps/districts0.json');
-      
-      debugPrint("Loading LocalUnit boundaries...");
       final LocalUnit = await _gisService.loadLayer('LocalUnit', 'assets/maps/local_unit.json');
-      
-      debugPrint("All boundaries loaded successfully.");
       if (mounted) {
         setState(() {
           _cachedProvinces = prov;

@@ -1,10 +1,9 @@
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
-import 'package:disaster360/auth/auth_wrapper.dart';
-import 'package:disaster360/main.dart';
 import 'package:disaster360/services/feedback.dart';
 import 'package:disaster360/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:disaster360/utils/secure_logout.dart';
 
 class CitizenProfileScreen extends StatefulWidget {
   const CitizenProfileScreen({super.key});
@@ -374,14 +373,7 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  context.read<AuthProvider>().logout().then((_) {
-                    if (context.mounted) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const AuthWrapper()),
-                        (route) => false,
-                      );
-                    }
-                  });
+                  SecureLogout.performLogout(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.danger,

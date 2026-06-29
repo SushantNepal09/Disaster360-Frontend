@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/services/session_service.dart';
 import 'package:disaster360/services/api_service.dart';
+import 'package:disaster360/services/gis_cache_service.dart';
+import 'package:disaster360/services/supabase_storage_service.dart';
 import 'package:disaster360/auth/auth_wrapper.dart';
 
 class _SeverityMeta {
@@ -213,11 +216,22 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
     try {
       String severityStr = _severityLevels[_severityLevel - 1].label;
 
+      List<String> adminAreas = ["Unknown", "Unknown", "Unknown"];
+      try {
+        adminAreas = await GisCacheService().identifyAdministrativeAreas(
+          _currentPosition!.latitude, 
+          _currentPosition!.longitude
+        );
+      } catch (e) {
+        debugPrint("Failed to identify administrative areas: $e");
+      }
+
       final payload = {
         'title': 'EMERGENCY: $_selectedDisaster',
         'disaster_type': _selectedDisaster,
         'description': _descriptionController.text.trim(),
         'severity': severityStr,
+        'location': adminAreas,
         'latitude': _currentPosition!.latitude,
         'longitude': _currentPosition!.longitude,
         'status': 'Pending',
@@ -225,15 +239,29 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
       };
 
       final api = ApiService();
+      final storageService = SupabaseStorageService();
+      
+      // Step 1: Upload images to Supabase
+      List<File> filesToUpload = _uploadedPhotos.map((path) => File(path)).toList();
+      List<String> uploadedUrls = await storageService.uploadImages(filesToUpload);
+
       final response = await api.post('/reports/', body: payload);
       final reportId = response['report_id'];
+      final subId = response['submission_id'] ?? reportId;
+      final merged = response.containsKey('merged') ? response['merged'] : false;
 
-      // Upload photos if any
-      for (String path in _uploadedPhotos) {
-        try {
-          await api.multipartPost('/media/upload/$reportId', path);
-        } catch (e) {
-          debugPrint("Media upload failed for $path: $e");
+      // Step 3: Attach Media URLs to the report
+      if (uploadedUrls.isNotEmpty) {
+        if (merged) {
+          await api.post(
+            '/reports/submissions/$subId/media',
+            body: {"media_urls": uploadedUrls, "file_type": "image"},
+          );
+        } else {
+          await api.post(
+            '/reports/$reportId/media',
+            body: {"media_urls": uploadedUrls, "file_type": "image"},
+          );
         }
       }
 
@@ -279,144 +307,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
     );
   }
 
-  Widget _buildSeveritySlider() {
-    final selected =
-        _severityLevel > 0 ? _severityLevels[_severityLevel - 1] : null;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(5, (i) {
-              final level = 5 - i;
-              final meta = _severityLevels[level - 1];
-              final isSelected = _severityLevel == level;
-
-              return GestureDetector(
-                onTap: () => setState(() => _severityLevel = level),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 52,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? meta.color.withOpacity(0.20)
-                            : AppColors.bgDark,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSelected ? meta.color : AppColors.border,
-                      width: isSelected ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$level',
-                        style: TextStyle(
-                          color: isSelected ? meta.color : Colors.white38,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(level, (_) {
-                          return Container(
-                            width: 4,
-                            height: 4,
-                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                            decoration: BoxDecoration(
-                              color: isSelected ? meta.color : Colors.white24,
-                              shape: BoxShape.circle,
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(5, (i) {
-              final level = 5 - i;
-              final meta = _severityLevels[level - 1];
-              final isSelected = _severityLevel == level;
-              return SizedBox(
-                width: 52,
-                child: Text(
-                  meta.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isSelected ? meta.color : Colors.white24,
-                    fontSize: 9,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              );
-            }),
-          ),
-          if (selected != null) ...[
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: AppColors.border),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected.color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: selected.color.withOpacity(0.4),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    'Level ${selected.level} · ${selected.label}',
-                    style: TextStyle(
-                      color: selected.color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              selected.description,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
+  
   Widget _buildPhotoEvidence() {
     return Column(
       children: [

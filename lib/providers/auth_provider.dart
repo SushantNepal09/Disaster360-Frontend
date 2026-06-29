@@ -3,6 +3,7 @@ import 'package:disaster360/services/api_service.dart';
 import 'package:disaster360/services/session_service.dart';
 export 'package:disaster360/models/user_model.dart'; // Export to prevent breaking other files
 import 'package:disaster360/models/user_model.dart';
+import 'package:disaster360/services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -62,6 +63,12 @@ class AuthProvider extends ChangeNotifier {
       final newUser = User.fromJson(profileResponse);
 
       await _sessionService.saveSession(newToken, newUser);
+
+      // Trigger notification token sync for the newly logged-in user
+      final notifService = NotificationService();
+      if (notifService.fcmToken != null) {
+        await notifService.sendTokenToBackend(notifService.fcmToken!);
+      }
     } catch (e) {
       rethrow;
     }

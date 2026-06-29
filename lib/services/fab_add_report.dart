@@ -13,7 +13,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:disaster360/services/gis_cache_service.dart';
 class ReportDisasterScreen extends StatefulWidget {
   const ReportDisasterScreen({super.key});
 
@@ -39,6 +39,7 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
 
   // GPS Location State
   Position? _currentPosition;
+  List<String>? _administrativeAreas;
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _locationServiceEnabled = false;
   LocationPermission _locationPermission = LocationPermission.denied;
@@ -111,6 +112,7 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
             setState(() {
               _currentPosition = pos;
             });
+            _updateAdministrativeAreas(pos);
           }
         })
         .catchError((e) => debugPrint("Error fetching location: $e"));
@@ -134,8 +136,19 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
         setState(() {
           _currentPosition = position;
         });
+        _updateAdministrativeAreas(position);
       }
     });
+  }
+
+  Future<void> _updateAdministrativeAreas(Position pos) async {
+    final cacheService = GisCacheService();
+    final areas = await cacheService.identifyAdministrativeAreas(pos.latitude, pos.longitude);
+    if (mounted) {
+      setState(() {
+        _administrativeAreas = areas;
+      });
+    }
   }
 
   void _showLocationServiceDialog() {
@@ -296,6 +309,7 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
           "disaster_type": _selectedType,
           "title": _titleCtrl.text,
           "description": _descCtrl.text,
+          "location": _administrativeAreas ?? ["Unknown", "Unknown", "Unknown"],
           "latitude": _currentPosition!.latitude,
           "longitude": _currentPosition!.longitude,
           "severity": severityStr,
@@ -308,12 +322,20 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
       final int sourcesCount =
           response.containsKey('sources') ? response['sources'] : 1;
       final reportId = response['report_id'];
+      final subId = response['submission_id'] ?? reportId;
 
       // Step 3: Attach Media URLs to the report
-      await api.post(
-        '/reports/$reportId/media',
-        body: {"media_urls": uploadedUrls, "file_type": "image"},
-      );
+      if (merged) {
+        await api.post(
+          '/reports/submissions/$subId/media',
+          body: {"media_urls": uploadedUrls, "file_type": "image"},
+        );
+      } else {
+        await api.post(
+          '/reports/$reportId/media',
+          body: {"media_urls": uploadedUrls, "file_type": "image"},
+        );
+      }
 
       // Keep it checking UI state but secretly update _isDuplicate so the step dots color correctly
       if (mounted) {
@@ -907,44 +929,72 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.location_on,
-            color: hasLocation ? AppColors.success : AppColors.warning,
-            size: 18,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              locText,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(
-              color:
-                  hasLocation
-                      ? AppColors.success.withOpacity(0.15)
-                      : AppColors.warning.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              hasLocation ? 'Auto-detected' : 'Locating...',
-              style: TextStyle(
+          Row(
+            children: [
+              Icon(
+                Icons.location_on,
                 color: hasLocation ? AppColors.success : AppColors.warning,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+                size: 18,
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  locText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color:
+                      hasLocation
+                          ? AppColors.success.withOpacity(0.15)
+                          : AppColors.warning.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  hasLocation ? 'Auto-detected' : 'Locating...',
+                  style: TextStyle(
+                    color: hasLocation ? AppColors.success : AppColors.warning,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (_administrativeAreas != null) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.map_rounded, color: Colors.white54, size: 14),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Province: ${_administrativeAreas![0]}\n'
+                    'District: ${_administrativeAreas![1]}\n'
+                    'Local Unit: ${_administrativeAreas![2]}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

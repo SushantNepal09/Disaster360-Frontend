@@ -15,10 +15,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController(text: "citizen@example.com");
   final _passwordController = TextEditingController(text: "password123");
   bool _isLoading = false;
-  bool _showResendVerification = false;
-  bool _isResending = false;
-
   bool _isPasswordVisible = false;
+  bool _isResending = false;
 
   @override
   Widget build(BuildContext context) {

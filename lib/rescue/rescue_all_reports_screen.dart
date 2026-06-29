@@ -2,6 +2,7 @@ import 'package:disaster360/rescue/rescue_report_details.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/colors.dart';
+import 'package:disaster360/widgets/image_viewer_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:disaster360/services/rescue_service.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
+import 'package:disaster360/providers/report_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESCUE PROVIDER — State management for the entire rescue section
@@ -25,6 +26,7 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   List<RescueTask> _myAssignments = [];
   List<RescueTask> _allReports = [];
+  List<ReportModel> _homeFeed = [];
   Map<String, dynamic>? _profile;
 
   bool _isLoading = false;
@@ -35,6 +37,7 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   List<RescueTask> get myAssignments => _myAssignments;
   List<RescueTask> get allReports => _allReports;
+  List<ReportModel> get homeFeed => _homeFeed;
   Map<String, dynamic>? get profile => _profile;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -42,6 +45,7 @@ class RescueProvider extends ChangeNotifier {
   void clear() {
     _myAssignments.clear();
     _allReports.clear();
+    _homeFeed.clear();
     _profile = null;
     _isLoading = false;
     _error = null;
@@ -66,7 +70,7 @@ class RescueProvider extends ChangeNotifier {
 
     try {
       await fetchProfile();
-      await Future.wait([fetchMyAssignments(), fetchAllReports()]);
+      await Future.wait([fetchMyAssignments(), fetchAllReports(), fetchHomeFeed()]);
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -98,6 +102,19 @@ class RescueProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('fetchAllReports error: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fetch Home Feed (Assigned reports in ReportModel format)
+  // ---------------------------------------------------------------------------
+  Future<void> fetchHomeFeed() async {
+    try {
+      final data = await _service.getHomeFeed();
+      _homeFeed = data.map((r) => ReportModel.fromJson(r)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('fetchHomeFeed error: $e');
     }
   }
 

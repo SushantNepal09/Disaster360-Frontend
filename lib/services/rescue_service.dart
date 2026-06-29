@@ -81,4 +81,12 @@ class RescueService {
     );
     return Map<String, dynamic>.from(response as Map);
   }
+
+  // ---------------------------------------------------------------------------
+  // GET /rescue/home — Get home feed (assigned reports formatted as ReportModel)
+  // ---------------------------------------------------------------------------
+  Future<List<Map<String, dynamic>>> getHomeFeed() async {
+    final response = await _api.get('/rescue/home');
+    return List<Map<String, dynamic>>.from(response as List);
+  }
 }

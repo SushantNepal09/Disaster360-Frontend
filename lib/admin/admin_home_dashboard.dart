@@ -607,6 +607,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   }
 
   AdminReportData _toAdminReportData(_PendingReportData p, ReportProvider reportProvider) {
+    final matchedReport = reportProvider.reports.where((r) => 'RPT-${r.id}' == p.reportId).firstOrNull;
     return AdminReportData(
       reportId: p.reportId,
       status: p.status,
@@ -623,8 +624,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       downvotes: p.downvotes,
       mediaUrls: p.mediaUrls,
       submissions: p.submissions,
-      assignedRescueTeams: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).rescueTeam,
-      isAccepted: reportProvider.reports.firstWhere((r) => 'RPT-${r.id}' == p.reportId, orElse: () => reportProvider.reports.first).isAccepted,
+      assignedRescueTeams: matchedReport?.rescueTeam ?? 'Not Assigned',
+      isAccepted: matchedReport?.isAccepted ?? false,
+      assignments: matchedReport?.assignments ?? [],
     );
   }
 

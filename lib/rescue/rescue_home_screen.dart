@@ -1,17 +1,18 @@
+import 'package:disaster360/providers/notification_provider.dart';
+import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/rescue/rescue_all_reports_screen.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/rescue/rescue_profile_screen.dart';
+import 'package:disaster360/rescue/rescue_report_details.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/services/map_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:disaster360/providers/report_provider.dart';
-import 'package:disaster360/providers/rescue_provider.dart';
-import 'package:disaster360/providers/notification_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/services/notification_service.dart';
+import 'package:disaster360/widgets/shared_report_card.dart';
 import 'package:disaster360/colors.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESCUE HOME SCREEN — with fixed header only on Home tab
@@ -116,8 +117,8 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
                 builder:
                     (context, provider, _) => _RescueHomeBody(
                       onGoToTasks: () => _switchNav(2),
-                      myOperations: provider.myOperations,
-                      verifiedReports: provider.verifiedReports,
+                      myAssignments: provider.myAssignments,
+                      homeFeed: provider.homeFeed,
                       isLoading: provider.isLoading,
                     ),
               ),
@@ -451,29 +452,29 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem>
 
 class _RescueHomeBody extends StatelessWidget {
   final VoidCallback onGoToTasks;
-  final List<RescueTask> myOperations;
-  final List<RescueTask> verifiedReports;
+  final List<RescueTask> myAssignments;
+  final List<ReportModel> homeFeed;
   final bool isLoading;
 
   const _RescueHomeBody({
     required this.onGoToTasks,
-    this.myOperations = const [],
-    this.verifiedReports = const [],
+    this.myAssignments = const [],
+    this.homeFeed = const [],
     this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Split myOperations by status
+    // Split myAssignments by status
     final inProgress =
-        myOperations.where((t) => t.status == TaskStatus.pending).toList();
+        myAssignments.where((t) => t.status == TaskStatus.pending).toList();
     final completed =
-        myOperations.where((t) => t.status == TaskStatus.completed).toList();
+        myAssignments.where((t) => t.status == TaskStatus.completed).toList();
 
     // Banner: show latest in-progress assignment
-    final latestAssigned = myOperations.isNotEmpty ? myOperations.first : null;
+    final latestAssigned = myAssignments.isNotEmpty ? myAssignments.first : null;
 
-    if (isLoading && myOperations.isEmpty && verifiedReports.isEmpty) {
+    if (isLoading && myAssignments.isEmpty && homeFeed.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
@@ -508,16 +509,16 @@ class _RescueHomeBody extends StatelessWidget {
                   const SizedBox(height: 20),
                 ],
 
-                // Stats: only from MY operations
+                // Stats: only from MY assignments
                 _buildStatCards(
                   inProgress: inProgress.length,
                   completed: completed.length,
-                  total: myOperations.length,
+                  total: myAssignments.length,
                 ),
                 const SizedBox(height: 28),
 
                 // ── MY ASSIGNED MISSIONS ──────────────────────────────
-                if (myOperations.isEmpty)
+                if (myAssignments.isEmpty)
                   _EmptyMyMissions(onGoToTasks: onGoToTasks)
                 else ...[
                   if (inProgress.isNotEmpty) ...[
@@ -546,24 +547,66 @@ class _RescueHomeBody extends StatelessWidget {
                   ],
                 ],
 
-                // ── ALL VERIFIED REPORTS (global queue) ───────────────
-                _SectionLabel('ALL VERIFIED REPORTS'),
+                // ── ASSIGNED REPORTS FEED ───────────────
+                _SectionLabel('ASSIGNED REPORTS FEED'),
                 const SizedBox(height: 6),
                 const Text(
-                  'Incidents verified by admin — visible to all rescue teams',
+                  'Incidents assigned to your team',
                   style: TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 const SizedBox(height: 14),
-                if (verifiedReports.isEmpty)
+                if (homeFeed.isEmpty)
                   _EmptySection(
                     icon: Icons.check_circle_outline,
-                    message: 'No verified reports in queue',
+                    message: 'No assigned reports in queue',
                   )
                 else
-                  ...verifiedReports.map(
-                    (t) =>
-                        _VerifiedReportCard(task: t, onGoToTasks: onGoToTasks),
-                  ),
+                  ...homeFeed.map((report) {
+                    return SharedReportCard(
+                      report: report,
+                      isRescueMode: true,
+                      onCardTap: () {
+                        final provider = context.read<RescueProvider>();
+                        final matchingTask = provider.myAssignments.firstWhere(
+                          (t) => t.reportId == report.id.toString(),
+                          orElse: () => provider.myAssignments.first,
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RescueReportDetailScreen(
+                              task: matchingTask,
+                            ),
+                          ),
+                        );
+                      },
+                      onAccept: () {
+                        // Accept logic 
+                        context.read<RescueProvider>().acknowledgeReport(report.id).then((msg) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+                          }
+                        }).catchError((e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          }
+                        });
+                      },
+                      onReject: () {
+                        // Point to the same backend as the reject in all report section
+                        context.read<ReportProvider>().rejectReport(report.id).then((_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report rejected')));
+                            context.read<RescueProvider>().fetchHomeFeed();
+                          }
+                        }).catchError((e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          }
+                        });
+                      },
+                    );
+                  }),
                 const SizedBox(height: 24),
               ],
             ),

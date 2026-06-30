@@ -1,4 +1,5 @@
 import 'package:disaster360/colors.dart';
+import 'package:disaster360/widgets/image_viewer_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:disaster360/utils/status_helper.dart';
@@ -27,6 +28,7 @@ class AdminReportData {
   final List<dynamic> submissions;
   final String assignedRescueTeams;
   final bool isAccepted;
+  final List<dynamic> assignments;
 
   const AdminReportData({
     required this.reportId,
@@ -46,6 +48,7 @@ class AdminReportData {
     required this.submissions,
     required this.assignedRescueTeams,
     required this.isAccepted,
+    this.assignments = const [],
   });
 }
 
@@ -275,18 +278,35 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
   }
 
   void _onAssign() async {
+    // If no teams are selected during a Modify (already has assignments), confirm clear-all
     if (_selectedTeams.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please select at least one rescue team.'),
-          backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1F1F1F),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Clear All Assignments?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: const Text(
+            'No rescue teams are selected. This will remove all current rescue team assignments from this incident.\n\nThe rescue teams will no longer see this in their dashboards.',
+            style: TextStyle(color: Colors.white70, height: 1.4),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Clear All', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
       );
-      return;
+      if (confirmed != true) return;
     }
 
     try {
@@ -301,34 +321,49 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           body: {'team_ids': _selectedTeams.toList()},
         );
         if (mounted) {
-          context.read<ReportProvider>().fetchReports();
+          await context.read<ReportProvider>().fetchReports();
         }
       }
 
       if (mounted) {
-        setState(() {
-          final selectedNames = _selectedTeams.map((id) {
-            final team = _availableTeams.firstWhere(
-              (t) => t['id'] == id,
-              orElse: () => {'name': id},
-            );
-            return team['name']!;
-          }).toList();
-          _assignedTeamsStr = selectedNames.join(', ');
-          _hasAssignedTeam = true;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${_selectedTeams.length} team(s) assigned to ${widget.report.reportId}',
+        if (_selectedTeams.isEmpty) {
+          setState(() {
+            _assignedTeamsStr = '';
+            _hasAssignedTeam = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('All assignments cleared successfully'),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+          );
+        } else {
+          setState(() {
+            final selectedNames = _selectedTeams.map((id) {
+              final team = _availableTeams.firstWhere(
+                (t) => t['id'] == id,
+                orElse: () => {'name': id},
+              );
+              return team['name']!;
+            }).toList();
+            _assignedTeamsStr = selectedNames.join(', ');
+            _hasAssignedTeam = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${_selectedTeams.length} team(s) assigned to ${widget.report.reportId}',
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -1061,124 +1096,175 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
       key: const ValueKey('assigned'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.orange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.orange.withOpacity(0.3),
-              width: 1,
+        if (widget.report.assignments.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.orange.withOpacity(0.3),
+                width: 1,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.group_rounded, color: AppColors.orange, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Assigned to: $_assignedTeamsStr',
-                  style: const TextStyle(
-                    color: AppColors.orange,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+            child: Row(
+              children: [
+                const Icon(Icons.group_rounded, color: AppColors.orange, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Assigned to: $_assignedTeamsStr',
+                    style: const TextStyle(
+                      color: AppColors.orange,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        if (widget.report.assignments.isNotEmpty)
+          ...widget.report.assignments.where((a) => a['status'] != 'Cancelled').map((assignment) {
+            final status = assignment['status'] as String? ?? 'Unknown';
+            final teamName = assignment['team_name'] as String? ?? 'Unknown Team';
+            final reason = assignment['rejection_reason'] as String?;
+            final assignmentId = int.tryParse(assignment['id']?.toString() ?? '');
+            
+            Color statusColor;
+            IconData statusIcon;
+            if (status == 'Accepted' || status == 'In Progress' || status == 'Completed') {
+              statusColor = AppColors.success;
+              statusIcon = Icons.check_circle_rounded;
+            } else if (status == 'Rejected') {
+              statusColor = AppColors.danger;
+              statusIcon = Icons.cancel_rounded;
+            } else {
+              statusColor = AppColors.warning;
+              statusIcon = Icons.hourglass_empty_rounded;
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: statusColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(statusIcon, color: statusColor, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          teamName,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        status,
+                        style: TextStyle(
+                          color: statusColor.withOpacity(0.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (assignmentId != null)
+                        IconButton(
+                          icon: Icon(Icons.undo_rounded, color: statusColor.withOpacity(0.7), size: 20),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: const Color(0xFF1F1F1F),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                title: const Text('Undo Assignment?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                content: const Text(
+                                  'This will remove the selected rescue team assignment.\n\nThe rescue team will no longer see this assignment in their dashboard.',
+                                  style: TextStyle(color: Colors.white70, height: 1.4),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.warning,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () async {
+                                      Navigator.pop(ctx);
+                                      try {
+                                        await context.read<ReportProvider>().undoAssignment(assignmentId!);
+                                        if (context.mounted) {
+                                          // Read the fresh rescueTeam from the now-updated provider
+                                          final intId = int.tryParse(
+                                            widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+                                          );
+                                          final updatedReport = intId != null
+                                              ? context.read<ReportProvider>().reports.where((r) => r.id == intId).firstOrNull
+                                              : null;
+                                          final newRescueTeam = updatedReport?.rescueTeam ?? 'Not Assigned';
+                                          setState(() {
+                                            _assignedTeamsStr = newRescueTeam;
+                                            _hasAssignedTeam = newRescueTeam != 'Not Assigned' && newRescueTeam.isNotEmpty;
+                                          });
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Assignment undone successfully')));
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                                        }
+                                      }
+                                    },
+                                    child: const Text('Undo Assignment', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                  if (status == 'Rejected' && reason != null && reason.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0, left: 28.0),
+                      child: Text(
+                        'Reason: $reason',
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: widget.report.isAccepted 
-              ? AppColors.success.withOpacity(0.1) 
-              : AppColors.warning.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: widget.report.isAccepted 
-                ? AppColors.success.withOpacity(0.3) 
-                : AppColors.warning.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                widget.report.isAccepted ? Icons.check_circle_rounded : Icons.pending_actions_rounded, 
-                color: widget.report.isAccepted ? AppColors.success : AppColors.warning, 
-                size: 18
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  widget.report.isAccepted ? 'Accepted by Rescue Team' : 'Awaiting Acceptance from Rescue Team',
-                  style: TextStyle(
-                    color: widget.report.isAccepted ? AppColors.success : AppColors.warning,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
         _ActionButton(
           fullWidth: true,
-          label: 'Undo Assignment',
-          icon: Icons.undo_rounded,
-          color: AppColors.warning,
-          filled: false,
-          onTap: () async {
-            try {
-              final intId = int.tryParse(
-                widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-              );
-
-              if (intId != null) {
-                final api = ApiService();
-                await api.post(
-                  '/admin/reports/$intId/assign',
-                  body: {'team_ids': []},
-                );
-                if (mounted) {
-                  context.read<ReportProvider>().fetchReports();
-                }
-              }
-
-              if (mounted) {
-                setState(() {
-                  _hasAssignedTeam = false;
-                  _assignedTeamsStr = '';
-                  _selectedTeams.clear();
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Assignment cleared successfully'),
-                    backgroundColor: AppColors.success,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to clear assignment: $e'),
-                    backgroundColor: AppColors.danger,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              }
-            }
+          label: 'Modify Assignments',
+          icon: Icons.edit_rounded,
+          color: AppColors.orange,
+          filled: true,
+          onTap: () {
+            setState(() {
+              _hasAssignedTeam = false; // Show assign section
+            });
           },
         ),
       ],

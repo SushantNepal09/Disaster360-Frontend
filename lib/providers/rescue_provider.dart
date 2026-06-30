@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:disaster360/services/rescue_service.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
+import 'package:disaster360/providers/report_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESCUE PROVIDER — State management for the entire rescue section
@@ -23,9 +24,9 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
-  List<RescueTask> _verifiedReports = [];
-  List<RescueTask> _myOperations = [];
-  List<RescueTask> _allVerifiedReports = [];
+  List<RescueTask> _myAssignments = [];
+  List<RescueTask> _allReports = [];
+  List<ReportModel> _homeFeed = [];
   Map<String, dynamic>? _profile;
 
   bool _isLoading = false;
@@ -34,33 +35,30 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Getters
   // ---------------------------------------------------------------------------
-  List<RescueTask> get verifiedReports => _verifiedReports;
-  List<RescueTask> get myOperations => _myOperations;
-  List<RescueTask> get allVerifiedReports => _allVerifiedReports;
+  List<RescueTask> get myAssignments => _myAssignments;
+  List<RescueTask> get allReports => _allReports;
+  List<ReportModel> get homeFeed => _homeFeed;
   Map<String, dynamic>? get profile => _profile;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
   void clear() {
-    _verifiedReports.clear();
-    _myOperations.clear();
-    _allVerifiedReports.clear();
+    _myAssignments.clear();
+    _allReports.clear();
+    _homeFeed.clear();
     _profile = null;
     _isLoading = false;
     _error = null;
     notifyListeners();
   }
 
-  /// All tasks combined: verified (active) + my operations (pending/completed)
-  List<RescueTask> get allTasks => [..._verifiedReports, ..._myOperations];
-
-  /// Stats derived from operations
+  /// Stats derived from myAssignments
   int get activeCount =>
-      _verifiedReports.where((t) => t.status == TaskStatus.active).length;
+      _myAssignments.where((t) => t.status == TaskStatus.active).length;
   int get pendingCount =>
-      _myOperations.where((t) => t.status == TaskStatus.pending).length;
+      _myAssignments.where((t) => t.status == TaskStatus.pending).length;
   int get completedCount =>
-      _myOperations.where((t) => t.status == TaskStatus.completed).length;
+      _myAssignments.where((t) => t.status == TaskStatus.completed).length;
 
   // ---------------------------------------------------------------------------
   // Fetch All Data (called on screen load)
@@ -72,7 +70,7 @@ class RescueProvider extends ChangeNotifier {
 
     try {
       await fetchProfile();
-      await Future.wait([fetchVerifiedReports(), fetchMyOperations()]);
+      await Future.wait([fetchMyAssignments(), fetchAllReports(), fetchHomeFeed()]);
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -82,58 +80,41 @@ class RescueProvider extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Fetch Verified Reports (unacknowledged verified incidents = "active" tasks)
+  // Fetch My Assignments
   // ---------------------------------------------------------------------------
-  String _debugString = '';
-  String get debugString => _debugString;
-
-  Future<void> fetchVerifiedReports() async {
+  Future<void> fetchMyAssignments() async {
     try {
-      final data = await _service.getVerifiedReports();
-      final parsed = data.map((r) => RescueTask.fromJson(r)).toList();
-      _allVerifiedReports = parsed;
-
-      final teamName =
-          (_profile != null &&
-                  _profile!['full_name'] != null &&
-                  _profile!['full_name'].toString().trim().isNotEmpty)
-              ? _profile!['full_name']
-              : _profile?['email'];
-
-      // Only include reports NOT yet acknowledged by this member AND assigned to this team
-      _verifiedReports =
-          data
-              .where((r) => r['rescue_status'] == 'Not Acknowledged')
-              .map((r) {
-                final task = RescueTask.fromJson(r);
-                return task;
-              })
-              .where((t) {
-                if (teamName == null) return false;
-                final myTeam = teamName.toString().trim().toLowerCase();
-                return t.assignedTeams.any((assigned) => assigned.trim().toLowerCase() == myTeam);
-              })
-              .toList();
-      
-      _debugString = 'Team: $teamName | Verified API count: \${data.length} | Matched: \${_verifiedReports.length}';
+      final data = await _service.getMyAssignments();
+      _myAssignments = data.map((r) => RescueTask.fromJson(r)).toList();
       notifyListeners();
     } catch (e) {
-      // Silently handle — allTasks will just show empty active list
-      _debugString = 'Error: $e';
-      debugPrint('fetchVerifiedReports error: $e');
+      debugPrint('fetchMyAssignments error: $e');
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Fetch My Operations (acknowledged/in-progress/completed operations)
+  // Fetch All Reports
   // ---------------------------------------------------------------------------
-  Future<void> fetchMyOperations() async {
+  Future<void> fetchAllReports() async {
     try {
-      final data = await _service.getMyOperations();
-      _myOperations = data.map((r) => RescueTask.fromMyOperation(r)).toList();
+      final data = await _service.getAllReports();
+      _allReports = data.map((r) => RescueTask.fromJson(r)).toList();
       notifyListeners();
     } catch (e) {
-      debugPrint('fetchMyOperations error: $e');
+      debugPrint('fetchAllReports error: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fetch Home Feed (Assigned reports in ReportModel format)
+  // ---------------------------------------------------------------------------
+  Future<void> fetchHomeFeed() async {
+    try {
+      final data = await _service.getHomeFeed();
+      _homeFeed = data.map((r) => ReportModel.fromJson(r)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('fetchHomeFeed error: $e');
     }
   }
 
@@ -154,9 +135,26 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   Future<String> acknowledgeReport(int incidentId) async {
     final result = await _service.acknowledgeReport(incidentId);
-    // Refresh both lists after acknowledging
-    await Future.wait([fetchVerifiedReports(), fetchMyOperations()]);
+    await fetchMyAssignments();
     return result['message'] ?? 'Acknowledged successfully';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accept a Rescue Assignment
+  // ---------------------------------------------------------------------------
+  Future<String> acceptAssignment(int assignmentId) async {
+    final result = await _service.acceptAssignment(assignmentId);
+    await fetchMyAssignments();
+    return result['message'] ?? 'Assignment accepted successfully';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reject a Rescue Assignment
+  // ---------------------------------------------------------------------------
+  Future<String> rejectAssignment(int assignmentId, {String? reason}) async {
+    final result = await _service.rejectAssignment(assignmentId, reason: reason);
+    await fetchMyAssignments();
+    return result['message'] ?? 'Assignment rejected successfully';
   }
 
   // ---------------------------------------------------------------------------
@@ -164,7 +162,7 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   Future<void> updateOperationStatus(int rescueUpdateId, String status) async {
     await _service.updateOperationStatus(rescueUpdateId, status);
-    await fetchMyOperations();
+    await fetchMyAssignments();
   }
 
   // ---------------------------------------------------------------------------
@@ -175,6 +173,6 @@ class RescueProvider extends ChangeNotifier {
     String reportText,
   ) async {
     await _service.submitPostIncidentReport(rescueUpdateId, reportText);
-    await fetchMyOperations();
+    await fetchMyAssignments();
   }
 }

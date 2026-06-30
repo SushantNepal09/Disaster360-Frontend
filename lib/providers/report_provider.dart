@@ -22,6 +22,7 @@ class ReportModel {
   final List<dynamic> submissions;
   final List<String> mediaUrls;
   final String rescueTeam;
+  final bool isAccepted;
 
   ReportModel({
     required this.id,
@@ -42,6 +43,7 @@ class ReportModel {
     this.submissions = const [],
     this.mediaUrls = const [],
     this.rescueTeam = 'Not Assigned',
+    this.isAccepted = false,
   });
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {
@@ -66,12 +68,9 @@ class ReportModel {
       userReaction: json['user_reaction'],
       createdAt: json['created_at'] ?? '',
       submissions: json['submissions'] ?? [],
-      mediaUrls:
-          (json['media_urls'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      mediaUrls: List<String>.from(json['media_urls'] ?? []),
       rescueTeam: json['rescue_team']?.toString() ?? 'Not Assigned',
+      isAccepted: json['is_accepted'] ?? false,
     );
   }
 }

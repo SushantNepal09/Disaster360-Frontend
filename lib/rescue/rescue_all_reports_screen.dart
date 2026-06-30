@@ -1,8 +1,14 @@
+import 'package:disaster360/rescue/rescue_report_details.dart';
+import 'package:disaster360/rescue/rescue_tasks_screen.dart';
+import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:disaster360/colors.dart';
-import 'package:disaster360/providers/rescue_provider.dart';
-import 'package:disaster360/rescue/rescue_tasks_screen.dart';
+
+import 'package:disaster360/citizen/citizen_home_screen.dart';
+
+// ─── Max content width — centers everything on ultra-wide screens ─────────────
+const double _kMaxContentWidth = 1320.0;
 
 class RescueAllReportsScreen extends StatefulWidget {
   const RescueAllReportsScreen({super.key});
@@ -11,144 +17,257 @@ class RescueAllReportsScreen extends StatefulWidget {
   State<RescueAllReportsScreen> createState() => _RescueAllReportsScreenState();
 }
 
-class _RescueAllReportsScreenState extends State<RescueAllReportsScreen> {
+class _RescueAllReportsScreenState extends State<RescueAllReportsScreen>
+    with SingleTickerProviderStateMixin {
+  String _activeFilter = 'All';
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  List<RescueTask> _filteredTasks(List<RescueTask> allTasks) {
-    if (_searchQuery.isEmpty) return allTasks;
-    final q = _searchQuery.toLowerCase();
-    return allTasks
-        .where(
-          (t) =>
-              t.taskId.toLowerCase().contains(q) ||
-              t.type.toLowerCase().contains(q) ||
-              t.location.toLowerCase().contains(q),
-        )
-        .toList();
+  late AnimationController _entryController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
+
+  final List<String> _filters = ['All', 'Active', 'Completed'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RescueProvider>().fetchAll();
+    });
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 480),
+    );
+    _fadeAnim = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOut,
+    );
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _entryController.dispose();
+    super.dispose();
+  }
+
+  List<RescueTask> get _filteredReports {
+    final rescueProvider = context.watch<RescueProvider>();
+    final allTasks = rescueProvider.allVerifiedReports;
+
+    return allTasks.where((r) {
+      final matchesFilter =
+          _activeFilter == 'All' ||
+          r.status.name.toLowerCase() == _activeFilter.toLowerCase();
+      final matchesSearch =
+          _searchQuery.isEmpty ||
+          r.type.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          r.taskId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          r.location.toLowerCase().contains(_searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    }).toList();
+  }
+
+  // Breakpoints: mobile < 680  |  tablet 680-1099  |  desktop >= 1100
+  int _cols(double w) {
+    if (w >= 1100) return 3;
+    if (w >= 680) return 2;
+    return 1;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RescueProvider>(
-      builder: (context, provider, _) {
-        final allTasks = provider.allVerifiedReports;
-        final filtered = _filteredTasks(allTasks);
+    final double screenW = MediaQuery.of(context).size.width;
+    final int cols = _cols(screenW);
+    final double hPad = cols == 1 ? 16.0 : 24.0;
 
-        return Scaffold(
-          backgroundColor: AppColors.bgPrimary,
-          body: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'All Verified Reports',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: 'monospace',
-                            ),
+    return SafeArea(
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: SlideTransition(
+          position: _slideAnim,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header centered within max content width
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: _kMaxContentWidth,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(hPad, 20, hPad, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'My Reports',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.info.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.info.withOpacity(0.4),
-                              ),
-                            ),
-                            child: Text(
-                              '${allTasks.length} Total',
-                              style: const TextStyle(
-                                color: AppColors.info,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.bgSurface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
                         ),
-                        child: TextField(
+                        const SizedBox(height: 16),
+                        _AnimatedSearchBar(
+                          controller: _searchController,
                           onChanged:
                               (val) => setState(() => _searchQuery = val),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: 'Search reports...',
-                            hintStyle: TextStyle(
-                              color: Colors.white30,
-                              fontSize: 14,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: Colors.white30,
-                              size: 20,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 14),
-                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        _FilterChipRow(
+                          filters: _filters,
+                          activeFilter: _activeFilter,
+                          onSelect: (f) => setState(() => _activeFilter = f),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
-                Expanded(
+              ),
+
+              // Body
+              Expanded(
+                child: RefreshIndicator(
+                  color: AppColors.orange,
+                  backgroundColor: AppColors.bgSurface,
+                  onRefresh:
+                      () => context.read<RescueProvider>().fetchAll(),
                   child:
-                      provider.isLoading && allTasks.isEmpty
-                          ? const Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.orange,
+                      _filteredReports.isEmpty
+                          ? const SingleChildScrollView(
+                            physics: AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: Text(
+                                  'No reports found.',
+                                  style: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ),
                             ),
                           )
-                          : filtered.isEmpty
-                          ? const Center(
-                            child: Text(
-                              'No verified reports available.',
-                              style: TextStyle(
-                                color: Colors.white54,
-                                fontSize: 15,
-                              ),
-                            ),
-                          )
-                          : RefreshIndicator(
-                            color: AppColors.orange,
-                            backgroundColor: AppColors.bgSurface,
-                            onRefresh: () => provider.fetchAll(),
-                            child: ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                              itemCount: filtered.length,
-                              separatorBuilder:
-                                  (_, __) => const SizedBox(height: 14),
-                              itemBuilder: (context, i) {
-                                final task = filtered[i];
-                                return _ReportCard(task: task);
-                              },
-                            ),
+                          : _ReportBody(
+                            reports: _filteredReports,
+                            cols: cols,
+                            hPad: hPad,
+                            onTap: _navigateToDetail,
                           ),
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDetail(RescueTask report) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder:
+            (_, animation, __) => RescueReportDetailScreen(task: report),
+        transitionsBuilder:
+            (_, animation, __, child) => FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+              ),
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.03, 0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                ),
+                child: child,
+              ),
+            ),
+        transitionDuration: const Duration(milliseconds: 320),
+      ),
+    );
+  }
+}
+
+// ─── Report Body ──────────────────────────────────────────────────────────────
+// Owns scrolling + explicit width calculation.
+// Using LayoutBuilder gives us a guaranteed finite maxWidth so every card
+// child gets a real pixel width — root fix for all unbounded-width overflows.
+class _ReportBody extends StatelessWidget {
+  final List<RescueTask> reports;
+  final int cols;
+  final double hPad;
+  final ValueChanged<RescueTask> onTap;
+
+  const _ReportBody({
+    required this.reports,
+    required this.cols,
+    required this.hPad,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (cols == 1) {
+      return ListView.separated(
+        padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
+        itemCount: reports.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder:
+            (_, i) => _StaggeredCard(
+              index: i,
+              child: _RescueReportCard(
+                report: reports[i],
+                onTap: () => onTap(reports[i]),
+              ),
+            ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Cap to max content width for ultra-wide centering
+        final double availW = constraints.maxWidth.clamp(
+          0.0,
+          _kMaxContentWidth,
+        );
+        const double gap = 14.0;
+        final double innerW = availW - hPad * 2;
+        // Explicit per-card width — eliminates unbounded-width RenderFlex errors
+        final double cardW = (innerW - gap * (cols - 1)) / cols;
+        final double extraPad = ((constraints.maxWidth - availW) / 2).clamp(
+          0.0,
+          double.infinity,
+        );
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(hPad + extraPad, 0, hPad + extraPad, 24),
+          child: Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: List.generate(
+              reports.length,
+              (i) => SizedBox(
+                width: cardW,
+                child: _StaggeredCard(
+                  index: i,
+                  child: _RescueReportCard(
+                    report: reports[i],
+                    onTap: () => onTap(reports[i]),
+                  ),
+                ),
+              ),
             ),
           ),
         );
@@ -157,75 +276,882 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen> {
   }
 }
 
-class _ReportCard extends StatelessWidget {
-  final RescueTask task;
-  const _ReportCard({required this.task});
+// ─── Staggered Card Wrapper ───────────────────────────────────────────────────
+class _StaggeredCard extends StatefulWidget {
+  final int index;
+  final Widget child;
+  const _StaggeredCard({required this.index, required this.child});
+
+  @override
+  State<_StaggeredCard> createState() => _StaggeredCardState();
+}
+
+class _StaggeredCardState extends State<_StaggeredCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _fade;
+  late Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    final delay = Duration(milliseconds: (widget.index * 60).clamp(0, 300));
+    Future.delayed(delay, () {
+      if (mounted) _ctrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: _fade,
+    child: SlideTransition(position: _slide, child: widget.child),
+  );
+}
+
+// ─── Animated Search Bar ──────────────────────────────────────────────────────
+class _AnimatedSearchBar extends StatefulWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  const _AnimatedSearchBar({required this.controller, required this.onChanged});
+
+  @override
+  State<_AnimatedSearchBar> createState() => _AnimatedSearchBarState();
+}
+
+class _AnimatedSearchBarState extends State<_AnimatedSearchBar> {
+  bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: 46,
       decoration: BoxDecoration(
         color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color:
+              _focused ? AppColors.orange.withOpacity(0.7) : AppColors.border,
+          width: _focused ? 1.5 : 1,
+        ),
+        boxShadow:
+            _focused
+                ? [
+                  BoxShadow(
+                    color: AppColors.orange.withOpacity(0.08),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ]
+                : [],
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                task.type.toUpperCase(),
-                style: const TextStyle(
-                  color: AppColors.orange,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              Text(
-                task.assignedAgo,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            task.description.isEmpty
-                ? 'No description provided'
-                : task.description,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
+          const SizedBox(width: 12),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              Icons.search_rounded,
+              key: ValueKey(_focused),
+              color: _focused ? AppColors.orange : Colors.white38,
+              size: 18,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: AppColors.danger, size: 14),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  task.location,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Focus(
+              onFocusChange: (v) => setState(() => _focused = v),
+              child: TextField(
+                controller: widget.controller,
+                onChanged: widget.onChanged,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: 'Search reports...',
+                  hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
+                  border: InputBorder.none,
+                  isDense: true,
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+// ─── Filter Chip Row ──────────────────────────────────────────────────────────
+class _FilterChipRow extends StatelessWidget {
+  final List<String> filters;
+  final String activeFilter;
+  final ValueChanged<String> onSelect;
+
+  const _FilterChipRow({
+    required this.filters,
+    required this.activeFilter,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children:
+            filters
+                .map(
+                  (f) => _AnimatedFilterChip(
+                    label: f,
+                    isActive: activeFilter == f,
+                    onTap: () => onSelect(f),
+                  ),
+                )
+                .toList(),
+      ),
+    );
+  }
+}
+
+class _AnimatedFilterChip extends StatefulWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  const _AnimatedFilterChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedFilterChip> createState() => _AnimatedFilterChipState();
+}
+
+class _AnimatedFilterChipState extends State<_AnimatedFilterChip> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          margin: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          decoration: BoxDecoration(
+            color:
+                widget.isActive
+                    ? AppColors.orange
+                    : _hovered
+                    ? AppColors.orange.withOpacity(0.12)
+                    : AppColors.bgSurface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color:
+                  widget.isActive
+                      ? AppColors.orange
+                      : _hovered
+                      ? AppColors.orange.withOpacity(0.4)
+                      : AppColors.border,
+              width: 1,
+            ),
+          ),
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 180),
+            style: TextStyle(
+              color:
+                  widget.isActive
+                      ? Colors.white
+                      : _hovered
+                      ? AppColors.orange
+                      : Colors.white54,
+              fontSize: _hovered && !widget.isActive ? 13.5 : 13,
+              fontWeight: widget.isActive ? FontWeight.w700 : FontWeight.w400,
+            ),
+            child: Text(widget.label),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Admin Report Card ────────────────────────────────────────────────────────
+class _RescueReportCard extends StatefulWidget {
+  final RescueTask report;
+  final VoidCallback onTap;
+  const _RescueReportCard({required this.report, required this.onTap});
+
+  @override
+  State<_RescueReportCard> createState() => _RescueReportCardState();
+}
+
+class _RescueReportCardState extends State<_RescueReportCard> {
+  bool _hovered = false;
+  bool _isExpanded = false;
+
+  void _onReview() => Navigator.push(
+    context,
+    _pageRoute(RescueReportDetailScreen(task: widget.report)),
+  );
+
+  String _relativeDate(String dateStr) {
+    if (dateStr.contains('ago')) return dateStr;
+    try {
+      if (!dateStr.endsWith('Z') && !dateStr.contains('+')) {
+        dateStr += 'Z';
+      }
+      final dt = DateTime.parse(dateStr).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+
+      if (diff.inHours < 1) {
+        if (diff.inMinutes < 1) return 'Just now';
+        return '${diff.inMinutes} min ago';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours} hours ago';
+      } else if (diff.inDays < 30) {
+        return '${diff.inDays} days ago';
+      } else if (diff.inDays < 365) {
+        const monthNames = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ];
+        return '${monthNames[dt.month - 1]} ${dt.day}';
+      } else {
+        const monthNames = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ];
+        return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
+      }
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  PageRoute _pageRoute(Widget page) => PageRouteBuilder(
+    pageBuilder: (_, a, __) => page,
+    transitionsBuilder:
+        (_, a, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: a, curve: Curves.easeOut),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.03, 0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: a, curve: Curves.easeOut)),
+            child: child,
+          ),
+        ),
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+
+
+
+  @override
+  Widget build(BuildContext context) {
+
+
+    final report = widget.report;
+    final bool reviewOnly = true;
+    final bool isVerified = false;
+    final bool isPending = false;
+    final bool isRejected = false;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color:
+              _hovered
+                  ? AppColors.bgSurface.withOpacity(0.92)
+                  : AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color:
+                _hovered
+                    ? AppColors.orange.withOpacity(0.35)
+                    : AppColors.border,
+            width: 1,
+          ),
+          boxShadow:
+              _hovered
+                  ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                  : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Row 1: ID + badge + timestamp
+            // FIX: Flexible on timestamp prevents RenderFlex overflow
+            // on narrow grid cards where combined content is too wide.
+            Row(
+              children: [
+                Text(
+                  '#${report.taskId}',
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _StatusBadge(
+                  status:
+                      report.status.name,
+                ),
+                const Spacer(),
+                Flexible(
+                  child: Text(
+                    _relativeDate(report.assignedAgo),
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            Text(
+              report.type,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+
+            Text(
+              report.location,
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+            const SizedBox(height: 8),
+
+            Text(
+              report.description,
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 13,
+                height: 1.4,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 10),
+
+            // Image thumbnails
+            if (report.mediaUrls.isNotEmpty) ...[
+              SizedBox(
+                height: 60,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: report.mediaUrls.length.clamp(0, 4),
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            opaque: false,
+                            barrierColor: Colors.transparent,
+                            transitionDuration: const Duration(
+                              milliseconds: 250,
+                            ),
+                            pageBuilder:
+                                (_, __, ___) => ImageViewerOverlay(
+                                  mediaUrls: report.mediaUrls,
+                                  initialIndex: index,
+                                  reportId: report.taskId,
+                                ),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.network(
+                          report.mediaUrls[index],
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                width: 60,
+                                height: 60,
+                                color: Colors.white12,
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.white38,
+                                  size: 20,
+                                ),
+                              ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
+
+            if (report.assignedTeams.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.group_outlined,
+                    color: Colors.white54,
+                    size: 14,
+                  ),
+                  const Text(
+                    'Reported by:',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  ...report.assignedTeams.map(
+                    (sub) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.orange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        sub.toString(),
+                        style: const TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (report.assignedTeams.isNotEmpty) const SizedBox(height: 14),
+
+            if (report.assignedTeams.length > 1) ...[
+              const Divider(color: Colors.white12, height: 1),
+              InkWell(
+                onTap: () => setState(() => _isExpanded = !_isExpanded),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isExpanded
+                            ? 'Hide Matched Reports'
+                            : 'Show Matched Reports (${report.assignedTeams.length - 1})',
+                        style: const TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.orange,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_isExpanded)
+                ...report.assignedTeams
+                    .skip(1)
+                    .map(
+                      (sub) => Container(
+                        margin: const EdgeInsets.only(top: 8, bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  sub.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '',
+                                  style: const TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Assigned Team',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+            ],
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: _CardActionButton(
+                    label: 'Review',
+                    icon: Icons.remove_red_eye_outlined,
+                    color: Colors.white60,
+                    filled: false,
+                    onTap: () => widget.onTap(),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Image Placeholder Row ────────────────────────────────────────────────────
+// 140px height = passport-photo visible size, clearly readable at a glance.
+// Up to 3 tiles. If photoCount > 3, last tile shows "+N more" overlay.
+// 1.5px border visible on every tile as requested.
+class _ImagePlaceholderRow extends StatelessWidget {
+  final int photoCount;
+  const _ImagePlaceholderRow({required this.photoCount});
+
+  @override
+  Widget build(BuildContext context) {
+    const int maxVisible = 3;
+    final int visible = photoCount.clamp(1, maxVisible);
+    final int extra = photoCount > maxVisible ? photoCount - maxVisible : 0;
+
+    return SizedBox(
+      height: 140,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: List.generate(visible, (i) {
+          final bool isLast = i == visible - 1 && extra > 0;
+          return Expanded(
+            child: Container(
+              margin: EdgeInsets.only(right: i < visible - 1 ? 8 : 0),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.25),
+                  width: 1.5,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_rounded,
+                      color: Colors.white.withOpacity(0.20),
+                      size: 40,
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      child: Text(
+                        'Photo ${i + 1}',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.28),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                    if (isLast)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.60),
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.photo_library_rounded,
+                                  color: Colors.white70,
+                                  size: 22,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '+$extra more',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+// ─── Status Banner ────────────────────────────────────────────────────────────
+class _StatusBanner extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String message;
+  const _StatusBanner({
+    required this.icon,
+    required this.color,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Card Action Button ───────────────────────────────────────────────────────
+class _CardActionButton extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool filled;
+  final VoidCallback onTap;
+  final bool fullWidth;
+
+  const _CardActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.filled,
+    required this.onTap,
+    this.fullWidth = false,
+  });
+
+  @override
+  State<_CardActionButton> createState() => _CardActionButtonState();
+}
+
+class _CardActionButtonState extends State<_CardActionButton> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final double scale = _pressed ? 0.96 : (_hovered ? 1.02 : 1.0);
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: scale,
+          duration: const Duration(milliseconds: 130),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: widget.fullWidth ? double.infinity : null,
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            decoration: BoxDecoration(
+              color:
+                  widget.filled
+                      ? widget.color.withOpacity(_hovered ? 0.28 : 0.18)
+                      : _hovered
+                      ? widget.color.withOpacity(0.1)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color:
+                    widget.filled
+                        ? widget.color.withOpacity(_hovered ? 0.7 : 0.5)
+                        : _hovered
+                        ? widget.color.withOpacity(0.5)
+                        : AppColors.border,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.icon, color: widget.color, size: 13),
+                const SizedBox(width: 5),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 160),
+                  style: TextStyle(
+                    color: widget.color,
+                    fontSize: _hovered ? 12.5 : 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  child: Text(widget.label),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Status Badge ─────────────────────────────────────────────────────────────
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg;
+    Color text;
+    switch (status) {
+      case 'In Progress':
+        bg = AppColors.orange.withOpacity(0.18);
+        text = AppColors.orange;
+        break;
+      case 'Verified':
+      case 'Controlled':
+        bg = AppColors.success.withOpacity(0.15);
+        text = AppColors.success;
+        break;
+      case 'Closed':
+        bg = AppColors.info.withOpacity(0.15);
+        text = AppColors.info;
+        break;
+      case 'Rejected':
+        bg = AppColors.danger.withOpacity(0.15);
+        text = AppColors.danger;
+        break;
+      default:
+        bg = AppColors.warning.withOpacity(0.15);
+        text = AppColors.warning;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: text.withOpacity(0.4), width: 1),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: text,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+// you as a professonal forntend developer and best coder give me 3 sized responsive screens ....1 its alredy in mobile screen responsive, anothe is tablet and last is desktop form....it must be responsive and overflow error free....and .image must be double of passport size photo (which asked when we fill form in goverment sectors)   in that report if image is clicked show it in full screen form...... ....and button , links , cards etc must be in basic animation and transition and hand hoverd cursor .....clean and managed

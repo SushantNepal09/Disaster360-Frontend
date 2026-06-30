@@ -34,6 +34,7 @@ Future<void> main() async {
 
   // 2. Initialize DeepLinkRouter ONLY after session is ready
   final router = DeepLinkRouter();
+  await router.checkInitialUri();
   router.initialize(); // Internally buffers until first frame
   
   // Initialize Firebase conditionally (Firebase Messaging is not supported on Windows/Linux)

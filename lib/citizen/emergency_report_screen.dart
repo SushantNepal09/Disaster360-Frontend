@@ -275,7 +275,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
             backgroundColor: AppColors.success,
           ),
         );
-        Navigator.of(context).pop(); // Go back to Home
+        _exitScreen(true);
       }
     } catch (e) {
       if (mounted) {
@@ -291,6 +291,26 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
         setState(() {
           _isSubmitting = false;
         });
+      }
+    }
+  }
+
+  void _exitScreen(bool submitted) {
+    if (submitted) {
+      // Clean stack and go to Dashboard
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthWrapper()),
+        (route) => false,
+      );
+    } else {
+      // Cancelled
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        // App was launched cold into this screen; exit app normally 
+        // by popping the only route or pushing AuthWrapper if preferred.
+        // As per the plan, exiting the app is acceptable here.
+        Navigator.pop(context); // Will exit the app
       }
     }
   }
@@ -452,7 +472,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => _exitScreen(false),
         ),
       ),
       body: SingleChildScrollView(

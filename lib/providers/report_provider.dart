@@ -72,6 +72,7 @@ class ReportModel {
       mediaUrls: List<String>.from(json['media_urls'] ?? []),
       rescueTeam: json['rescue_team']?.toString() ?? 'Not Assigned',
       isAccepted: json['is_accepted'] ?? false,
+      assignments: List<dynamic>.from(json['assignments'] ?? []),
     );
   }
 }

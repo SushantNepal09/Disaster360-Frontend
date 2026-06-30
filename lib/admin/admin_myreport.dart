@@ -85,6 +85,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
             submissions: m.submissions,
             assignedRescueTeams: m.rescueTeam ?? 'Not Assigned',
             isAccepted: m.isAccepted,
+            assignments: m.assignments,
           );
         }).toList();
 

@@ -321,7 +321,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           body: {'team_ids': _selectedTeams.toList()},
         );
         if (mounted) {
-          context.read<ReportProvider>().fetchReports();
+          await context.read<ReportProvider>().fetchReports();
         }
       }
 
@@ -1129,7 +1129,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
             final status = assignment['status'] as String? ?? 'Unknown';
             final teamName = assignment['team_name'] as String? ?? 'Unknown Team';
             final reason = assignment['rejection_reason'] as String?;
-            final assignmentId = assignment['id'] as int?;
+            final assignmentId = int.tryParse(assignment['id']?.toString() ?? '');
             
             Color statusColor;
             IconData statusIcon;
@@ -1207,8 +1207,20 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                                     onPressed: () async {
                                       Navigator.pop(ctx);
                                       try {
-                                        await context.read<ReportProvider>().undoAssignment(assignmentId);
+                                        await context.read<ReportProvider>().undoAssignment(assignmentId!);
                                         if (context.mounted) {
+                                          // Read the fresh rescueTeam from the now-updated provider
+                                          final intId = int.tryParse(
+                                            widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
+                                          );
+                                          final updatedReport = intId != null
+                                              ? context.read<ReportProvider>().reports.where((r) => r.id == intId).firstOrNull
+                                              : null;
+                                          final newRescueTeam = updatedReport?.rescueTeam ?? 'Not Assigned';
+                                          setState(() {
+                                            _assignedTeamsStr = newRescueTeam;
+                                            _hasAssignedTeam = newRescueTeam != 'Not Assigned' && newRescueTeam.isNotEmpty;
+                                          });
                                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Assignment undone successfully')));
                                         }
                                       } catch (e) {

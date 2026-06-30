@@ -148,6 +148,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   final List<String> _sortOptions = ['Date', 'Severity', 'Most Reported'];
 
   int _activeNav = 0;
+  final Map<int, GlobalKey> _cardKeys = {};
 
   @override
   void initState() {
@@ -156,6 +157,41 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       context.read<ReportProvider>().fetchReports();
       NotificationService().checkAndPromptPermission(context);
     });
+    context.read<ReportProvider>().addListener(_onReportProviderChanged);
+  }
+
+  @override
+  void dispose() {
+    // Note: Since this is often a root widget, we usually don't unmount, but good practice
+    // if it were to be disposed.
+    super.dispose();
+  }
+
+  void _onReportProviderChanged() {
+    if (!mounted) return;
+    final reportProvider = context.read<ReportProvider>();
+    final targetId = reportProvider.highlightedReportId;
+    
+    if (targetId != null) {
+      if (_activeNav != 0) {
+        setState(() => _activeNav = 0);
+      }
+      if (_selectedHomeFilter != 'All') {
+        setState(() => _selectedHomeFilter = 'All');
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final key = _cardKeys[targetId];
+        if (key != null && key.currentContext != null) {
+          Scrollable.ensureVisible(
+            key.currentContext!,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
+            alignment: 0.5,
+          );
+        }
+      });
+    }
   }
 
   @override

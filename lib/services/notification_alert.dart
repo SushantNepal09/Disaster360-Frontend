@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/notification_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:disaster360/services/deep_link_router.dart';
 
 // ─── Data model ───────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ class AppNotification {
   final String title;
   final String body;
   final String time;
+  final int? reportId;
   bool isRead;
 
   AppNotification({
@@ -28,6 +30,7 @@ class AppNotification {
     required this.title,
     required this.body,
     required this.time,
+    this.reportId,
     this.isRead = false,
   });
 
@@ -78,6 +81,9 @@ class AppNotification {
       title: json['title'] ?? 'Notification',
       body: json['message'] ?? '',
       time: formattedTime,
+      reportId: json['incident_id'] != null 
+          ? int.tryParse(json['incident_id'].toString()) 
+          : (json['report_id'] != null ? int.tryParse(json['report_id'].toString()) : null),
       isRead: json['is_read'] ?? false,
     );
   }
@@ -152,15 +158,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context.read<NotificationProvider>().markAsRead(notification.id);
     }
     
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.bgSurface,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => _NotificationDetailSheet(notification: notification),
-    );
+    if (notification.reportId != null) {
+      // Direct deep link to report on dashboard
+      DeepLinkRouter().routeToReport(notification.reportId!);
+    } else {
+      // Fallback for notifications without a specific report
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: AppColors.bgSurface,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (_) => _NotificationDetailSheet(notification: notification),
+      );
+    }
   }
 
   @override

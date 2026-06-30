@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:disaster360/services/session_service.dart';
 import 'package:disaster360/citizen/emergency_report_screen.dart';
 import 'package:disaster360/auth/auth_wrapper.dart';
+import 'package:provider/provider.dart';
+import 'package:disaster360/providers/report_provider.dart';
 
 class DeepLinkRouter {
   static final DeepLinkRouter _instance = DeepLinkRouter._internal();
@@ -19,6 +21,13 @@ class DeepLinkRouter {
   bool _isNavigated = false;
   final List<Uri> _eventBuffer = [];
   bool _isAppReady = false;
+  
+  bool _hasInitialEmergencyLink = false;
+  bool get hasInitialEmergencyLink => _hasInitialEmergencyLink;
+  
+  void consumeInitialEmergencyLink() {
+    _hasInitialEmergencyLink = false;
+  }
 
   void initialize() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -40,17 +49,23 @@ class DeepLinkRouter {
     });
   }
 
-  Future<void> _initDeepLinks() async {
-    // Check initial link if app was in cold state (terminated)
+  Future<void> checkInitialUri() async {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        _handleDeepLink(initialUri);
+        if (initialUri.toString().contains('emergency')) {
+          _hasInitialEmergencyLink = true;
+        } else {
+          _handleDeepLink(initialUri);
+        }
       }
     } catch (e) {
       // Ignored
     }
+  }
 
+  void _initDeepLinks() {
+    // Note: checkInitialUri should be called and awaited from main() before runApp
     // Attach a listener to the stream
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) {
@@ -99,6 +114,8 @@ class DeepLinkRouter {
             .then((_) {
               // Unlock when returning
               _isNavigated = false;
+            }).catchError((_) {
+              _isNavigated = false;
             });
       } else {
         // No session, redirect to login
@@ -109,11 +126,27 @@ class DeepLinkRouter {
             )
             .then((_) {
               _isNavigated = false;
+            }).catchError((_) {
+              _isNavigated = false;
             });
       }
     } else {
       // Retry after a short delay if navigator is not yet mounted
       Future.delayed(const Duration(milliseconds: 200), _tryPushRoute);
+    }
+  }
+
+  void routeToReport(int reportId) {
+    if (navigatorKey.currentState != null) {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        // Pop back to the root dashboard
+        navigatorKey.currentState!.popUntil((route) => route.isFirst);
+        // Highlight the report, triggering the UI to scroll
+        context.read<ReportProvider>().highlightReport(reportId);
+      }
+    } else {
+      Future.delayed(const Duration(milliseconds: 200), () => routeToReport(reportId));
     }
   }
 

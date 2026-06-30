@@ -9,6 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:disaster360/services/session_service.dart';
 import 'package:disaster360/services/gis_cache_service.dart';
+import 'package:disaster360/services/deep_link_router.dart';
 import 'dart:io' show Platform;
 
 class NotificationService {
@@ -25,6 +26,19 @@ class NotificationService {
 
   /// Get the current FCM token
   String? get fcmToken => _fcmToken;
+
+  /// Syncs the token with the backend (fetches if null)
+  Future<void> syncToken() async {
+    if (_firebaseMessaging == null) return;
+    try {
+      _fcmToken ??= await _firebaseMessaging!.getToken();
+      if (_fcmToken != null) {
+        await sendTokenToBackend(_fcmToken!);
+      }
+    } catch (e) {
+      debugPrint("❌ Error syncing FCM token: $e");
+    }
+  }
 
   /// Initializes FCM and Local Notifications
   Future<void> initialize() async {
@@ -132,7 +146,7 @@ class NotificationService {
   Future<void> _initLocalNotifications() async {
     // Android initialization (requires default icon setup in AndroidManifest)
     const initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_warning_small');
 
     // iOS initialization
     const initializationSettingsDarwin = DarwinInitializationSettings(
@@ -151,7 +165,18 @@ class NotificationService {
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         // Handle local notification tap when app is in foreground
         if (response.payload != null) {
-          // Implement deep linking or state changes here using the payload
+          try {
+            final data = jsonDecode(response.payload!);
+            final reportIdStr = data['incident_id'] ?? data['report_id'];
+            if (reportIdStr != null) {
+              final reportId = int.tryParse(reportIdStr.toString());
+              if (reportId != null) {
+                DeepLinkRouter().routeToReport(reportId);
+              }
+            }
+          } catch (e) {
+            debugPrint("Error parsing local notification payload: $e");
+          }
         }
       },
     );
@@ -195,7 +220,16 @@ class NotificationService {
         try {
           final perm = await Geolocator.checkPermission();
           if (perm == LocationPermission.always || perm == LocationPermission.whileInUse) {
-            final pos = await Geolocator.getLastKnownPosition();
+            Position? pos;
+            try {
+              // Try to get a fresh location first so new devices don't send null location
+              pos = await Geolocator.getCurrentPosition(
+                timeLimit: const Duration(seconds: 4),
+              );
+            } catch (e) {
+              // Fallback to last known position if fresh fetch times out or fails
+              pos = await Geolocator.getLastKnownPosition();
+            }
             if (pos != null) {
               finalLat = pos.latitude;
               finalLon = pos.longitude;
@@ -235,6 +269,7 @@ class NotificationService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint("✅ Token sent to backend (Lat: $finalLat, Lon: $finalLon)");
       } else {
         debugPrint("⚠️ Failed to send FCM token to backend. Status: ${response.statusCode}");
       }
@@ -244,25 +279,60 @@ class NotificationService {
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
-    if (message.notification != null) {
+    if (message.notification != null || message.data.containsKey('type')) {
       _showLocalNotification(message);
     }
   }
 
   void _handleMessageOpenedApp(RemoteMessage message) {
-    // Implement navigation logic based on message.data here
-    // e.g., mapping to DeepLinkRouter to redirect to an alert details page
+    final reportIdStr = message.data['incident_id'] ?? message.data['report_id'];
+    if (reportIdStr != null) {
+      final reportId = int.tryParse(reportIdStr.toString());
+      if (reportId != null) {
+        DeepLinkRouter().routeToReport(reportId);
+      }
+    }
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
-    final notification = message.notification!;
+    String title = message.notification?.title ?? 'Disaster360 Alert';
+    String body = message.notification?.body ?? '';
+
+    // Override formatting if data payload provides specific fields
+    final data = message.data;
+    if (data.containsKey('type')) {
+      final type = data['type'];
+      
+      if (type == 'incident_created' || type == 'earthquake_alert') {
+        final dType = data['disaster_type'] ?? 'Disaster';
+        final localUnit = data['local_unit'] ?? 'Unknown location';
+        final reporter = data['reporter_name']?.toString().split(' ').first ?? 'Someone';
+        final desc = data['description'] ?? body; // fallback to body if no description
+        
+        if (data.containsKey('disaster_type')) {
+          title = '$dType reported in $localUnit';
+          body = '$reporter: $desc';
+        }
+      } else if (type == 'incident_verified') {
+        final reporter = data['reporter_name']?.toString().split(' ').first ?? 'User';
+        final dType = data['disaster_type'] ?? 'Disaster';
+        
+        if (data.containsKey('reporter_name')) {
+          title = "$reporter's report has been verified";
+          body = "$dType report has been verified and rescue teams have been notified to begin rescue operations.";
+        }
+      }
+    }
+
     final androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'disaster360_high_importance_channel', // id
-      'High Importance Notifications', // name
+      'Disaster360', // name
       channelDescription: 'This channel is used for important disaster alerts.',
       importance: Importance.max,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher', // Make sure this matches your app icon
+      icon: '@drawable/ic_warning_small',
+      color: const Color(0xFFF05A28),
+      styleInformation: BigTextStyleInformation(body),
     );
     const darwinPlatformChannelSpecifics = DarwinNotificationDetails(
       presentAlert: true,
@@ -276,9 +346,9 @@ class NotificationService {
 
     // Show the actual notification UI on top of the screen
     await _localNotificationsPlugin.show(
-      id: notification.hashCode,
-      title: notification.title,
-      body: notification.body,
+      id: message.hashCode,
+      title: title,
+      body: body,
       notificationDetails: platformChannelSpecifics,
       payload: jsonEncode(message.data),
     );

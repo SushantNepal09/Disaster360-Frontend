@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
 import 'package:disaster360/citizen/citizen_home_screen.dart';
+import 'package:disaster360/citizen/emergency_report_screen.dart';
 import 'package:disaster360/admin/admin_home_dashboard.dart';
 import 'package:disaster360/rescue/rescue_home_screen.dart';
 import 'package:disaster360/auth/login_screen.dart';
+import 'package:disaster360/services/deep_link_router.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -27,6 +29,10 @@ class AuthWrapper extends StatelessWidget {
     } else if (auth.user!.role.toLowerCase() == 'rescue') {
       return const RescueHomeScreen();
     } else {
+      if (DeepLinkRouter().hasInitialEmergencyLink) {
+        DeepLinkRouter().consumeInitialEmergencyLink();
+        return const EmergencyReportScreen();
+      }
       return const CitizenHomeScreen();
     }
   }

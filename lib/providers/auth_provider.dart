@@ -66,9 +66,7 @@ class AuthProvider extends ChangeNotifier {
 
       // Trigger notification token sync for the newly logged-in user
       final notifService = NotificationService();
-      if (notifService.fcmToken != null) {
-        await notifService.sendTokenToBackend(notifService.fcmToken!);
-      }
+      await notifService.syncToken();
     } catch (e) {
       rethrow;
     }
@@ -132,6 +130,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await NotificationService().clearToken();
     await _sessionService.clearSession();
   }
 

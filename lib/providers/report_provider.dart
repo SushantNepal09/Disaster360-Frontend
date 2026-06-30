@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:disaster360/services/api_service.dart';
+import 'package:disaster360/services/widget_sync_service.dart';
 import 'dart:async';
 
 class ReportModel {
@@ -80,11 +81,31 @@ class ReportProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _activeRescues = [];
   List<Map<String, dynamic>> _duplicateReports = [];
   bool _isLoading = false;
+  
+  int? _highlightedReportId;
 
   List<ReportModel> get reports => _reports;
   List<Map<String, dynamic>> get activeRescues => _activeRescues;
   List<Map<String, dynamic>> get duplicateReports => _duplicateReports;
   bool get isLoading => _isLoading;
+  int? get highlightedReportId => _highlightedReportId;
+
+  void highlightReport(int id) {
+    _highlightedReportId = id;
+    notifyListeners();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (_highlightedReportId == id) {
+        clearHighlight();
+      }
+    });
+  }
+
+  void clearHighlight() {
+    if (_highlightedReportId != null) {
+      _highlightedReportId = null;
+      notifyListeners();
+    }
+  }
 
   void clear() {
     _reports.clear();
@@ -108,6 +129,7 @@ class ReportProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+      WidgetSyncService.updateWidgetData(this);
     }
   }
 

@@ -147,6 +147,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   final List<String> _sortOptions = ['Date', 'Severity', 'Most Reported'];
 
   int _activeNav = 0;
+  final Map<int, GlobalKey> _cardKeys = {};
 
   @override
   void initState() {
@@ -155,6 +156,41 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       context.read<ReportProvider>().fetchReports();
       NotificationService().checkAndPromptPermission(context);
     });
+    context.read<ReportProvider>().addListener(_onReportProviderChanged);
+  }
+
+  @override
+  void dispose() {
+    // Note: Since this is often a root widget, we usually don't unmount, but good practice
+    // if it were to be disposed.
+    super.dispose();
+  }
+
+  void _onReportProviderChanged() {
+    if (!mounted) return;
+    final reportProvider = context.read<ReportProvider>();
+    final targetId = reportProvider.highlightedReportId;
+    
+    if (targetId != null) {
+      if (_activeNav != 0) {
+        setState(() => _activeNav = 0);
+      }
+      if (_selectedHomeFilter != 'All') {
+        setState(() => _selectedHomeFilter = 'All');
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final key = _cardKeys[targetId];
+        if (key != null && key.currentContext != null) {
+          Scrollable.ensureVisible(
+            key.currentContext!,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
+            alignment: 0.5,
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -711,8 +747,9 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         ),
         const SizedBox(height: 12),
         ...reports.map((report) {
+          _cardKeys[report.id] ??= GlobalKey();
           return _ReportCard(
-            key: ValueKey(report.id.toString()),
+            key: _cardKeys[report.id],
             report: report,
             animationDelay: Duration(
               milliseconds: 60 * reports.indexOf(report),
@@ -1248,6 +1285,7 @@ class _ReportCardWidgetState extends State<_ReportCard>
   @override
   Widget build(BuildContext context) {
     final report = widget.report;
+    final isHighlighted = context.watch<ReportProvider>().highlightedReportId == report.id;
 
     return FadeTransition(
       opacity: _entryFade,
@@ -1272,26 +1310,32 @@ class _ReportCardWidgetState extends State<_ReportCard>
                 );
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
                 margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.all(16),
+                transformAlignment: Alignment.center,
+                transform: Matrix4.identity()..scale(isHighlighted ? 1.02 : 1.0),
                 decoration: BoxDecoration(
-                  color: AppColors.bgSurface,
+                  color: isHighlighted 
+                      ? AppColors.orange.withOpacity(0.15) 
+                      : AppColors.bgSurface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color:
-                        _hovering
+                    color: isHighlighted
+                        ? AppColors.orange
+                        : (_hovering
                             ? AppColors.orange.withOpacity(0.35)
-                            : AppColors.border,
-                    width: 1,
+                            : AppColors.border),
+                    width: isHighlighted ? 2 : 1,
                   ),
                   boxShadow:
-                      _hovering
+                      (_hovering || isHighlighted)
                           ? [
                             BoxShadow(
-                              color: AppColors.orange.withOpacity(0.06),
-                              blurRadius: 14,
-                              spreadRadius: 2,
+                              color: AppColors.orange.withOpacity(isHighlighted ? 0.2 : 0.06),
+                              blurRadius: isHighlighted ? 20 : 14,
+                              spreadRadius: isHighlighted ? 4 : 2,
                             ),
                           ]
                           : [],

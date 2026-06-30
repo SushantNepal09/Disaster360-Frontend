@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:disaster360/services/api_service.dart';
 import 'package:disaster360/services/notification_alert.dart';
 
-class NotificationProvider extends ChangeNotifier {
+class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<AppNotification> _notifications = [];
   bool _isLoading = false;
   String? _error;
@@ -13,6 +16,33 @@ class NotificationProvider extends ChangeNotifier {
   String? get error => _error;
 
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
+
+  NotificationProvider() {
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Fetch immediately
+    fetchNotifications();
+
+    // Fetch when a foreground notification arrives
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
+      FirebaseMessaging.onMessage.listen((_) {
+        fetchNotifications();
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      fetchNotifications();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   Future<void> fetchNotifications() async {
     _isLoading = true;

@@ -8,6 +8,7 @@ import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
+import 'package:disaster360/widgets/image_viewer_overlay.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESCUE TASKS SCREEN — Disaster360
@@ -1206,12 +1207,11 @@ class _FacebookReportCard extends StatelessWidget {
           ),
 
           // Photo Gallery
-          if (task.mediaUrls.isNotEmpty)
-            _FacebookPhotoGallery(
-              mediaUrls: task.mediaUrls,
-              reportId: task.reportId,
-            ),
-            
+          _FacebookPhotoGallery(
+            mediaUrls: task.mediaUrls,
+            reportId: task.reportId,
+          ),
+          
           // Action Row
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1278,7 +1278,7 @@ class _FacebookPhotoGallery extends StatelessWidget {
       barrierDismissible: true,
       barrierLabel: 'close',
       barrierColor: Colors.transparent,
-      pageBuilder: (_, __, ___) => _ImageViewerOverlay(
+      pageBuilder: (_, __, ___) => ImageViewerOverlay(
         mediaUrls: mediaUrls,
         initialIndex: index,
         reportId: reportId,
@@ -1300,7 +1300,28 @@ class _FacebookPhotoGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = mediaUrls.length;
-    if (count == 0) return const SizedBox.shrink();
+    if (count == 0) {
+      return Container(
+        height: 180,
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.image_not_supported_outlined, color: Colors.white38, size: 40),
+              SizedBox(height: 8),
+              Text('No media attached', style: TextStyle(color: Colors.white38, fontSize: 12)),
+            ],
+          ),
+        ),
+      );
+    }
 
     if (count == 1) {
       return SizedBox(
@@ -1622,6 +1643,25 @@ class RescueTask {
 
     final loc = json['location'] as Map<String, dynamic>? ?? {};
     final mediaList = json['media'] as List<dynamic>? ?? [];
+    List<String> parsedMediaUrls = mediaList.map((m) => m['url'].toString()).toList();
+    
+    if (parsedMediaUrls.isEmpty && json['media_urls'] != null) {
+      parsedMediaUrls.addAll(List<String>.from(json['media_urls']));
+    }
+    if (parsedMediaUrls.isEmpty) {
+      if (json['image'] != null && json['image'].toString().isNotEmpty) {
+        parsedMediaUrls.add(json['image'].toString());
+      } else if (json['imageUrl'] != null && json['imageUrl'].toString().isNotEmpty) {
+        parsedMediaUrls.add(json['imageUrl'].toString());
+      } else if (json['operation'] != null && json['operation']['image'] != null) {
+        parsedMediaUrls.add(json['operation']['image'].toString());
+      } else if (json['incident'] != null && json['incident']['image'] != null) {
+        parsedMediaUrls.add(json['incident']['image'].toString());
+      }
+    }
+    // Clean out 'null' strings that may have been parsed
+    parsedMediaUrls = parsedMediaUrls.where((url) => url.trim() != 'null' && url.isNotEmpty).toList();
+
     final actions = json['actions'] as Map<String, dynamic>? ?? {};
     
     // Parse rescueUpdateId which might be inside actions or root
@@ -1650,7 +1690,7 @@ class RescueTask {
       assignedAgo: _timeAgo((json['assignedAt'] ?? json['reportedAt'])?.toString()),
       severityLevel: _parseSeverity(json['severity']?.toString()),
       verifiedByAdmin: json['verificationStatus'] ?? 'Admin',
-      mediaUrls: mediaList.map((m) => m['url'].toString()).toList(),
+      mediaUrls: parsedMediaUrls,
       lat: loc['latitude']?.toString() ?? '0.0',
       lng: loc['longitude']?.toString() ?? '0.0',
       reportId: json['incidentId']?.toString() ?? '',

@@ -9,6 +9,7 @@ import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/services/map_screen.dart';
 import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/services/notification_service.dart';
+import 'package:disaster360/widgets/rejection_dialog.dart';
 import 'package:disaster360/widgets/shared_report_card.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/core/statuses.dart';
@@ -650,17 +651,25 @@ class _RescueHomeBody extends StatelessWidget {
                         });
                       },
                       onReject: () {
-                        // Point to the same backend as the reject in all report section
-                        context.read<ReportProvider>().rejectReport(report.id).then((_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report rejected')));
-                            context.read<RescueProvider>().fetchHomeFeed();
-                          }
-                        }).catchError((e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                          }
-                        });
+                        final provider = context.read<RescueProvider>();
+                        final matchingTask = provider.myAssignments.cast<RescueTask?>().firstWhere(
+                          (t) => t?.reportId == report.id.toString(),
+                          orElse: () => null,
+                        );
+                        
+                        if (matchingTask == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not find task details. Please refresh.')),
+                          );
+                          return;
+                        }
+
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => RejectionDialog(
+                            assignmentId: int.parse(matchingTask.assignmentId),
+                          ),
+                        );
                       },
                     );
                   }),

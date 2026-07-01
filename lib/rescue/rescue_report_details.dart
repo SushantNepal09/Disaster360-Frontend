@@ -7,6 +7,7 @@ import 'package:disaster360/widgets/image_viewer_overlay.dart';
 import 'package:disaster360/citizen/citizen_home_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/widgets/rejection_dialog.dart';
 
 // ─── Data Model ───────────────────────────────────────────────────────────────
 
@@ -546,22 +547,16 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
                   color: AppColors.danger,
                   filled: false,
                   onTap: () {
-                    showModalBottomSheet(
+                    showDialog(
                       context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder:
-                          (_) => RejectionBottomSheet(
-                            task: widget.task,
-                            reasonController: TextEditingController(),
-                            onConfirmReject: (reason) {
-                              Navigator.pop(context); // close sheet
-                              Navigator.pop(context); // close screen
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Report rejected')),
-                              );
-                            },
-                          ),
+                      builder: (ctx) => RejectionDialog(
+                        assignmentId: int.parse(widget.task.assignmentId),
+                        onSuccess: () {
+                          if (mounted) {
+                            Navigator.pop(context); // close screen
+                          }
+                        },
+                      ),
                     );
                   },
                 ),
@@ -868,153 +863,6 @@ class _FullScreenPhotoViewer extends StatelessWidget {
   }
 }
 
-// ─── Rejection Dialog (tablet & desktop) ─────────────────────────────────────
-
-
-class RejectionBottomSheet extends StatelessWidget {
-  final RescueTask task;
-  final TextEditingController reasonController;
-  final void Function(String reason) onConfirmReject;
-
-  const RejectionBottomSheet({
-    super.key,
-    required this.task,
-    required this.reasonController,
-    required this.onConfirmReject,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.bgSurface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Reject Report',
-              style: TextStyle(
-                color: AppColors.danger,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 14),
-            // Minimal report info
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.bgDark,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '#${task.reportId}',
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _TypeChip(label: task.type),
-                      const Spacer(),
-                      _StatusBadge(status: task.status.name),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    task.type.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${task.assignedAgo}  ·  ${task.location}',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Reason for Rejection',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: reasonController,
-              maxLines: 4,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Describe why this report is being rejected...',
-                hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-                filled: true,
-                fillColor: AppColors.bgDark,
-                contentPadding: const EdgeInsets.all(14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: AppColors.danger.withOpacity(0.5),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _ActionButton(
-              fullWidth: true,
-              label: 'Confirm Rejection',
-              icon: Icons.close_rounded,
-              color: AppColors.danger,
-              filled: true,
-              onTap: () => onConfirmReject(reasonController.text),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ─── Reusable Animated Widgets ────────────────────────────────────────────────
 

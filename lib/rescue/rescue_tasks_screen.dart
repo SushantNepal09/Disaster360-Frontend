@@ -9,6 +9,7 @@ import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
+import 'package:disaster360/widgets/rejection_dialog.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESCUE TASKS SCREEN — Disaster360
@@ -291,35 +292,11 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   // ── Button handlers ────────────────────────────────────────────────────────
 
   void _handleReject(BuildContext context, RescueTask task) {
-    _showActionDialog(
+    showDialog(
       context: context,
-      title: 'Reject Task',
-      message: 'Are you sure you want to reject this assignment?',
-      confirmLabel: 'Reject',
-      confirmColor: AppColors.danger,
-      onConfirm: () async {
-        Navigator.pop(context);
-        try {
-          final provider = context.read<RescueProvider>();
-          await provider.rejectAssignment(int.parse(task.assignmentId));
-          if (context.mounted) {
-            _showSnack(
-              context,
-              '✓ Task assignment rejected.',
-              color: AppColors.success,
-            );
-            context.read<RescueProvider>().fetchAll();
-          }
-        } catch (e) {
-          if (context.mounted) {
-            _showSnack(
-              context,
-              e.toString().replaceFirst('Exception: ', ''),
-              color: AppColors.danger,
-            );
-          }
-        }
-      },
+      builder: (ctx) => RejectionDialog(
+        assignmentId: int.parse(task.assignmentId),
+      ),
     );
   }
 

@@ -151,9 +151,9 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Reject a Rescue Assignment
   // ---------------------------------------------------------------------------
-  Future<String> rejectAssignment(int assignmentId, {String? reason}) async {
+  Future<String> rejectAssignment(int assignmentId, {required String reason}) async {
     final result = await _service.rejectAssignment(assignmentId, reason: reason);
-    await fetchMyAssignments();
+    await fetchAll(); // Ensure complete synchronization across Home, My Tasks, and Reports
     return result['message'] ?? 'Assignment rejected successfully';
   }
 

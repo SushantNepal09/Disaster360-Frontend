@@ -158,10 +158,10 @@ class RescueProvider extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Update operation status (e.g. → "Controlled")
+  // Update operation status (e.g. → "Completed")
   // ---------------------------------------------------------------------------
-  Future<void> updateOperationStatus(int rescueUpdateId, String status) async {
-    await _service.updateOperationStatus(rescueUpdateId, status);
+  Future<void> updateOperationStatus(int assignmentId, String status) async {
+    await _service.updateOperationStatus(assignmentId, status);
     await fetchMyAssignments();
   }
 
@@ -169,10 +169,10 @@ class RescueProvider extends ChangeNotifier {
   // Submit post-incident report
   // ---------------------------------------------------------------------------
   Future<void> submitPostIncidentReport(
-    int rescueUpdateId,
+    int assignmentId,
     String reportText,
   ) async {
-    await _service.submitPostIncidentReport(rescueUpdateId, reportText);
+    await _service.submitPostIncidentReport(assignmentId, reportText);
     await fetchMyAssignments();
   }
 }

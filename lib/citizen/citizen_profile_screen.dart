@@ -27,15 +27,15 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
 
-    final _name = user?.fullName ?? 'Citizen User';
-    final _initials = _getInitials(_name);
-    final _role = user?.role ?? 'Citizen';
-    final _citizenshipNo = user?.citizenshipNumber ?? 'N/A';
-    final _email = user?.email ?? 'N/A';
-    final _phone = user?.phone ?? 'N/A';
-    final _issueDate = user?.citizenshipIssueDate ?? 'N/A';
-    final _issueDistrict = user?.citizenshipIssueDistrict ?? 'N/A';
-    final _reportsSubmitted = 0; // Or fetch from ReportProvider!
+    final name = user?.fullName ?? 'Citizen User';
+    final initials = _getInitials(name);
+    final role = user?.role ?? 'Citizen';
+    final citizenshipNo = user?.citizenshipNumber ?? 'N/A';
+    final email = user?.email ?? 'N/A';
+    final phone = user?.phone ?? 'N/A';
+    final issueDate = user?.citizenshipIssueDate ?? 'N/A';
+    final issueDistrict = user?.citizenshipIssueDistrict ?? 'N/A';
+    final reportsSubmitted = 0; // Or fetch from ReportProvider!
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -48,17 +48,17 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
             children: [
               _buildHeader(context),
               const SizedBox(height: 28),
-              _buildAvatar(_initials),
+              _buildAvatar(initials),
               const SizedBox(height: 14),
-              _buildNameAndRole(_name, _role),
+              _buildNameAndRole(name, role),
               const SizedBox(height: 16),
 
               _buildInfoCard(
-                _citizenshipNo,
-                _email,
-                _phone,
-                _issueDate,
-                _issueDistrict,
+                citizenshipNo,
+                email,
+                phone,
+                issueDate,
+                issueDistrict,
               ),
               const SizedBox(height: 16),
               _buildMenuCard(context),

@@ -132,26 +132,29 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Location permissions are denied.')),
           );
+        }
         return;
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Location permissions are permanently denied.'),
           ),
         );
+      }
       return;
     }
-    if (mounted)
+    if (mounted) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Locating...')));
+    }
     Position position = await Geolocator.getCurrentPosition();
     setState(() {
       _myLocation = LatLng(position.latitude, position.longitude);
@@ -223,8 +226,9 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   List<ReportModel> get _filtered =>
       _reports.where((i) {
         if (_activeFilter != null &&
-            i.disasterType.toLowerCase() != _activeFilter!.toLowerCase())
+            i.disasterType.toLowerCase() != _activeFilter!.toLowerCase()) {
           return false;
+        }
         return true;
       }).toList();
 
@@ -1784,7 +1788,7 @@ class _LegendToggle extends StatelessWidget {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: activeColor,
+          activeThumbColor: activeColor,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ],

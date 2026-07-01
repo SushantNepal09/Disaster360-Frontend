@@ -197,11 +197,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                       ),
                     );
                   },
-                  child: const Icon(Icons.add, size: 28),
                   backgroundColor: AppColors.orange,
                   foregroundColor: Colors.white,
                   elevation: 4,
                   shape: const CircleBorder(),
+                  child: const Icon(Icons.add, size: 28),
                 ),
               )
               : Container(
@@ -650,8 +650,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 upvotes: m.likes,
                 downvotes: m.dislikes,
                 date: m.createdAt,
-                lat: m.latitude.toStringAsFixed(4) + '°N',
-                lng: m.longitude.toStringAsFixed(4) + '°E',
+                lat: '${m.latitude.toStringAsFixed(4)}°N',
+                lng: '${m.longitude.toStringAsFixed(4)}°E',
                 reporter: m.userName,
                 trustScore: 80,
                 mediaUrls: m.mediaUrls,
@@ -828,8 +828,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                             final intId = int.tryParse(
                               report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
                             );
-                            if (intId != null)
+                            if (intId != null) {
                               await reportProvider.verifyReport(intId);
+                            }
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -887,7 +888,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                           }
                                         }
                                       } catch (e) {
-                                        if (mounted)
+                                        if (mounted) {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
@@ -897,6 +898,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                               ),
                                             ),
                                           );
+                                        }
                                       }
                                     }
                                   },
@@ -1003,7 +1005,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     final reasonController = TextEditingController();
     final isMobile = _Breakpoint.isMobile(context);
 
-    final onConfirm = (String reason) {
+    void onConfirm(String reason) {
       Navigator.pop(context);
       final intId = int.tryParse(
         report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
@@ -1011,7 +1013,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       if (intId != null) {
         context.read<ReportProvider>().rejectReport(intId);
       }
-    };
+    }
 
     if (isMobile) {
       showModalBottomSheet(
@@ -1870,12 +1872,14 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
   (Color, String) _getSeverityInfo(String severity) {
     final s = severity.toLowerCase();
     if (s == 'low' || s == '1') return (const Color(0xFF4CAF50), 'LOW');
-    if (s == 'moderate' || s == 'medium' || s == '2')
+    if (s == 'moderate' || s == 'medium' || s == '2') {
       return (const Color(0xFF8BC34A), 'MODERATE');
+    }
     if (s == 'high' || s == '3') return (const Color(0xFFFFB800), 'HIGH');
     if (s == 'severe' || s == '4') return (const Color(0xFFFF6B2B), 'SEVERE');
-    if (s == 'extreme' || s == 'critical' || s == '5')
+    if (s == 'extreme' || s == 'critical' || s == '5') {
       return (const Color(0xFFFF3B3B), 'CRITICAL');
+    }
     return (
       AppColors.warning,
       severity.toUpperCase().isNotEmpty ? severity.toUpperCase() : 'UNKNOWN',

@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:disaster360/core/statuses.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
-import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
@@ -489,7 +489,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                               fontFamily: 'monospace',
                             ),
                           ),
-                          _TaskStatusBadge(status: task.status),
+                          _TaskStatusBadge(status: task.assignmentStatus),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -1394,30 +1394,16 @@ class _FacebookPhotoGallery extends StatelessWidget {
 }
 
 class _TaskStatusBadge extends StatelessWidget {
-  final TaskStatus status;
+  final String status;
   const _TaskStatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    Color bg, text;
-    String label;
-    switch (status) {
-      case TaskStatus.active:
-        bg = AppColors.info.withOpacity(0.18);
-        text = AppColors.info;
-        label = 'Active';
-        break;
-      case TaskStatus.pending:
-        bg = AppColors.orange.withOpacity(0.15);
-        text = AppColors.orange;
-        label = 'Pending';
-        break;
-      case TaskStatus.completed:
-        bg = AppColors.success.withOpacity(0.15);
-        text = AppColors.success;
-        label = 'Completed';
-        break;
-    }
+    final meta = StatusTheme.getAssignmentTheme(status);
+    final bg = meta.color.withOpacity(0.15);
+    final text = meta.color;
+    final label = meta.label;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

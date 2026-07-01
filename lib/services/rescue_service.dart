@@ -70,30 +70,30 @@ class RescueService {
   }
 
   // ---------------------------------------------------------------------------
-  // PUT /rescue/operations/{rescueUpdateId}/status — Update operation status
-  // Status: "Acknowledged" | "Rescue In Progress" | "Controlled" | "Closed"
+  // PUT /rescue/operations/{assignmentId}/status — Update operation status
+  // Status: "Accepted" | "In Progress" | "Completed" | "Cancelled"
   // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> updateOperationStatus(
-    int rescueUpdateId,
+    int assignmentId,
     String status,
   ) async {
     final response = await _api.put(
-      '/rescue/operations/$rescueUpdateId/status',
+      '/rescue/operations/$assignmentId/status',
       body: {'status': status},
     );
     return Map<String, dynamic>.from(response as Map);
   }
 
   // ---------------------------------------------------------------------------
-  // POST /rescue/operations/{rescueUpdateId}/post-incident-report
-  // Submit a post-incident report (only when status is Controlled or Closed)
+  // POST /rescue/operations/{assignmentId}/post-incident-report
+  // Submit a post-incident report (only when status is Completed)
   // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> submitPostIncidentReport(
-    int rescueUpdateId,
+    int assignmentId,
     String reportText,
   ) async {
     final response = await _api.post(
-      '/rescue/operations/$rescueUpdateId/post-incident-report',
+      '/rescue/operations/$assignmentId/post-incident-report',
       body: {'post_incident_report': reportText},
     );
     return Map<String, dynamic>.from(response as Map);

@@ -1,7 +1,5 @@
-import 'dart:ui';
 import 'package:disaster360/widgets/shared_report_card.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
@@ -13,9 +11,6 @@ import 'package:disaster360/services/fab_add_report.dart';
 import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/services/notification_service.dart';
 import 'package:disaster360/providers/notification_provider.dart';
-import 'package:provider/provider.dart';
-import 'package:disaster360/citizen/citizen_report_detail_screen.dart';
-import 'package:disaster360/utils/status_helper.dart';
 
 class AlertData {
   final String title;

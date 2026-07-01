@@ -961,11 +961,11 @@ class AnimatedCounter extends StatelessWidget {
   final bool isDouble;
 
   const AnimatedCounter({
-    Key? key,
+    super.key,
     required this.value,
     required this.style,
     this.isDouble = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -984,7 +984,7 @@ class AnimatedCounter extends StatelessWidget {
 
 class HoverKPICard extends StatefulWidget {
   final Widget child;
-  const HoverKPICard({Key? key, required this.child}) : super(key: key);
+  const HoverKPICard({super.key, required this.child});
 
   @override
   State<HoverKPICard> createState() => _HoverKPICardState();
@@ -1023,7 +1023,7 @@ class _HoverKPICardState extends State<HoverKPICard> {
 
 class HoverRow extends StatefulWidget {
   final Widget child;
-  const HoverRow({Key? key, required this.child}) : super(key: key);
+  const HoverRow({super.key, required this.child});
 
   @override
   State<HoverRow> createState() => _HoverRowState();
@@ -1051,10 +1051,10 @@ class AnimatedProgressBar extends StatefulWidget {
   final double widthRatio;
   final Color color;
   const AnimatedProgressBar({
-    Key? key,
+    super.key,
     required this.widthRatio,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedProgressBar> createState() => _AnimatedProgressBarState();

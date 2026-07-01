@@ -11,6 +11,7 @@ import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/services/notification_service.dart';
 import 'package:disaster360/widgets/shared_report_card.dart';
 import 'package:disaster360/colors.dart';
+import 'package:disaster360/core/statuses.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -572,10 +573,18 @@ class _RescueHomeBody extends StatelessWidget {
                       isRescueMode: true,
                       onCardTap: () {
                         final provider = context.read<RescueProvider>();
-                        final matchingTask = provider.myAssignments.firstWhere(
-                          (t) => t.reportId == report.id.toString(),
-                          orElse: () => provider.myAssignments.first,
+                        final matchingTask = provider.myAssignments.cast<RescueTask?>().firstWhere(
+                          (t) => t?.reportId == report.id.toString(),
+                          orElse: () => null,
                         );
+                        
+                        if (matchingTask == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not find task details. Please refresh.')),
+                          );
+                          return;
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -781,10 +790,7 @@ class _MyOperationCardState extends State<_MyOperationCard> {
 
   @override
   Widget build(BuildContext context) {
-    final statusLabel =
-        widget.task.status == TaskStatus.completed
-            ? 'Controlled'
-            : 'In Progress';
+    final statusLabel = StatusTheme.getAssignmentTheme(widget.task.assignmentStatus).label;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,

@@ -556,6 +556,8 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
               _buildVotesRow(),
               const SizedBox(height: 24),
               _buildDecisionArea(),
+              const SizedBox(height: 16),
+              _buildHistoryButton(),
               const SizedBox(height: 24),
             ],
           ),
@@ -605,6 +607,8 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                           _buildReporterCard(),
                           const SizedBox(height: 14),
                           _buildDecisionArea(),
+                          const SizedBox(height: 16),
+                          _buildHistoryButton(),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -660,6 +664,8 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                           _buildReporterCard(),
                           const SizedBox(height: 16),
                           _buildDecisionArea(),
+                          const SizedBox(height: 16),
+                          _buildHistoryButton(),
                         ],
                       ),
                     ),
@@ -1207,7 +1213,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                                     onPressed: () async {
                                       Navigator.pop(ctx);
                                       try {
-                                        await context.read<ReportProvider>().undoAssignment(assignmentId!);
+                                        await context.read<ReportProvider>().undoAssignment(assignmentId);
                                         if (context.mounted) {
                                           // Read the fresh rescueTeam from the now-updated provider
                                           final intId = int.tryParse(
@@ -1313,6 +1319,72 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           onTap: _onUndoReject,
         ),
       ],
+    );
+  }
+
+  Widget _buildHistoryButton() {
+    return _ActionButton(
+      fullWidth: true,
+      label: 'View Status History',
+      icon: Icons.history_rounded,
+      color: Colors.blueAccent,
+      filled: false,
+      onTap: _showHistoryDialog,
+    );
+  }
+
+  void _showHistoryDialog() async {
+    final reportProvider = context.read<ReportProvider>();
+    final intId = int.tryParse(widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (intId == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final history = await reportProvider.fetchIncidentHistory(intId);
+    
+    if (!mounted) return;
+    Navigator.pop(context); // close loading
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1F1F1F),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Status History', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 400,
+            child: history.isEmpty
+                ? const Center(child: Text('No history found', style: TextStyle(color: Colors.white54)))
+                : ListView.builder(
+                    itemCount: history.length,
+                    itemBuilder: (context, index) {
+                      final h = history[index];
+                      return ListTile(
+                        leading: const Icon(Icons.circle, color: Colors.blueAccent, size: 12),
+                        title: Text('${h['old_status']} ➔ ${h['new_status']}', style: const TextStyle(color: Colors.white)),
+                        subtitle: Text(
+                          '${h['entity_type']} • By: ${h['changed_by_role']}\nRemarks: ${h['remarks'] ?? 'N/A'}\n${h['created_at']}',
+                          style: const TextStyle(color: Colors.white54),
+                        ),
+                        isThreeLine: true,
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close', style: TextStyle(color: Colors.white)),
+            )
+          ],
+        );
+      },
     );
   }
 }
@@ -2194,7 +2266,9 @@ class _AnimatedVoteBoxState extends State<_AnimatedVoteBox>
       ),
     );
   }
+
 }
+
 
 /// Action button — can be inline or full-width, filled or outlined
 class _ActionButton extends StatefulWidget {

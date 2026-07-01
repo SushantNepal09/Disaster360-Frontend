@@ -148,6 +148,19 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchIncidentHistory(int incidentId) async {
+    try {
+      final response = await _apiService.get('/admin/incidents/$incidentId/history');
+      if (response != null && response['success'] == true) {
+        return List<Map<String, dynamic>>.from(response['data']);
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error fetching incident history: $e");
+      return [];
+    }
+  }
+
   Future<void> fetchDuplicateReports() async {
     try {
       final response = await _apiService.get('/admin/duplicate-reports');

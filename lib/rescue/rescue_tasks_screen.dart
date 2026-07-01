@@ -371,7 +371,9 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   }
 
   void _handleCompletionReport(BuildContext context, RescueTask task) {
-    RescueMotion.push(context, PostDisasterReportScreen(preSelectedTask: task));
+    RescueMotion.push(context, PostDisasterReportScreen(preSelectedTask: task)).then((_) {
+      if (context.mounted) context.read<RescueProvider>().fetchMyAssignments();
+    });
   }
 
   void _showSnack(BuildContext context, String msg, {required Color color}) {

@@ -64,6 +64,11 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
     _fadeController.reset();
     setState(() => _activeNav = index);
     _fadeController.forward();
+
+    // Refresh data when switching to Home or Tasks
+    if (index == 0 || index == 2) {
+      context.read<RescueProvider>().fetchAll();
+    }
   }
 
   @override
@@ -578,7 +583,11 @@ class _RescueHomeBody extends StatelessWidget {
                               task: matchingTask,
                             ),
                           ),
-                        );
+                        ).then((_) {
+                          if (context.mounted) {
+                            context.read<RescueProvider>().fetchAll();
+                          }
+                        });
                       },
                       onAccept: () {
                         // Accept logic 

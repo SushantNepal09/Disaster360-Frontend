@@ -197,7 +197,11 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen>
             ),
         transitionDuration: const Duration(milliseconds: 320),
       ),
-    );
+    ).then((_) {
+      if (context.mounted) {
+        context.read<RescueProvider>().fetchAll();
+      }
+    });
   }
 }
 

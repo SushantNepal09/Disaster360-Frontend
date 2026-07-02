@@ -5,11 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/rescue/completed_task_detail_screen.dart';
 import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
+import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
-import 'package:disaster360/rescue/completed_task_detail_screen.dart';
 import 'package:disaster360/widgets/rejection_dialog.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -25,54 +26,33 @@ import 'package:disaster360/widgets/rejection_dialog.dart';
 //  • Image gallery: two-image grid with +N overlay, full-screen swipe gallery (same as citizen home)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class RescueTasksScreen extends StatefulWidget {
-  const RescueTasksScreen({super.key});
+class CompletedTasksScreen extends StatefulWidget {
+  const CompletedTasksScreen({super.key});
 
   @override
-  State<RescueTasksScreen> createState() => _RescueTasksScreenState();
+  State<CompletedTasksScreen> createState() => _CompletedTasksScreenState();
 }
 
-class _RescueTasksScreenState extends State<RescueTasksScreen>
+class _CompletedTasksScreenState extends State<CompletedTasksScreen>
     with SingleTickerProviderStateMixin {
   String _selectedFilter = 'All';
   String _searchQuery = '';
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
-  final List<String> _filters = ['All', 'Active', 'Pending', 'Completed'];
+  final List<String> _filters = ['All'];
 
-  List<RescueTask> _filteredTasks(RescueProvider provider) {
-    List<RescueTask> list;
-
-    if (_selectedFilter == 'All') {
-      list = provider.myAssignments;
-    } else if (_selectedFilter == 'Completed') {
-      list = provider.completedAssignments;
-    } else {
-      final statusMap = {
-        'Active': TaskStatus.active,
-        'Pending': TaskStatus.pending,
-      };
-      list =
-          provider.myAssignments
-              .where((t) => t.status == statusMap[_selectedFilter])
-              .toList();
-    }
-
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      list =
-          list
-              .where(
-                (t) =>
-                    t.taskId.toLowerCase().contains(q) ||
-                    t.type.toLowerCase().contains(q) ||
-                    t.location.toLowerCase().contains(q),
-              )
-              .toList();
-    }
-
-    return list;
+  List<RescueTask> _filteredTasks(List<RescueTask> allTasks) {
+    if (_searchQuery.isEmpty) return allTasks;
+    final q = _searchQuery.toLowerCase();
+    return allTasks
+        .where(
+          (t) =>
+              t.taskId.toLowerCase().contains(q) ||
+              t.type.toLowerCase().contains(q) ||
+              t.location.toLowerCase().contains(q),
+        )
+        .toList();
   }
 
   @override
@@ -103,7 +83,8 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   Widget build(BuildContext context) {
     return Consumer<RescueProvider>(
       builder: (context, provider, _) {
-        final filtered = _filteredTasks(provider);
+        final allTasks = provider.completedAssignments;
+        final filtered = _filteredTasks(allTasks);
 
         Widget content = Scaffold(
           backgroundColor: const Color(0xFF0F0F0F),
@@ -114,7 +95,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 680),
-                          child: provider.isLoading && provider.myAssignments.isEmpty && provider.completedAssignments.isEmpty
+                          child: provider.isLoading && allTasks.isEmpty
                               ? const Center(child: CircularProgressIndicator(color: AppColors.orange))
                               : RefreshIndicator(
                                   color: AppColors.orange,
@@ -125,7 +106,17 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                                       SliverToBoxAdapter(
                                         child: Padding(
                                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                                          child: _buildFilterTabs(),
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              'All Completed Assignments',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.7),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                       if (filtered.isEmpty)
@@ -142,7 +133,10 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                                                   task: filtered[i],
                                                   onAccept: () => _handleAccept(context, filtered[i]),
                                                   onReject: () => _handleReject(context, filtered[i]),
-                                                  onDetails: () => _handleDetails(context, filtered[i]),
+                                                  onDetails: () => RescueMotion.push(
+                                                    context,
+                                                    CompletedTaskDetailScreen(task: filtered[i]),
+                                                  ),
                                                 ),
                                               );
                                             },
@@ -175,7 +169,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
         children: [
 
           const Text(
-            'Your Tasks',
+            'Completed Tasks',
             style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
@@ -329,14 +323,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   }
 
   void _handleDetails(BuildContext context, RescueTask task) {
-    if (task.status == TaskStatus.completed) {
-      RescueMotion.push(
-        context,
-        CompletedTaskDetailScreen(task: task),
-      );
-    } else {
-      _showTaskDetailSheet(context, task);
-    }
+    _showTaskDetailSheet(context, task);
   }
 
   void _handleStatusReport(BuildContext context, RescueTask task) {
@@ -1518,172 +1505,3 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
-//  DATA MODELS
-// ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
-
-enum TaskStatus { active, pending, completed }
-
-class RescueTask {
-  final String assignmentId;
-  final String assignmentStatus;
-  final String? rejectionReason;
-  final String taskId;
-  final TaskStatus status;
-  final String type;
-  final String location;
-  final String description;
-  final String assignedAgo;
-  final int severityLevel;
-  final String verifiedByAdmin;
-  final List<String> mediaUrls;
-  final String lat;
-  final String lng;
-  final String reportId;
-  final String reporterName;
-  final String reporterStatus;
-  final String title;
-  final int? rescueUpdateId;
-  final bool canAcknowledge;
-  final bool canUpdateStatus;
-  final bool canSubmitReport;
-  final List<String> assignedTeams;
-  final String? postIncidentReport;
-
-  const RescueTask({
-    required this.assignmentId,
-    required this.assignmentStatus,
-    this.rejectionReason,
-    required this.taskId,
-    required this.status,
-    required this.type,
-    required this.location,
-    required this.description,
-    required this.assignedAgo,
-    required this.severityLevel,
-    required this.verifiedByAdmin,
-    this.mediaUrls = const [],
-    required this.lat,
-    required this.lng,
-    required this.reportId,
-    required this.reporterName,
-    required this.reporterStatus,
-    required this.title,
-    this.rescueUpdateId,
-    this.canAcknowledge = false,
-    this.canUpdateStatus = false,
-    this.canSubmitReport = false,
-    this.assignedTeams = const [],
-    this.postIncidentReport,
-  });
-
-  // ── Severity string → int ─────────────────────────────────────────────────
-  static int _parseSeverity(String? severity) {
-    switch ((severity ?? '').toLowerCase()) {
-      case 'low':
-        return 1;
-      case 'moderate':
-        return 2;
-      case 'high':
-        return 3;
-      case 'severe':
-        return 4;
-      case 'extreme':
-        return 5;
-      default:
-        return 3;
-    }
-  }
-
-  // ── Format datetime string to "X ago" ─────────────────────────────────────
-  static String _timeAgo(String? dateStr) {
-    if (dateStr == null) return 'Recently';
-    try {
-      final dt = DateTime.parse(dateStr).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inDays > 0) return '${diff.inDays}d ago';
-      if (diff.inHours > 0) return '${diff.inHours}h ago';
-      if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
-      return 'Just now';
-    } catch (_) {
-      return 'Recently';
-    }
-  }
-
-  // ── Build from new Backend JSON Envelope ──────────────────────────────────
-  factory RescueTask.fromJson(Map<String, dynamic> json) {
-    final assignmentStatus = json['assignmentStatus'] ?? json['status'] ?? '';
-    TaskStatus tStatus;
-    if (assignmentStatus == 'Completed') {
-      tStatus = TaskStatus.completed;
-    } else if (assignmentStatus == 'Accepted' || assignmentStatus == 'In Progress') {
-      tStatus = TaskStatus.pending;
-    } else {
-      tStatus = TaskStatus.active;
-    }
-
-    final loc = json['location'] as Map<String, dynamic>? ?? {};
-    final mediaList = json['media'] as List<dynamic>? ?? [];
-    List<String> parsedMediaUrls = mediaList.map((m) => m['url'].toString()).toList();
-    
-    if (parsedMediaUrls.isEmpty && json['media_urls'] != null) {
-      parsedMediaUrls.addAll(List<String>.from(json['media_urls']));
-    }
-    if (parsedMediaUrls.isEmpty) {
-      if (json['image'] != null && json['image'].toString().isNotEmpty) {
-        parsedMediaUrls.add(json['image'].toString());
-      } else if (json['imageUrl'] != null && json['imageUrl'].toString().isNotEmpty) {
-        parsedMediaUrls.add(json['imageUrl'].toString());
-      } else if (json['operation'] != null && json['operation']['image'] != null) {
-        parsedMediaUrls.add(json['operation']['image'].toString());
-      } else if (json['incident'] != null && json['incident']['image'] != null) {
-        parsedMediaUrls.add(json['incident']['image'].toString());
-      }
-    }
-    // Clean out 'null' strings that may have been parsed
-    parsedMediaUrls = parsedMediaUrls.where((url) => url.trim() != 'null' && url.isNotEmpty).toList();
-
-    final actions = json['actions'] as Map<String, dynamic>? ?? {};
-    
-    // Parse rescueUpdateId which might be inside actions or root
-    int? parsedRescueUpdateId;
-    if (json['rescueUpdateId'] != null) {
-      parsedRescueUpdateId = int.tryParse(json['rescueUpdateId'].toString());
-    } else if (actions['rescueUpdateId'] != null) {
-      parsedRescueUpdateId = int.tryParse(actions['rescueUpdateId'].toString());
-    }
-
-    final rescueTeam = json['rescueTeam'] as Map<String, dynamic>?;
-    final List<String> parsedAssignedTeams = [];
-    if (rescueTeam != null && rescueTeam['name'] != null) {
-      parsedAssignedTeams.add(rescueTeam['name'].toString());
-    }
-
-    return RescueTask(
-      assignmentId: json['assignmentId']?.toString() ?? '',
-      assignmentStatus: json['assignmentStatus']?.toString() ?? '',
-      rejectionReason: json['rejectionReason']?.toString(),
-      taskId: json['incidentId']?.toString() ?? '',
-      status: tStatus,
-      type: json['disasterType'] ?? 'Unknown',
-      location: loc['address'] ?? 'Unknown',
-      description: json['description'] ?? '',
-      assignedAgo: _timeAgo((json['assignedAt'] ?? json['reportedAt'])?.toString()),
-      severityLevel: _parseSeverity(json['severity']?.toString()),
-      verifiedByAdmin: json['verificationStatus'] ?? 'Admin',
-      mediaUrls: parsedMediaUrls,
-      lat: loc['latitude']?.toString() ?? '0.0',
-      lng: loc['longitude']?.toString() ?? '0.0',
-      reportId: json['incidentId']?.toString() ?? '',
-      reporterName: json['reporterName'] ?? 'Unknown Reporter',
-      reporterStatus: json['reporterStatus'] ?? 'Unknown',
-      title: json['title'] ?? 'Untitled Report',
-      rescueUpdateId: parsedRescueUpdateId,
-      canAcknowledge: actions['canAcknowledge'] == true,
-      canUpdateStatus: actions['canUpdateStatus'] == true,
-      canSubmitReport: actions['canSubmitReport'] == true,
-      assignedTeams: parsedAssignedTeams,
-      postIncidentReport: json['postIncidentReport']?.toString(),
-    );
-  }
-}

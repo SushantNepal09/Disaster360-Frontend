@@ -9,8 +9,10 @@ import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/services/map_screen.dart';
 import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/services/notification_service.dart';
+import 'package:disaster360/widgets/rejection_dialog.dart';
 import 'package:disaster360/widgets/shared_report_card.dart';
 import 'package:disaster360/colors.dart';
+import 'package:disaster360/core/statuses.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -64,6 +66,11 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
     _fadeController.reset();
     setState(() => _activeNav = index);
     _fadeController.forward();
+
+    // Refresh data when switching to Home or Tasks
+    if (index == 0 || index == 2) {
+      context.read<RescueProvider>().fetchAll();
+    }
   }
 
   @override
@@ -482,6 +489,45 @@ class _RescueHomeBody extends StatelessWidget {
       );
     }
 
+    // Active Rescue Mode Check
+    if (inProgress.isNotEmpty) {
+      final activeTask = inProgress.first;
+      return RefreshIndicator(
+        color: AppColors.orange,
+        backgroundColor: AppColors.bgSurface,
+        onRefresh: () => context.read<RescueProvider>().fetchAll(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            horizontal: _Breakpoint.horizontalPadding(context),
+            vertical: 20,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: _Breakpoint.contentMaxWidth(context),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ActiveRescueDisasterCard(task: activeTask, onGoToTasks: onGoToTasks),
+                  const SizedBox(height: 40),
+                  // Hide normal assignments and stats
+                  const Center(
+                    child: Text(
+                      'You are currently responding to this disaster.\nComplete or update this operation before accepting another assignment.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return RefreshIndicator(
       color: AppColors.orange,
       backgroundColor: AppColors.bgSurface,
@@ -567,10 +613,18 @@ class _RescueHomeBody extends StatelessWidget {
                       isRescueMode: true,
                       onCardTap: () {
                         final provider = context.read<RescueProvider>();
-                        final matchingTask = provider.myAssignments.firstWhere(
-                          (t) => t.reportId == report.id.toString(),
-                          orElse: () => provider.myAssignments.first,
+                        final matchingTask = provider.myAssignments.cast<RescueTask?>().firstWhere(
+                          (t) => t?.reportId == report.id.toString(),
+                          orElse: () => null,
                         );
+                        
+                        if (matchingTask == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not find task details. Please refresh.')),
+                          );
+                          return;
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -578,7 +632,11 @@ class _RescueHomeBody extends StatelessWidget {
                               task: matchingTask,
                             ),
                           ),
-                        );
+                        ).then((_) {
+                          if (context.mounted) {
+                            context.read<RescueProvider>().fetchAll();
+                          }
+                        });
                       },
                       onAccept: () {
                         // Accept logic 
@@ -593,17 +651,25 @@ class _RescueHomeBody extends StatelessWidget {
                         });
                       },
                       onReject: () {
-                        // Point to the same backend as the reject in all report section
-                        context.read<ReportProvider>().rejectReport(report.id).then((_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report rejected')));
-                            context.read<RescueProvider>().fetchHomeFeed();
-                          }
-                        }).catchError((e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                          }
-                        });
+                        final provider = context.read<RescueProvider>();
+                        final matchingTask = provider.myAssignments.cast<RescueTask?>().firstWhere(
+                          (t) => t?.reportId == report.id.toString(),
+                          orElse: () => null,
+                        );
+                        
+                        if (matchingTask == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not find task details. Please refresh.')),
+                          );
+                          return;
+                        }
+
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => RejectionDialog(
+                            assignmentId: int.parse(matchingTask.assignmentId),
+                          ),
+                        );
                       },
                     );
                   }),
@@ -772,10 +838,7 @@ class _MyOperationCardState extends State<_MyOperationCard> {
 
   @override
   Widget build(BuildContext context) {
-    final statusLabel =
-        widget.task.status == TaskStatus.completed
-            ? 'Controlled'
-            : 'In Progress';
+    final statusLabel = StatusTheme.getAssignmentTheme(widget.task.assignmentStatus).label;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1397,6 +1460,220 @@ class _StatCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ActiveRescueDisasterCard extends StatelessWidget {
+  final RescueTask task;
+  final VoidCallback onGoToTasks;
+  const _ActiveRescueDisasterCard({required this.task, required this.onGoToTasks});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.danger.withOpacity(0.05),
+        border: Border.all(color: AppColors.danger, width: 2.5),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.danger.withOpacity(0.2),
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: const BoxDecoration(
+              color: AppColors.danger,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(13),
+                topRight: Radius.circular(13),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '🚨 CURRENT ACTIVE DISASTER',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'CURRENTLY WORKING',
+                    style: TextStyle(
+                      color: AppColors.danger,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.local_fire_department_rounded, color: AppColors.orange, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        task.type,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: Colors.white54, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        task.location,
+                        style: const TextStyle(color: Colors.white70, fontSize: 15),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgPrimary,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildInfoCol('Severity', task.severityLevel.toString(), AppColors.danger),
+                      _buildInfoCol('Status', task.assignmentStatus.toUpperCase(), AppColors.warning),
+                      _buildInfoCol('Assigned by', 'Admin', Colors.white),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RescueReportDetailScreen(task: task),
+                        ),
+                      ).then((_) {
+                        if (context.mounted) {
+                          context.read<RescueProvider>().fetchAll();
+                        }
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.danger,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'OPEN RESCUE DETAILS',
+                      style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.1),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (task.assignmentStatus == 'Accepted' || task.assignmentStatus == 'In Progress')
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final nextStatus = task.assignmentStatus == 'Accepted' ? 'In Progress' : 'Completed';
+                        try {
+                          await context.read<RescueProvider>().updateOperationStatus(int.parse(task.assignmentId), nextStatus);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Task marked as $nextStatus!'),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to update task: $e'),
+                                backgroundColor: AppColors.danger,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        task.assignmentStatus == 'Accepted' ? 'START OPERATION' : 'MARK AS COMPLETED',
+                        style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.1),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCol(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value.toUpperCase(),
+          style: TextStyle(color: valueColor, fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 }

@@ -151,10 +151,10 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
     }
     if (!_formKey.currentState!.validate()) return;
 
-    final rescueUpdateId = _selectedTask!.rescueUpdateId;
-    if (rescueUpdateId == null) {
+    final assignmentId = _selectedTask!.assignmentId;
+    if (assignmentId.isEmpty) {
       _showSnack(
-        'This task does not have a valid operation ID. Cannot submit.',
+        'This task does not have a valid assignment ID. Cannot submit.',
         color: AppColors.danger,
       );
       return;
@@ -173,7 +173,7 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
 
     try {
       await context.read<RescueProvider>().submitPostIncidentReport(
-        rescueUpdateId,
+        int.parse(assignmentId),
         reportText,
       );
 

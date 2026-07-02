@@ -2,6 +2,7 @@ import 'package:disaster360/admin/admin_analytics.dart';
 import 'package:disaster360/admin/admin_myreport.dart';
 import 'package:disaster360/admin/admin_profile.dart';
 import 'package:disaster360/admin/admin_user_management.dart';
+import 'package:disaster360/admin/admin_completed_operations_screen.dart';
 import 'package:disaster360/admin/admin_report_details.dart';
 import 'package:disaster360/services/fab_add_report.dart';
 import 'package:disaster360/services/map_screen.dart';
@@ -197,11 +198,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                       ),
                     );
                   },
-                  child: const Icon(Icons.add, size: 28),
                   backgroundColor: AppColors.orange,
                   foregroundColor: Colors.white,
                   elevation: 4,
                   shape: const CircleBorder(),
+                  child: const Icon(Icons.add, size: 28),
                 ),
               )
               : Container(
@@ -300,12 +301,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       case 1:
         return const AdminReportsScreen();
       case 2:
-        return const DisasterMapScreen();
+        return const AdminCompletedOperationsScreen();
       case 3:
-        return const AdminAnalyticsScreen();
+        return const DisasterMapScreen();
       case 4:
-        return const AdminProfileScreen();
+        return const AdminAnalyticsScreen();
       case 5:
+        return const AdminProfileScreen();
+      case 6:
         return const AdminUserManagementScreen();
       default:
         return const SizedBox();
@@ -627,6 +630,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       assignedRescueTeams: matchedReport?.rescueTeam ?? 'Not Assigned',
       isAccepted: matchedReport?.isAccepted ?? false,
       assignments: matchedReport?.assignments ?? [],
+      finalAdminReport: matchedReport?.finalAdminReport,
     );
   }
 
@@ -650,8 +654,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 upvotes: m.likes,
                 downvotes: m.dislikes,
                 date: m.createdAt,
-                lat: m.latitude.toStringAsFixed(4) + '°N',
-                lng: m.longitude.toStringAsFixed(4) + '°E',
+                lat: '${m.latitude.toStringAsFixed(4)}°N',
+                lng: '${m.longitude.toStringAsFixed(4)}°E',
                 reporter: m.userName,
                 trustScore: 80,
                 mediaUrls: m.mediaUrls,
@@ -828,8 +832,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                             final intId = int.tryParse(
                               report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
                             );
-                            if (intId != null)
+                            if (intId != null) {
                               await reportProvider.verifyReport(intId);
+                            }
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -887,7 +892,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                           }
                                         }
                                       } catch (e) {
-                                        if (mounted)
+                                        if (mounted) {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
@@ -897,6 +902,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                               ),
                                             ),
                                           );
+                                        }
                                       }
                                     }
                                   },
@@ -1003,7 +1009,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     final reasonController = TextEditingController();
     final isMobile = _Breakpoint.isMobile(context);
 
-    final onConfirm = (String reason) {
+    void onConfirm(String reason) {
       Navigator.pop(context);
       final intId = int.tryParse(
         report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
@@ -1011,7 +1017,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       if (intId != null) {
         context.read<ReportProvider>().rejectReport(intId);
       }
-    };
+    }
 
     if (isMobile) {
       showModalBottomSheet(
@@ -1460,30 +1466,37 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
+            icon: Icons.rate_review_outlined,
+            label: 'Review',
+            index: 2,
+            activeIndex: _activeNav,
+            onTap: _navigateTo,
+          ),
+          _AnimatedNavItem(
             icon: Icons.map_outlined,
             label: 'Risk Map',
-            index: 2,
+            index: 3,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
             icon: Icons.bar_chart_rounded,
             label: 'Analytics',
-            index: 3,
+            index: 4,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
             icon: Icons.person_outline_rounded,
             label: 'Profile',
-            index: 4,
+            index: 5,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
             icon: Icons.people_alt_outlined,
             label: 'Users',
-            index: 5,
+            index: 6,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
@@ -1540,6 +1553,7 @@ class _SideRail extends StatelessWidget {
   static const _items = [
     _NavData(Icons.dashboard_rounded, 'Dashboard'),
     _NavData(Icons.warning_amber_rounded, 'Reports'),
+    _NavData(Icons.rate_review_outlined, 'Review'),
     _NavData(Icons.map_outlined, 'Risk Map'),
     _NavData(Icons.bar_chart_rounded, 'Analytics'),
     _NavData(Icons.person_outline_rounded, 'Profile'),
@@ -1870,12 +1884,14 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
   (Color, String) _getSeverityInfo(String severity) {
     final s = severity.toLowerCase();
     if (s == 'low' || s == '1') return (const Color(0xFF4CAF50), 'LOW');
-    if (s == 'moderate' || s == 'medium' || s == '2')
+    if (s == 'moderate' || s == 'medium' || s == '2') {
       return (const Color(0xFF8BC34A), 'MODERATE');
+    }
     if (s == 'high' || s == '3') return (const Color(0xFFFFB800), 'HIGH');
     if (s == 'severe' || s == '4') return (const Color(0xFFFF6B2B), 'SEVERE');
-    if (s == 'extreme' || s == 'critical' || s == '5')
+    if (s == 'extreme' || s == 'critical' || s == '5') {
       return (const Color(0xFFFF3B3B), 'CRITICAL');
+    }
     return (
       AppColors.warning,
       severity.toUpperCase().isNotEmpty ? severity.toUpperCase() : 'UNKNOWN',

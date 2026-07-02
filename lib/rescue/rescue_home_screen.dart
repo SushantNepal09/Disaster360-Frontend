@@ -4,7 +4,7 @@ import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/rescue/rescue_all_reports_screen.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/rescue/rescue_profile_screen.dart';
-import 'package:disaster360/rescue/rescue_report_details.dart';
+import 'package:disaster360/rescue/rescue_disaster_detail_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/services/map_screen.dart';
 import 'package:disaster360/services/notification_alert.dart';
@@ -644,7 +644,7 @@ class _RescueHomeBody extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder:
-                                (context) => RescueReportDetailScreen(
+                                (context) => RescueDisasterDetailScreen(
                                   task: matchingTask,
                                 ),
                           ),
@@ -1683,7 +1683,7 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) => RescueReportDetailScreen(task: task),
+                              (context) => RescueDisasterDetailScreen(task: task),
                         ),
                       ).then((_) {
                         if (context.mounted) {

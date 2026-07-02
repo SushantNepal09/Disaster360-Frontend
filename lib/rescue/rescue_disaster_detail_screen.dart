@@ -24,22 +24,22 @@ class _BP {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-class CompletedTaskDetailScreen extends StatefulWidget {
+class RescueDisasterDetailScreen extends StatefulWidget {
   final RescueTask task;
   final String initialDecisionState;
 
-  const CompletedTaskDetailScreen({
+  const RescueDisasterDetailScreen({
     super.key,
     required this.task,
     this.initialDecisionState = 'pending',
   });
 
   @override
-  State<CompletedTaskDetailScreen> createState() =>
-      _CompletedTaskDetailScreenState();
+  State<RescueDisasterDetailScreen> createState() =>
+      _RescueDisasterDetailScreenState();
 }
 
-class _CompletedTaskDetailScreenState extends State<CompletedTaskDetailScreen>
+class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
     with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _cardController;

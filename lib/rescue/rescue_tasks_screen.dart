@@ -9,7 +9,7 @@ import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
-import 'package:disaster360/rescue/completed_task_detail_screen.dart';
+import 'package:disaster360/rescue/rescue_disaster_detail_screen.dart';
 import 'package:disaster360/widgets/rejection_dialog.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -369,12 +369,12 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
     );
   }
 
-  void _handleDetails(BuildContext context, RescueTask task) {
-    if (task.status == TaskStatus.completed) {
-      RescueMotion.push(context, CompletedTaskDetailScreen(task: task));
-    } else {
-      _showTaskDetailSheet(context, task);
-    }
+void _handleDetails(BuildContext context, RescueTask task) {
+    RescueMotion.push(context, RescueDisasterDetailScreen(task: task)).then((_) {
+      if (context.mounted) {
+        context.read<RescueProvider>().fetchMyAssignments();
+      }
+    });
   }
 
   void _handleStatusReport(BuildContext context, RescueTask task) {
@@ -470,136 +470,6 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                 ),
               ),
             ],
-          ),
-    );
-  }
-
-  void _showTaskDetailSheet(BuildContext context, RescueTask task) {
-    RescueMotion.showSweetBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder:
-          (_) => DraggableScrollableSheet(
-            initialChildSize: 0.65,
-            maxChildSize: 0.92,
-            minChildSize: 0.4,
-            builder:
-                (_, ctrl) => Container(
-                  decoration: const BoxDecoration(
-                    color: AppColors.bgSurface,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(child: _sheetHandle()),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '#${task.taskId}',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                          _TaskStatusBadge(status: task.assignmentStatus),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${task.type} — ${task.location}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        task.description,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(color: AppColors.border),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: ListView(
-                          controller: ctrl,
-                          children: [
-                            _DetailRow(
-                              icon: Icons.local_fire_department_outlined,
-                              label: 'Severity',
-                              widget: _SeverityBadge(level: task.severityLevel),
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.verified_user_outlined,
-                              label: 'Verified by Admin',
-                              value: task.verifiedByAdmin,
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.location_on_outlined,
-                              label: 'GPS',
-                              value: '${task.lat}, ${task.lng}',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.report_outlined,
-                              label: 'Report ID',
-                              value: '#${task.reportId}',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.image_outlined,
-                              label: 'Photos',
-                              value: '${task.mediaUrls.length} attached',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.access_time_outlined,
-                              label: 'Assigned',
-                              value: task.assignedAgo,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.border),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Close',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
           ),
     );
   }
@@ -1677,6 +1547,8 @@ class RescueTask {
   final String assignmentStatus;
   final String? rejectionReason;
   final String taskId;
+  final String teamAssignmentStatus;
+  final bool isAssignedToCurrentTeam;
   final TaskStatus status;
   final String type;
   final String location;
@@ -1703,6 +1575,8 @@ class RescueTask {
     required this.assignmentStatus,
     this.rejectionReason,
     required this.taskId,
+    this.teamAssignmentStatus = '',
+    this.isAssignedToCurrentTeam = false,
     required this.status,
     required this.type,
     required this.location,
@@ -1762,7 +1636,9 @@ class RescueTask {
   factory RescueTask.fromJson(Map<String, dynamic> json) {
     final assignmentStatus = json['assignmentStatus'] ?? json['status'] ?? '';
     TaskStatus tStatus;
-    if (assignmentStatus == 'Completed') {
+    if (assignmentStatus == 'Completed' ||
+        assignmentStatus == 'Controlled' ||
+        assignmentStatus == 'Closed') {
       tStatus = TaskStatus.completed;
     } else if (assignmentStatus == 'Accepted' ||
         assignmentStatus == 'In Progress') {
@@ -1820,6 +1696,8 @@ class RescueTask {
       assignmentStatus: json['assignmentStatus']?.toString() ?? '',
       rejectionReason: json['rejectionReason']?.toString(),
       taskId: json['incidentId']?.toString() ?? '',
+      teamAssignmentStatus: json['teamAssignmentStatus']?.toString() ?? '',
+      isAssignedToCurrentTeam: json['isAssignedToCurrentTeam'] ?? false,
       status: tStatus,
       type: json['disasterType'] ?? 'Unknown',
       location: loc['address'] ?? 'Unknown',

@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
-import 'package:disaster360/rescue/completed_task_detail_screen.dart';
+import 'package:disaster360/rescue/rescue_disaster_detail_screen.dart';
 import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
@@ -160,7 +160,7 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
                                             onDetails:
                                                 () => RescueMotion.push(
                                                   context,
-                                                  CompletedTaskDetailScreen(
+                                                  RescueDisasterDetailScreen(
                                                     task: filtered[i],
                                                   ),
                                                 ),

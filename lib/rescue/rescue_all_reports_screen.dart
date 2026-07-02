@@ -1,4 +1,4 @@
-import 'package:disaster360/rescue/rescue_report_details.dart';
+import 'package:disaster360/rescue/rescue_disaster_detail_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/colors.dart';
@@ -177,7 +177,7 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen>
       context,
       PageRouteBuilder(
         pageBuilder:
-            (_, animation, __) => RescueReportDetailScreen(task: report),
+            (_, animation, __) => RescueDisasterDetailScreen(task: report),
         transitionsBuilder:
             (_, animation, __, child) => FadeTransition(
               opacity: CurvedAnimation(
@@ -514,7 +514,7 @@ class _RescueReportCardState extends State<_RescueReportCard> {
 
   void _onReview() => Navigator.push(
     context,
-    _pageRoute(RescueReportDetailScreen(task: widget.report)),
+    _pageRoute(RescueDisasterDetailScreen(task: widget.report)),
   );
 
   String _relativeDate(String dateStr) {

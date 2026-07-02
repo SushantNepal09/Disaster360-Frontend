@@ -396,8 +396,8 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
     final lat = _currentPosition?.latitude.toStringAsFixed(4) ?? "0.0";
     final lng = _currentPosition?.longitude.toStringAsFixed(4) ?? "0.0";
     
-    // Format: TITLE|DESCRIPTION|SEVERITY|LATITUDE|LONGITUDE|USER_NAME|USER_ID
-    final smsBody = "${_titleCtrl.text}|${_descCtrl.text}|$severityStr|$lat|$lng|$userName|$userId";
+    // Format: TITLE|DESCRIPTION|SEVERITY|LATITUDE|LONGITUDE|DISASTER_TYPE|USER_NAME|USER_ID
+    final smsBody = "${_titleCtrl.text}|${_descCtrl.text}|$severityStr|$lat|$lng|$_selectedType|$userName|$userId";
 
     String? encodeQueryParameters(Map<String, String> params) {
       return params.entries

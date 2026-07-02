@@ -705,13 +705,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
                         : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.send_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
+                          Text(
                               'SUBMIT EMERGENCY',
                               style: TextStyle(
                                 fontSize: 16,

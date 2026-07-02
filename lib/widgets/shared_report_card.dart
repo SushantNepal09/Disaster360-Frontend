@@ -4,6 +4,7 @@ import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/citizen/citizen_report_detail_screen.dart';
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
 import 'package:provider/provider.dart';
+import 'package:disaster360/widgets/pressable_widget.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SHARED REPORT CARD (Used in Citizen Home & Rescue Home)
@@ -109,8 +110,7 @@ class _SharedReportCardState extends State<SharedReportCard>
               onExit: (_) => setState(() => _hovering = false),
               child: Material(
                 color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(18),
+                child: PressableWidget(
                   onTap: widget.onCardTap ?? () {
                     Navigator.push(
                       context,

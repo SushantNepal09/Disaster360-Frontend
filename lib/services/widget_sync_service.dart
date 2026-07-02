@@ -68,4 +68,14 @@ class WidgetSyncService {
       debugPrint("Error syncing widget data: $e");
     }
   }
+
+  static Future<void> clearWidgetData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('widget_has_report', false);
+      await _channel.invokeMethod('updateWidget');
+    } catch (e) {
+      debugPrint("Error clearing widget data: $e");
+    }
+  }
 }

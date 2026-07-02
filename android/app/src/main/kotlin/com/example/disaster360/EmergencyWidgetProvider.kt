@@ -44,13 +44,36 @@ class EmergencyWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.widget_rescue, "● $rescueStatus")
                 views.setTextViewText(R.id.widget_location, location)
 
-                // Set icon based on disaster type
+                // Set icon and background based on disaster type
                 when (disasterType.lowercase()) {
-                    "flood" -> views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_flood)
-                    "fire" -> views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_fire)
-                    "storm" -> views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_storm)
-                    "earthquake" -> views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_earthquake)
-                    else -> views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_warning_orange)
+                    "flood" -> {
+                        views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_flood)
+                        views.setInt(R.id.widget_disaster_icon, "setBackgroundResource", R.drawable.widget_icon_flood_bg)
+                    }
+                    "fire" -> {
+                        views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_fire)
+                        views.setInt(R.id.widget_disaster_icon, "setBackgroundResource", R.drawable.widget_icon_fire_bg)
+                    }
+                    "storm" -> {
+                        views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_storm)
+                        views.setInt(R.id.widget_disaster_icon, "setBackgroundResource", R.drawable.widget_icon_storm_bg)
+                    }
+                    "earthquake" -> {
+                        views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_earthquake)
+                        views.setInt(R.id.widget_disaster_icon, "setBackgroundResource", R.drawable.widget_icon_earthquake_bg)
+                    }
+                    "landslide" -> {
+                        views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_landslide)
+                        views.setInt(R.id.widget_disaster_icon, "setBackgroundResource", R.drawable.widget_icon_landslide_bg)
+                    }
+                    "road damage" -> {
+                        views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_road_damage)
+                        views.setInt(R.id.widget_disaster_icon, "setBackgroundResource", R.drawable.widget_icon_road_damage_bg)
+                    }
+                    else -> {
+                        views.setImageViewResource(R.id.widget_disaster_icon, R.drawable.ic_warning_orange)
+                        views.setInt(R.id.widget_disaster_icon, "setBackgroundResource", R.drawable.widget_icon_default_bg)
+                    }
                 }
 
                 // Set colors based on status

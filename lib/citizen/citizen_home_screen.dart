@@ -11,6 +11,10 @@ import 'package:disaster360/services/fab_add_report.dart';
 import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/services/notification_service.dart';
 import 'package:disaster360/providers/notification_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:disaster360/citizen/citizen_report_detail_screen.dart';
+import 'package:disaster360/utils/status_helper.dart';
+import 'package:disaster360/widgets/pressable_widget.dart';
 
 class AlertData {
   final String title;
@@ -144,6 +148,17 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   int _activeNav = 0;
   final Map<int, GlobalKey> _cardKeys = {};
+  final ScrollController _scrollController = ScrollController();
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -159,6 +174,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   void dispose() {
     // Note: Since this is often a root widget, we usually don't unmount, but good practice
     // if it were to be disposed.
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -235,6 +251,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               await context.read<ReportProvider>().fetchReports();
             },
             child: SingleChildScrollView(
+              controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               child: Column(
@@ -261,10 +278,14 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
+          GestureDetector(
+            onTap: () {
+              if (_activeNav == 0) _scrollToTop();
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
                 'DISASTER360',
                 style: TextStyle(
                   color: AppColors.orange,
@@ -283,6 +304,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 ),
               ),
             ],
+          ),
           ),
           GestureDetector(
             onTap:
@@ -378,7 +400,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       child: Row(
         children: [
           Expanded(
-            child: GestureDetector(
+            child: PressableWidget(
               onTap: () => _showFilterBottomSheet(context),
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -424,7 +446,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: GestureDetector(
+            child: PressableWidget(
               onTap: () => _showSortBottomSheet(context),
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -788,7 +810,13 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             icon: items[i].icon,
             label: items[i].label,
             isActive: _activeNav == i,
-            onTap: () => setState(() => _activeNav = i),
+            onTap: () {
+              if (_activeNav == i && i == 0) {
+                _scrollToTop();
+              } else {
+                setState(() => _activeNav = i);
+              }
+            },
           );
         }),
       ),
@@ -925,8 +953,10 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
+      child: PressableWidget(
+        onTap: () {},
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
         decoration: BoxDecoration(
           color: AppColors.bgSurface,
           borderRadius: BorderRadius.circular(14),
@@ -956,6 +986,7 @@ class _StatCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

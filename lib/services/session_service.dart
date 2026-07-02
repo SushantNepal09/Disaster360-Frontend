@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:disaster360/models/user_model.dart';
+import 'package:disaster360/services/widget_sync_service.dart';
 
 class SessionService {
   // Singleton pattern
@@ -55,5 +56,6 @@ class SessionService {
     await _storage.delete(key: 'auth_token');
     await _storage.delete(key: 'user_profile');
     _sessionController.add(null);
+    await WidgetSyncService.clearWidgetData();
   }
 }

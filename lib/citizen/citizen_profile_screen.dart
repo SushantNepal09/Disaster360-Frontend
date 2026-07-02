@@ -1,4 +1,5 @@
 import 'package:provider/provider.dart';
+import 'package:disaster360/widgets/pressable_widget.dart';
 import 'package:disaster360/providers/auth_provider.dart';
 import 'package:disaster360/services/feedback.dart';
 import 'package:disaster360/colors.dart';
@@ -86,7 +87,7 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
             fontFamily: 'monospace',
           ),
         ),
-        GestureDetector(
+        PressableWidget(
           onTap: () => _showEditDialog(context),
           child: const Text(
             'Edit',
@@ -252,7 +253,7 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
   Widget _buildSignOut(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click, // 👈 shows hand cursor
-      child: GestureDetector(
+      child: PressableWidget(
         onTap: () => _showSignOutDialog(context),
         child: const Text(
           'Sign Out',

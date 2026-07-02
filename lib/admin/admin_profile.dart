@@ -505,7 +505,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
               Switch(
                 value: _systemOnline,
                 onChanged: (v) => setState(() => _systemOnline = v),
-                activeColor: AppColors.success,
+                activeThumbColor: AppColors.success,
                 inactiveThumbColor: AppColors.danger,
                 inactiveTrackColor: AppColors.danger.withOpacity(0.3),
                 activeTrackColor: AppColors.success.withOpacity(0.3),
@@ -1686,7 +1686,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: AppColors.orange,
+          activeThumbColor: AppColors.orange,
           inactiveTrackColor: Colors.white12,
         ),
       ],

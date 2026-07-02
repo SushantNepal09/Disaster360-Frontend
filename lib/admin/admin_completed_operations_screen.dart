@@ -5,18 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/citizen/citizen_home_screen.dart';
+import 'package:disaster360/admin/admin_completed_report_details.dart';
 
 // ─── Max content width — centers everything on ultra-wide screens ─────────────
 const double _kMaxContentWidth = 1320.0;
 
-class AdminReportsScreen extends StatefulWidget {
-  const AdminReportsScreen({super.key});
+class AdminCompletedOperationsScreen extends StatefulWidget {
+  const AdminCompletedOperationsScreen({super.key});
 
   @override
-  State<AdminReportsScreen> createState() => _AdminReportsScreenState();
+  State<AdminCompletedOperationsScreen> createState() => _AdminCompletedOperationsScreenState();
 }
 
-class _AdminReportsScreenState extends State<AdminReportsScreen>
+class _AdminCompletedOperationsScreenState extends State<AdminCompletedOperationsScreen>
     with SingleTickerProviderStateMixin {
   String _activeFilter = 'All';
   final TextEditingController _searchController = TextEditingController();
@@ -32,7 +33,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReportProvider>().fetchReports();
+      context.read<ReportProvider>().fetchCompletedOperations();
     });
     _entryController = AnimationController(
       vsync: this,
@@ -56,50 +57,17 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
     super.dispose();
   }
 
-  List<AdminReportData> get _filteredReports {
+  List<Map<String, dynamic>> get _filteredReports {
     final reportProvider = context.watch<ReportProvider>();
-    final allReports =
-        reportProvider.reports.map((m) {
-          final s =
-              m.status.isEmpty
-                  ? 'Pending'
-                  : (m.status.toLowerCase() == 'pending'
-                      ? 'Pending'
-                      : m.status);
-          final capStatus = s[0].toUpperCase() + s.substring(1);
-          return AdminReportData(
-            reportId: 'RPT-${m.id}',
-            status: capStatus,
-            type: m.disasterType,
-            title: '${m.disasterType} — ${m.title}',
-            description: m.description,
-            date: m.createdAt,
-            location: m.title,
-            lat: '${m.latitude.toStringAsFixed(4)}°N',
-            lng: '${m.longitude.toStringAsFixed(4)}°E',
-            reporter: m.userName,
-            trustScore: 80,
-            upvotes: m.likes,
-            downvotes: m.dislikes,
-            mediaUrls: m.mediaUrls,
-            submissions: m.submissions,
-            assignedRescueTeams: m.rescueTeam ?? 'Not Assigned',
-            isAccepted: m.isAccepted,
-            assignments: m.assignments,
-            finalAdminReport: m.finalAdminReport,
-          );
-        }).toList();
+    final allOperations = reportProvider.completedOperations;
 
-    return allReports.where((r) {
-      final matchesFilter =
-          _activeFilter == 'All' ||
-          r.status.toLowerCase() == _activeFilter.toLowerCase();
+    return allOperations.where((op) {
       final matchesSearch =
           _searchQuery.isEmpty ||
-          r.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          r.reportId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          r.location.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
+          (op['title']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+          (op['incident_id']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+          (op['location']?['address']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+      return matchesSearch;
     }).toList();
   }
 
@@ -136,7 +104,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'My Reports',
+                          'Completed Operations',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -150,11 +118,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
                               (val) => setState(() => _searchQuery = val),
                         ),
                         const SizedBox(height: 14),
-                        _FilterChipRow(
-                          filters: _filters,
-                          activeFilter: _activeFilter,
-                          onSelect: (f) => setState(() => _activeFilter = f),
-                        ),
+                        // Removed filter chips
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -201,12 +165,12 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
     );
   }
 
-  void _navigateToDetail(AdminReportData report) {
+  void _navigateToDetail(Map<String, dynamic> report) {
     Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder:
-            (_, animation, __) => AdminReportDetailScreen(report: report),
+            (_, animation, __) => AdminCompletedReportDetailScreen(report: report),
         transitionsBuilder:
             (_, animation, __, child) => FadeTransition(
               opacity: CurvedAnimation(
@@ -234,10 +198,10 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
 // Using LayoutBuilder gives us a guaranteed finite maxWidth so every card
 // child gets a real pixel width — root fix for all unbounded-width overflows.
 class _ReportBody extends StatelessWidget {
-  final List<AdminReportData> reports;
+  final List<Map<String, dynamic>> reports;
   final int cols;
   final double hPad;
-  final ValueChanged<AdminReportData> onTap;
+  final ValueChanged<Map<String, dynamic>> onTap;
 
   const _ReportBody({
     required this.reports,
@@ -525,7 +489,7 @@ class _AnimatedFilterChipState extends State<_AnimatedFilterChip> {
 
 // ─── Admin Report Card ────────────────────────────────────────────────────────
 class _AdminReportCard extends StatefulWidget {
-  final AdminReportData report;
+  final Map<String, dynamic> report;
   final VoidCallback onTap;
   const _AdminReportCard({required this.report, required this.onTap});
 
@@ -534,114 +498,11 @@ class _AdminReportCard extends StatefulWidget {
 }
 
 class _AdminReportCardState extends State<_AdminReportCard> {
-  String _cardState = 'pending';
   bool _hovered = false;
-  bool _isExpanded = false;
-
-  void _onVerify() async {
-    final intId = int.tryParse(
-      widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-    );
-    if (intId == null) return;
-    try {
-      await context.read<ReportProvider>().verifyReport(intId);
-      if (mounted) setState(() => _cardState = 'verified');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${widget.report.reportId} verified.'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Verify failed: $e'),
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  void _onReject() {
-    final TextEditingController rc = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (_) => RejectionBottomSheet(
-            report: widget.report,
-            reasonController: rc,
-            onConfirmReject: (reason) {
-              Navigator.pop(context);
-              final intId = int.tryParse(
-                widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-              );
-              if (intId != null) {
-                context.read<ReportProvider>().rejectReport(intId);
-              }
-            },
-          ),
-    );
-  }
-
-  void _onDelete() {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.bgDark,
-            title: const Text(
-              'Confirm Delete',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: const Text(
-              'Are you sure you want to permanently delete this report?',
-              style: TextStyle(color: Colors.white70),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white54),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  final intId = int.tryParse(
-                    widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-                  );
-                  if (intId != null) {
-                    context.read<ReportProvider>().deleteReportAdmin(intId);
-                  }
-                },
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: AppColors.danger),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
 
   void _onReview() => Navigator.push(
     context,
-    _pageRoute(AdminReportDetailScreen(report: widget.report)),
+    _pageRoute(AdminCompletedReportDetailScreen(report: widget.report)),
   );
 
   String _relativeDate(String dateStr) {
@@ -662,34 +523,14 @@ class _AdminReportCardState extends State<_AdminReportCard> {
         return '${diff.inDays} days ago';
       } else if (diff.inDays < 365) {
         const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}';
       } else {
         const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
       }
@@ -714,101 +555,9 @@ class _AdminReportCardState extends State<_AdminReportCard> {
     transitionDuration: const Duration(milliseconds: 300),
   );
 
-  Widget _buildInlineUndoCard(BuildContext context, int intId) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.danger.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.danger.withOpacity(0.3), width: 1),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.delete_outline,
-                    color: AppColors.danger,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${widget.report.reportId} Deleted',
-                        style: const TextStyle(
-                          color: AppColors.danger,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Deleting permanently in 5s...',
-                        style: TextStyle(
-                          color: AppColors.danger.withOpacity(0.8),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: () {
-              context.read<ReportProvider>().undoInlineDeletion(intId);
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: AppColors.success,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'UNDO',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final intId = int.tryParse(
-      widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
-    );
-    final isPendingDeletion =
-        intId != null &&
-        context.watch<ReportProvider>().pendingDeletions.contains(intId);
-
-    if (isPendingDeletion) {
-      return _buildInlineUndoCard(context, intId);
-    }
-
     final report = widget.report;
-    final bool isPending =
-        report.status == 'Pending' && _cardState == 'pending';
-    final bool isVerified = _cardState == 'verified';
-    final bool isRejected = _cardState == 'rejected';
-    final bool reviewOnly = !isPending;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -851,13 +600,10 @@ class _AdminReportCardState extends State<_AdminReportCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Row 1: ID + badge + timestamp
-            // FIX: Flexible on timestamp prevents RenderFlex overflow
-            // on narrow grid cards where combined content is too wide.
             Row(
               children: [
                 Text(
-                  '#${report.reportId}',
+                  '#${report['incident_id']}',
                   style: const TextStyle(
                     color: Colors.white54,
                     fontSize: 12,
@@ -865,18 +611,11 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                _StatusBadge(
-                  status:
-                      isVerified
-                          ? 'Verified'
-                          : isRejected
-                          ? 'Rejected'
-                          : report.status,
-                ),
+                _StatusBadge(status: 'Completed'),
                 const Spacer(),
                 Flexible(
                   child: Text(
-                    _relativeDate(report.date),
+                    report['created_at'] != null ? _relativeDate(report['created_at'].toString()) : '',
                     style: const TextStyle(color: Colors.white38, fontSize: 11),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -887,7 +626,7 @@ class _AdminReportCardState extends State<_AdminReportCard> {
             const SizedBox(height: 10),
 
             Text(
-              report.type,
+              (report['disaster_type'] ?? 'Unknown').toString(),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -897,7 +636,7 @@ class _AdminReportCardState extends State<_AdminReportCard> {
             const SizedBox(height: 2),
 
             Text(
-              report.location,
+              (report['location']?['address'] ?? 'Unknown Location').toString(),
               style: const TextStyle(color: Colors.white54, fontSize: 13),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
@@ -905,7 +644,7 @@ class _AdminReportCardState extends State<_AdminReportCard> {
             const SizedBox(height: 8),
 
             Text(
-              report.description,
+              (report['description'] ?? 'No description provided').toString(),
               style: const TextStyle(
                 color: Colors.white38,
                 fontSize: 13,
@@ -914,348 +653,21 @@ class _AdminReportCardState extends State<_AdminReportCard> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
 
-            // Image thumbnails
-            if (report.mediaUrls.isNotEmpty) ...[
-              SizedBox(
-                height: 60,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: report.mediaUrls.length.clamp(0, 4),
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            opaque: false,
-                            barrierColor: Colors.transparent,
-                            transitionDuration: const Duration(
-                              milliseconds: 250,
-                            ),
-                            pageBuilder:
-                                (_, __, ___) => ImageViewerOverlay(
-                                  mediaUrls: report.mediaUrls,
-                                  initialIndex: index,
-                                  reportId: report.reportId,
-                                ),
-                          ),
-                        );
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.network(
-                          report.mediaUrls[index],
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (_, __, ___) => Container(
-                                width: 60,
-                                height: 60,
-                                color: Colors.white12,
-                                child: const Icon(
-                                  Icons.broken_image,
-                                  color: Colors.white38,
-                                  size: 20,
-                                ),
-                              ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-
-            // Votes
             Row(
               children: [
-                const Icon(
-                  Icons.thumb_up_alt_outlined,
-                  color: AppColors.success,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${report.upvotes}',
-                  style: const TextStyle(
-                    color: AppColors.success,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                const Icon(
-                  Icons.thumb_down_alt_outlined,
-                  color: AppColors.danger,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${report.downvotes}',
-                  style: const TextStyle(
-                    color: AppColors.danger,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: _CardActionButton(
+                    label: 'Review Final Report',
+                    icon: Icons.remove_red_eye_outlined,
+                    color: Colors.white60,
+                    filled: false,
+                    onTap: _onReview,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-
-            if (report.submissions.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.group_outlined,
-                    color: Colors.white54,
-                    size: 14,
-                  ),
-                  const Text(
-                    'Reported by:',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  ...report.submissions.map(
-                    (sub) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.orange.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        (sub['user_name'] ?? 'Citizen').toString(),
-                        style: const TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            if (report.submissions.isNotEmpty) const SizedBox(height: 14),
-
-            if (report.submissions.length > 1) ...[
-              const Divider(color: Colors.white12, height: 1),
-              InkWell(
-                onTap: () => setState(() => _isExpanded = !_isExpanded),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _isExpanded
-                            ? 'Hide Matched Reports'
-                            : 'Show Matched Reports (${report.submissions.length - 1})',
-                        style: const TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _isExpanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.orange,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_isExpanded)
-                ...report.submissions
-                    .skip(1)
-                    .map(
-                      (sub) => Container(
-                        margin: const EdgeInsets.only(top: 8, bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  (sub['user_name'] ?? 'Citizen').toString(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  sub['timestamp'] != null
-                                      ? _relativeDate(
-                                        sub['timestamp'].toString(),
-                                      )
-                                      : 'Unknown',
-                                  style: const TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              (sub['description'] ?? 'No description provided')
-                                  .toString(),
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 12,
-                                height: 1.4,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-            ],
-
-            // Action buttons
-            if (isPending)
-              Row(
-                children: [
-                  Expanded(
-                    child: _CardActionButton(
-                      label: 'Verify',
-                      icon: Icons.check_rounded,
-                      color: AppColors.success,
-                      filled: true,
-                      onTap: _onVerify,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _CardActionButton(
-                      label: 'Reject',
-                      icon: Icons.close_rounded,
-                      color: AppColors.orange,
-                      filled: true,
-                      onTap: _onReject,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _CardActionButton(
-                      label: 'Delete',
-                      icon: Icons.delete_outline_rounded,
-                      color: AppColors.danger,
-                      filled: true,
-                      onTap: _onDelete,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _CardActionButton(
-                      label: 'Review',
-                      icon: Icons.remove_red_eye_outlined,
-                      color: Colors.white54,
-                      filled: false,
-                      onTap: _onReview,
-                    ),
-                  ),
-                ],
-              ),
-
-            if (reviewOnly)
-              Row(
-                children: [
-                  Expanded(
-                    child: _CardActionButton(
-                      label: 'Review',
-                      icon: Icons.remove_red_eye_outlined,
-                      color: Colors.white60,
-                      filled: false,
-                      onTap: _onReview,
-                    ),
-                  ),
-                  if (isRejected) ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _CardActionButton(
-                        label: 'Undo Reject',
-                        icon: Icons.undo_rounded,
-                        color: AppColors.orange,
-                        filled: false,
-                        onTap: () async {
-                          final id = int.tryParse(
-                            widget.report.reportId.replaceAll(
-                              RegExp(r'[^0-9]'),
-                              '',
-                            ),
-                          );
-                          if (id != null) {
-                            await context
-                                .read<ReportProvider>()
-                                .undoRejectReport(id);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Report reverted to Pending'),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _CardActionButton(
-                        label: 'Delete',
-                        icon: Icons.delete_outline_rounded,
-                        color: AppColors.danger,
-                        filled: false,
-                        onTap: _onDelete,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-
-            if (isVerified) ...[
-              const SizedBox(height: 10),
-              _StatusBanner(
-                icon: Icons.verified_rounded,
-                color: AppColors.success,
-                message: 'Verified — assign rescue team in detail view.',
-              ),
-            ],
-            if (isRejected) ...[
-              const SizedBox(height: 10),
-              _StatusBanner(
-                icon: Icons.cancel_rounded,
-                color: AppColors.danger,
-                message: 'This report has been rejected.',
-              ),
-            ],
           ],
         ),
       ),

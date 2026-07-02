@@ -401,7 +401,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
           Switch(
             value: _systemOnline,
             onChanged: (v) => setState(() => _systemOnline = v),
-            activeColor: AppColors.success,
+            activeThumbColor: AppColors.success,
             inactiveThumbColor: AppColors.danger,
             inactiveTrackColor: AppColors.danger.withOpacity(0.3),
             activeTrackColor: AppColors.success.withOpacity(0.3),
@@ -597,7 +597,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
                           _DialogField(controller: phoneCtrl, label: 'Phone'),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            value: selectedSpec,
+                            initialValue: selectedSpec,
                             dropdownColor: AppColors.bgSurface,
                             style: const TextStyle(
                               color: Colors.white,

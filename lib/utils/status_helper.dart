@@ -11,22 +11,24 @@ class StatusHelper {
     
     switch (s) {
       case 'pending':
-        return 'Pending';
+        return 'Pending Verification';
       case 'verified':
         return 'Verified';
-      case 'rejected':
-        return 'Rejected';
       case 'assigned':
-        return 'Assigned';
-      case 'acknowledged':
-        return 'Acknowledged';
+        return 'Rescue Team Assigned';
+      case 'accepted':
+      case 'in progress':
       case 'rescue in progress':
-      case 'in_progress':
         return 'Rescue in Progress';
+      case 'completed':
+      case 'controlled':
       case 'resolved':
         return 'Resolved';
-      case 'resolved (report available)':
-        return 'Resolved (Report Available)';
+      case 'closed':
+        return 'Closed';
+      case 'rejected':
+      case 'cancelled':
+        return 'Rejected / Cancelled';
       default:
         // Capitalize first letter as fallback
         return '${s[0].toUpperCase()}${s.substring(1)}';
@@ -44,18 +46,20 @@ class StatusHelper {
         return AppColors.warning; // Yellow
       case 'verified':
         return AppColors.success; // Green
-      case 'rejected':
-        return AppColors.danger; // Red
       case 'assigned':
         return AppColors.orange; // Orange
-      case 'acknowledged':
-        return AppColors.warning; // Yellow
+      case 'accepted':
+      case 'in progress':
       case 'rescue in progress':
-      case 'in_progress':
         return AppColors.info; // Cyan / Lite Blue
+      case 'completed':
+      case 'controlled':
       case 'resolved':
-      case 'resolved (report available)':
+      case 'closed':
         return AppColors.success; // Green
+      case 'rejected':
+      case 'cancelled':
+        return AppColors.danger; // Red
       default:
         return Colors.grey;
     }
@@ -76,19 +80,21 @@ class StatusHelper {
       case 'pending':
         return Icons.pending_actions_rounded;
       case 'verified':
-        return Icons.verified_user_rounded; // or check_circle
-      case 'rejected':
-        return Icons.cancel_rounded;
+        return Icons.verified_user_rounded; 
       case 'assigned':
         return Icons.assignment_ind_rounded;
-      case 'acknowledged':
-        return Icons.thumb_up_alt_rounded;
+      case 'accepted':
+      case 'in progress':
       case 'rescue in progress':
-      case 'in_progress':
         return Icons.directions_run_rounded;
+      case 'completed':
+      case 'controlled':
       case 'resolved':
-      case 'resolved (report available)':
+      case 'closed':
         return Icons.task_alt_rounded;
+      case 'rejected':
+      case 'cancelled':
+        return Icons.cancel_rounded;
       default:
         return Icons.info_outline_rounded;
     }

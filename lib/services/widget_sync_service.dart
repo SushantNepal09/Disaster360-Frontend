@@ -5,6 +5,7 @@ import 'package:disaster360/services/session_service.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/services/gis_cache_service.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 
 class WidgetSyncService {
   static const MethodChannel _channel = MethodChannel('com.example.disaster360/widget');
@@ -60,7 +61,9 @@ class WidgetSyncService {
       }
       
       // Trigger Native Widget Update
-      await _channel.invokeMethod('updateWidget');
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        await _channel.invokeMethod('updateWidget');
+      }
     } catch (e) {
       debugPrint("Error syncing widget data: $e");
     }

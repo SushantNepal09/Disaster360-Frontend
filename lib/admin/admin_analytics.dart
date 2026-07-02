@@ -744,9 +744,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         ) {
           final label = t['label'].toString().toLowerCase();
           Color c = AppColors.success;
-          if (label.contains('flood'))
+          if (label.contains('flood')) {
             c = AppColors.info;
-          else if (label.contains('landslide'))
+          } else if (label.contains('landslide'))
             c = AppColors.warning;
           else if (label.contains('fire'))
             c = AppColors.danger;
@@ -852,9 +852,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         ) {
           final type = t['type'].toString().toLowerCase();
           Color c = AppColors.success;
-          if (type.contains('flood'))
+          if (type.contains('flood')) {
             c = AppColors.info;
-          else if (type.contains('fire'))
+          } else if (type.contains('fire'))
             c = AppColors.danger;
           else if (type.contains('search'))
             c = AppColors.warning;
@@ -1310,8 +1310,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
             (_) => _ConstrainedAnalyticsDialog(
               title: title,
               headerWidget: headerWidget,
-              children: children,
               maxWidth: maxWidth,
+              children: children,
             ),
       );
     } else {

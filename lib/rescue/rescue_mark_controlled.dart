@@ -104,9 +104,9 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Require that this task has been acknowledged (has a rescueUpdateId)
-    final rescueUpdateId = widget.task.rescueUpdateId;
-    if (rescueUpdateId == null) {
+    // Require that this task has an assignmentId
+    final assignmentId = widget.task.assignmentId;
+    if (assignmentId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(
@@ -115,7 +115,7 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Cannot mark as controlled: task has not been acknowledged.',
+                  'Cannot mark as controlled: task has no assignment.',
                   style: TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
@@ -135,10 +135,10 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
     setState(() => _isSubmitting = true);
 
     try {
-      // 1. Update status to Controlled via API
+      // 1. Update status to Completed via API
       await context.read<RescueProvider>().updateOperationStatus(
-        rescueUpdateId,
-        'Controlled',
+        int.parse(assignmentId),
+        'Completed',
       );
 
       if (!mounted) return;

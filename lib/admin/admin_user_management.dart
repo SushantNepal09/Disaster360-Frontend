@@ -68,7 +68,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update status: ${e}'),
+          content: Text('Failed to update status: $e'),
           backgroundColor: AppColors.danger,
         ),
       );

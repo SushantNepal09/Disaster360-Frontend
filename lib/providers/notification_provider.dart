@@ -18,7 +18,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   NotificationProvider() {
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Fetch immediately
     fetchNotifications();
 
@@ -51,7 +51,8 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final response = await ApiService().get('/notifications/');
       if (response is List) {
-        _notifications = response.map((json) => AppNotification.fromJson(json)).toList();
+        _notifications =
+            response.map((json) => AppNotification.fromJson(json)).toList();
       } else {
         _error = 'Failed to load notifications';
       }
@@ -89,7 +90,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
         _notifications[i].isRead = true;
       }
     }
-    
+
     if (unreadIndices.isEmpty) return;
     notifyListeners();
 

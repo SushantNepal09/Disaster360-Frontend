@@ -12,17 +12,17 @@ import 'package:disaster360/widgets/pressable_widget.dart';
 
 class SharedReportCard extends StatefulWidget {
   final ReportModel report;
-  
+
   // Citizen Callbacks
   final VoidCallback? onUpvote;
   final VoidCallback? onDownvote;
-  
+
   // Rescue Callbacks
   final bool isRescueMode;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
   final VoidCallback? onCardTap; // Allows overriding the default navigation
-  
+
   final Duration animationDelay;
 
   const SharedReportCard({
@@ -111,14 +111,19 @@ class _SharedReportCardState extends State<SharedReportCard>
               child: Material(
                 color: Colors.transparent,
                 child: PressableWidget(
-                  onTap: widget.onCardTap ?? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CitizenReportDetailScreen(report: widget.report),
-                      ),
-                    );
-                  },
+                  onTap:
+                      widget.onCardTap ??
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CitizenReportDetailScreen(
+                                  report: widget.report,
+                                ),
+                          ),
+                        );
+                      },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.only(bottom: 16),
@@ -127,18 +132,22 @@ class _SharedReportCardState extends State<SharedReportCard>
                       color: AppColors.bgSurface,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: _hovering ? AppColors.orange.withOpacity(0.35) : AppColors.border,
+                        color:
+                            _hovering
+                                ? AppColors.orange.withOpacity(0.35)
+                                : AppColors.border,
                         width: 1,
                       ),
-                      boxShadow: _hovering
-                          ? [
-                              BoxShadow(
-                                color: AppColors.orange.withOpacity(0.08),
-                                blurRadius: 16,
-                                spreadRadius: 2,
-                              ),
-                            ]
-                          : [],
+                      boxShadow:
+                          _hovering
+                              ? [
+                                BoxShadow(
+                                  color: AppColors.orange.withOpacity(0.08),
+                                  blurRadius: 16,
+                                  spreadRadius: 2,
+                                ),
+                              ]
+                              : [],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,11 +156,16 @@ class _SharedReportCardState extends State<SharedReportCard>
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.orange.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: AppColors.orange.withOpacity(0.3)),
+                                border: Border.all(
+                                  color: AppColors.orange.withOpacity(0.3),
+                                ),
                               ),
                               child: Text(
                                 report.disasterType,
@@ -166,7 +180,11 @@ class _SharedReportCardState extends State<SharedReportCard>
                             const SizedBox(width: 8),
                             SharedSeverityBadge(severity: report.severity),
                             const Spacer(),
-                            const Icon(Icons.access_time, color: Colors.white38, size: 14),
+                            const Icon(
+                              Icons.access_time,
+                              color: Colors.white38,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               _relativeDate(report.createdAt),
@@ -186,7 +204,9 @@ class _SharedReportCardState extends State<SharedReportCard>
 
                         // ── Report Information ─────────────────────────────────
                         Text(
-                          report.title.isNotEmpty ? report.title : report.disasterType,
+                          report.title.isNotEmpty
+                              ? report.title
+                              : report.disasterType,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -296,7 +316,9 @@ class _SharedReportCardState extends State<SharedReportCard>
                           if (_isExpanded)
                             ...report.submissions
                                 .skip(1)
-                                .map((sub) => _buildNestedReportCard(sub, report)),
+                                .map(
+                                  (sub) => _buildNestedReportCard(sub, report),
+                                ),
                           const SizedBox(height: 16),
                         ],
 
@@ -306,7 +328,11 @@ class _SharedReportCardState extends State<SharedReportCard>
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Icon(Icons.location_on_outlined, color: Colors.white38, size: 16),
+                            const Icon(
+                              Icons.location_on_outlined,
+                              color: Colors.white38,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -321,7 +347,11 @@ class _SharedReportCardState extends State<SharedReportCard>
                               ),
                             ),
                             const SizedBox(width: 12),
-                            const Icon(Icons.person_outline_rounded, color: Colors.white38, size: 16),
+                            const Icon(
+                              Icons.person_outline_rounded,
+                              color: Colors.white38,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               report.userName,
@@ -334,18 +364,24 @@ class _SharedReportCardState extends State<SharedReportCard>
                           ],
                         ),
                         const SizedBox(height: 12),
-                        
+
                         Row(
                           children: [
                             SharedStatusBadge(status: report.status),
-                            if (widget.isRescueMode && report.rescueTeam.isNotEmpty) ...[
+                            if (widget.isRescueMode &&
+                                report.rescueTeam.isNotEmpty) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.blueAccent.withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                                  border: Border.all(
+                                    color: Colors.blueAccent.withOpacity(0.3),
+                                  ),
                                 ),
                                 child: Text(
                                   report.rescueTeam,
@@ -576,7 +612,9 @@ class _SharedReportCardState extends State<SharedReportCard>
                 if (sub['media_urls'] != null &&
                     (sub['media_urls'] as List).isNotEmpty)
                   _buildSubImageGrid(
-                    (sub['media_urls'] as List).map((e) => e.toString()).toList(),
+                    (sub['media_urls'] as List)
+                        .map((e) => e.toString())
+                        .toList(),
                     sub['id'].toString(),
                   )
                 else
@@ -677,7 +715,11 @@ class _SharedReportCardState extends State<SharedReportCard>
     );
   }
 
-  void _openImageViewerFromSub(int index, List<String> mediaUrls, String reportId) {
+  void _openImageViewerFromSub(
+    int index,
+    List<String> mediaUrls,
+    String reportId,
+  ) {
     if (mediaUrls.isEmpty) return;
     showGeneralDialog(
       context: context,
@@ -788,7 +830,11 @@ class _SharedReportCardState extends State<SharedReportCard>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.image_not_supported_outlined, color: Colors.white24, size: 48),
+            const Icon(
+              Icons.image_not_supported_outlined,
+              color: Colors.white24,
+              size: 48,
+            ),
             const SizedBox(height: 8),
             Text(
               'No visual evidence provided',
@@ -802,7 +848,7 @@ class _SharedReportCardState extends State<SharedReportCard>
         ),
       );
     }
-    
+
     final actualCount = mediaUrls.length;
     final visibleCards = actualCount.clamp(1, 2);
     final extraCount = actualCount - visibleCards;
@@ -830,16 +876,17 @@ class _SharedReportCardState extends State<SharedReportCard>
                     Image.network(
                       mediaUrls[i],
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.broken_image_outlined,
-                            color: Colors.white.withOpacity(0.2),
-                            size: 32,
+                      errorBuilder:
+                          (context, error, stackTrace) => Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.white.withOpacity(0.2),
+                                size: 32,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
                     ),
                     if (isLast)
                       Container(
@@ -899,14 +946,34 @@ class _SharedReportCardState extends State<SharedReportCard>
         return '${diff.inDays} days ago';
       } else if (diff.inDays < 365) {
         const monthNames = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}';
       } else {
         const monthNames = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
       }
@@ -1053,7 +1120,7 @@ class SharedStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = StatusHelper.getStatusBgColor(status);
     final text = StatusHelper.getStatusColor(status);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -1112,20 +1179,27 @@ class SharedSeverityBadge extends StatelessWidget {
 
   Color get _color {
     switch (severity.toLowerCase()) {
-      case 'low': return const Color(0xFF4CAF50);
-      case 'moderate': return const Color(0xFF8BC34A);
-      case 'medium': return AppColors.warning;
-      case 'high': return AppColors.orange;
-      case 'severe': return AppColors.danger;
-      case 'critical': return AppColors.danger;
-      case 'extreme': return const Color(0xFFB71C1C);
-      default: return Colors.white38;
+      case 'low':
+        return const Color(0xFF4CAF50);
+      case 'moderate':
+        return const Color(0xFF8BC34A);
+      case 'high':
+        return AppColors.orange;
+      case 'severe':
+        return AppColors.danger;
+      case 'extreme':
+        return const Color(0xFFB71C1C);
+      default:
+        return Colors.white38;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final levelStr = severity.isNotEmpty ? severity[0].toUpperCase() + severity.substring(1).toLowerCase() : 'Unknown';
+    final levelStr =
+        severity.isNotEmpty
+            ? severity[0].toUpperCase() + severity.substring(1).toLowerCase()
+            : 'Unknown';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(

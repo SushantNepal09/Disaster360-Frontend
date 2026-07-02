@@ -94,7 +94,6 @@ class ReportModelMock {
 
 /// Mutable wrapper for each card — upvotes/downvotes change on tap
 
-
 class _NavData {
   final IconData icon;
   final String label;
@@ -182,7 +181,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     if (!mounted) return;
     final reportProvider = context.read<ReportProvider>();
     final targetId = reportProvider.highlightedReportId;
-    
+
     if (targetId != null) {
       if (_activeNav != 0) {
         setState(() => _activeNav = 0);
@@ -286,25 +285,25 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                'DISASTER360',
-                style: TextStyle(
-                  color: AppColors.orange,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
+                  'DISASTER360',
+                  style: TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Namaste, ${context.watch<AuthProvider>().user?.fullName ?? 'Citizen'}',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.65),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
+                const SizedBox(height: 2),
+                Text(
+                  'Namaste, ${context.watch<AuthProvider>().user?.fullName ?? 'Citizen'}',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.65),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
           GestureDetector(
             onTap:
@@ -331,7 +330,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 ),
                 Consumer<NotificationProvider>(
                   builder: (context, provider, _) {
-                    if (provider.unreadCount == 0) return const SizedBox.shrink();
+                    if (provider.unreadCount == 0)
+                      return const SizedBox.shrink();
                     return Positioned(
                       top: 7,
                       right: 7,
@@ -732,11 +732,13 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   int _getSeverityScore(String severity) {
     switch (severity.toLowerCase()) {
-      case 'critical':
+      case 'extreme':
+        return 5;
+      case 'severe':
         return 4;
       case 'high':
         return 3;
-      case 'medium':
+      case 'moderate':
         return 2;
       case 'low':
         return 1;
@@ -934,7 +936,6 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem>
   }
 }
 
-
 // ══════════════════════════════════════════════════════════════════════════════
 //  STAT CARD
 // ══════════════════════════════════════════════════════════════════════════════
@@ -957,36 +958,36 @@ class _StatCard extends StatelessWidget {
         onTap: () {},
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
-        decoration: BoxDecoration(
-          color: AppColors.bgSurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                color: valueColor,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                decoration: TextDecoration.none,
+          decoration: BoxDecoration(
+            color: AppColors.bgSurface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  color: valueColor,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  decoration: TextDecoration.none,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-                decoration: TextDecoration.none,
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  decoration: TextDecoration.none,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

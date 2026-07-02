@@ -41,7 +41,6 @@ class RescueReportDetailScreen extends StatefulWidget {
 
 class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
     with TickerProviderStateMixin {
-  
   // Animation controllers
   late AnimationController _cardController;
   late Animation<double> _cardFade;
@@ -54,7 +53,7 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Card entrance animation
     _cardController = AnimationController(
       vsync: this,
@@ -84,11 +83,7 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
 
     _cardController.forward();
     _decisionController.forward();
-
-    
   }
-
-  
 
   // ─── Build ───────────────────────────────────────────────────────────────
 
@@ -290,9 +285,14 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            widget.task.description.isEmpty ? "No description provided." : widget.task.description,
+            widget.task.description.isEmpty
+                ? "No description provided."
+                : widget.task.description,
             style: TextStyle(
-              color: widget.task.description.isEmpty ? Colors.white38 : Colors.white70,
+              color:
+                  widget.task.description.isEmpty
+                      ? Colors.white38
+                      : Colors.white70,
               fontSize: 14,
               height: 1.55,
             ),
@@ -308,7 +308,10 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
               ),
               _MetaItem(
                 icon: Icons.location_on_outlined,
-                label: widget.task.location.isEmpty ? "Location unknown" : widget.task.location,
+                label:
+                    widget.task.location.isEmpty
+                        ? "Location unknown"
+                        : widget.task.location,
               ),
             ],
           ),
@@ -502,9 +505,10 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
                       height: 7,
                       margin: const EdgeInsets.only(right: 5),
                       decoration: BoxDecoration(
-                        color: widget.task.reporterStatus.toLowerCase() == 'active' 
-                               ? AppColors.success 
-                               : Colors.grey,
+                        color:
+                            widget.task.reporterStatus.toLowerCase() == 'active'
+                                ? AppColors.success
+                                : Colors.grey,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -549,14 +553,15 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
                   onTap: () {
                     showDialog(
                       context: context,
-                      builder: (ctx) => RejectionDialog(
-                        assignmentId: int.parse(widget.task.assignmentId),
-                        onSuccess: () {
-                          if (mounted) {
-                            Navigator.pop(context); // close screen
-                          }
-                        },
-                      ),
+                      builder:
+                          (ctx) => RejectionDialog(
+                            assignmentId: int.parse(widget.task.assignmentId),
+                            onSuccess: () {
+                              if (mounted) {
+                                Navigator.pop(context); // close screen
+                              }
+                            },
+                          ),
                     );
                   },
                 ),
@@ -571,7 +576,9 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
                   filled: true,
                   onTap: () async {
                     if (widget.task.canAcknowledge) {
-                      await context.read<RescueProvider>().acknowledgeReport(int.parse(widget.task.reportId));
+                      await context.read<RescueProvider>().acknowledgeReport(
+                        int.parse(widget.task.reportId),
+                      );
                     }
                     if (context.mounted) {
                       Navigator.pop(context);
@@ -862,7 +869,6 @@ class _FullScreenPhotoViewer extends StatelessWidget {
     );
   }
 }
-
 
 // ─── Reusable Animated Widgets ────────────────────────────────────────────────
 
@@ -1511,7 +1517,7 @@ class _SeverityBadge extends StatelessWidget {
       case 2:
         bg = AppColors.success.withOpacity(0.15);
         text = AppColors.success;
-        label = 'Medium Severity';
+        label = 'Moderate Severity';
         break;
       case 3:
         bg = AppColors.warning.withOpacity(0.15);
@@ -1519,10 +1525,14 @@ class _SeverityBadge extends StatelessWidget {
         label = 'High Severity';
         break;
       case 4:
+        bg = const Color(0xFFFF6B2B).withOpacity(0.15);
+        text = const Color(0xFFFF6B2B);
+        label = 'Severe Severity';
+        break;
       case 5:
-        bg = AppColors.danger.withOpacity(0.15);
-        text = AppColors.danger;
-        label = 'Critical Severity';
+        bg = const Color(0xFFFF3B3B).withOpacity(0.15);
+        text = const Color(0xFFFF3B3B);
+        label = 'Extreme Severity';
         break;
       default:
         bg = AppColors.warning.withOpacity(0.15);

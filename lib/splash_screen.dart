@@ -27,7 +27,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
   late final AnimationController _animationController;
   bool _isInitComplete = false;
   bool _isAnimationComplete = false;
@@ -72,15 +73,20 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       widget.router.initialize();
 
       // 3. Firebase
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
+      if (!kIsWeb &&
+          (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
         try {
           await Firebase.initializeApp();
-          FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+          FirebaseMessaging.onBackgroundMessage(
+            _firebaseMessagingBackgroundHandler,
+          );
         } catch (e) {
           debugPrint("Firebase init error: $e");
         }
       } else {
-        debugPrint("Firebase is not supported or configured on this platform. Skipping.");
+        debugPrint(
+          "Firebase is not supported or configured on this platform. Skipping.",
+        );
       }
 
       // 4. Notification Service
@@ -109,7 +115,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       if (mounted) {
         // Prevent repeating the navigation
         _isAnimationComplete = false;
-        
+
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(

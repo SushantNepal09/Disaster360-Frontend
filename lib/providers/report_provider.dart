@@ -88,7 +88,7 @@ class ReportProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _completedOperations = [];
   List<Map<String, dynamic>> _duplicateReports = [];
   bool _isLoading = false;
-  
+
   int? _highlightedReportId;
 
   List<ReportModel> get reports => _reports;
@@ -158,7 +158,9 @@ class ReportProvider extends ChangeNotifier {
     try {
       final response = await _apiService.get('/admin/completed-operations');
       if (response != null && response['success'] == true) {
-        _completedOperations = List<Map<String, dynamic>>.from(response['data']);
+        _completedOperations = List<Map<String, dynamic>>.from(
+          response['data'],
+        );
         notifyListeners();
       }
     } catch (e) {
@@ -166,14 +168,19 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> submitFinalAdminReport(int incidentId, String reportContent) async {
+  Future<void> submitFinalAdminReport(
+    int incidentId,
+    String reportContent,
+  ) async {
     try {
       final response = await _apiService.post(
         '/admin/incidents/$incidentId/final-report',
         body: {'final_report': reportContent},
       );
       // Remove from completed operations locally since it's now closed
-      _completedOperations.removeWhere((op) => op['incident_id'] == incidentId.toString());
+      _completedOperations.removeWhere(
+        (op) => op['incident_id'] == incidentId.toString(),
+      );
       notifyListeners();
     } catch (e) {
       debugPrint("Error submitting final admin report: $e");
@@ -181,9 +188,13 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchIncidentHistory(int incidentId) async {
+  Future<List<Map<String, dynamic>>> fetchIncidentHistory(
+    int incidentId,
+  ) async {
     try {
-      final response = await _apiService.get('/admin/incidents/$incidentId/history');
+      final response = await _apiService.get(
+        '/admin/incidents/$incidentId/history',
+      );
       if (response != null && response['success'] == true) {
         return List<Map<String, dynamic>>.from(response['data']);
       }
@@ -227,7 +238,11 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> reactToSubmission(int reportId, int subId, String reactionType) async {
+  Future<void> reactToSubmission(
+    int reportId,
+    int subId,
+    String reactionType,
+  ) async {
     try {
       final response = await _apiService.post(
         '/reports/submissions/$subId/react?reaction=$reactionType',
@@ -238,7 +253,9 @@ class ReportProvider extends ChangeNotifier {
 
       final index = _reports.indexWhere((r) => r.id == reportId);
       if (index != -1) {
-        final subIndex = _reports[index].submissions.indexWhere((s) => s['id'] == subId);
+        final subIndex = _reports[index].submissions.indexWhere(
+          (s) => s['id'] == subId,
+        );
         if (subIndex != -1) {
           _reports[index].submissions[subIndex]['likes'] = newLikes;
           _reports[index].submissions[subIndex]['dislikes'] = newDislikes;
@@ -458,6 +475,7 @@ class ReportProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
   Future<void> undoAssignment(int assignmentId) async {
     try {
       await _apiService.delete('/admin/assignments/$assignmentId');

@@ -7,7 +7,11 @@ class RejectionDialog extends StatefulWidget {
   final int assignmentId;
   final VoidCallback? onSuccess;
 
-  const RejectionDialog({super.key, required this.assignmentId, this.onSuccess});
+  const RejectionDialog({
+    super.key,
+    required this.assignmentId,
+    this.onSuccess,
+  });
 
   @override
   State<RejectionDialog> createState() => _RejectionDialogState();
@@ -20,14 +24,14 @@ class _RejectionDialogState extends State<RejectionDialog> {
 
   Future<void> _submitRejection() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
     try {
       final provider = context.read<RescueProvider>();
       final reason = _reasonController.text.trim();
-      
+
       await provider.rejectAssignment(widget.assignmentId, reason: reason);
-      
+
       if (mounted) {
         Navigator.pop(context); // Close dialog
         ScaffoldMessenger.of(context).showSnackBar(
@@ -120,16 +124,28 @@ class _RejectionDialogState extends State<RejectionDialog> {
           onPressed: _isLoading ? null : _submitRejection,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.redAccent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Reject', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          child:
+              _isLoading
+                  ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                  : const Text(
+                    'Reject',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
         ),
       ],
     );

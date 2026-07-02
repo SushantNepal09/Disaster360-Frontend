@@ -52,9 +52,15 @@ class RescueService {
   // ---------------------------------------------------------------------------
   // PUT /rescue/assignments/{assignmentId}/reject
   // ---------------------------------------------------------------------------
-  Future<Map<String, dynamic>> rejectAssignment(int assignmentId, {required String reason}) async {
+  Future<Map<String, dynamic>> rejectAssignment(
+    int assignmentId, {
+    required String reason,
+  }) async {
     final Map<String, dynamic> body = {'reason': reason};
-    final response = await _api.put('/rescue/assignments/$assignmentId/reject', body: body);
+    final response = await _api.put(
+      '/rescue/assignments/$assignmentId/reject',
+      body: body,
+    );
     return Map<String, dynamic>.from(response as Map);
   }
 

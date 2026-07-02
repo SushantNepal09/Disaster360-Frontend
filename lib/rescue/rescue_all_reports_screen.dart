@@ -139,8 +139,7 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen>
                 child: RefreshIndicator(
                   color: AppColors.orange,
                   backgroundColor: AppColors.bgSurface,
-                  onRefresh:
-                      () => context.read<RescueProvider>().fetchAll(),
+                  onRefresh: () => context.read<RescueProvider>().fetchAll(),
                   child:
                       _filteredReports.isEmpty
                           ? const SingleChildScrollView(
@@ -537,14 +536,34 @@ class _RescueReportCardState extends State<_RescueReportCard> {
         return '${diff.inDays} days ago';
       } else if (diff.inDays < 365) {
         const monthNames = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}';
       } else {
         const monthNames = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
       }
@@ -569,12 +588,8 @@ class _RescueReportCardState extends State<_RescueReportCard> {
     transitionDuration: const Duration(milliseconds: 300),
   );
 
-
-
   @override
   Widget build(BuildContext context) {
-
-
     final report = widget.report;
     final bool reviewOnly = true;
     final bool isVerified = false;
@@ -636,10 +651,7 @@ class _RescueReportCardState extends State<_RescueReportCard> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                _StatusBadge(
-                  status:
-                      report.status.name,
-                ),
+                _StatusBadge(status: report.status.name),
                 const Spacer(),
                 Flexible(
                   child: Text(
@@ -737,7 +749,6 @@ class _RescueReportCardState extends State<_RescueReportCard> {
               ),
               const SizedBox(height: 10),
             ],
-
 
             if (report.assignedTeams.isNotEmpty)
               Wrap(

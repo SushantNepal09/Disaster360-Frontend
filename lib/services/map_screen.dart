@@ -100,7 +100,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   final GisService _gisService = GisService();
-  
+
   String _activeBoundaryLayer = 'None';
   List<MapRegion> _cachedProvinces = [];
   List<MapRegion> _cachedDistricts = [];
@@ -245,9 +245,18 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   Future<void> _loadAllBoundaries() async {
     setState(() => _isLoadingBoundaries = true);
     try {
-      final prov = await _gisService.loadLayer('Province', 'assets/maps/province0.json');
-      final dist = await _gisService.loadLayer('District', 'assets/maps/districts0.json');
-      final LocalUnit = await _gisService.loadLayer('LocalUnit', 'assets/maps/local_unit.json');
+      final prov = await _gisService.loadLayer(
+        'Province',
+        'assets/maps/province0.json',
+      );
+      final dist = await _gisService.loadLayer(
+        'District',
+        'assets/maps/districts0.json',
+      );
+      final LocalUnit = await _gisService.loadLayer(
+        'LocalUnit',
+        'assets/maps/local_unit.json',
+      );
       if (mounted) {
         setState(() {
           _cachedProvinces = prov;
@@ -303,15 +312,21 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
 
           if (_activeBoundaryLayer != 'None') {
             List<MapRegion> activeRegions = [];
-            if (_activeBoundaryLayer == 'Province') activeRegions = _cachedProvinces;
-            if (_activeBoundaryLayer == 'District') activeRegions = _cachedDistricts;
-            if (_activeBoundaryLayer == 'LocalUnit') activeRegions = _cachedWards;
+            if (_activeBoundaryLayer == 'Province')
+              activeRegions = _cachedProvinces;
+            if (_activeBoundaryLayer == 'District')
+              activeRegions = _cachedDistricts;
+            if (_activeBoundaryLayer == 'LocalUnit')
+              activeRegions = _cachedWards;
 
             final regionName = _gisService.identifyRegion(point, activeRegions);
             if (regionName != null) {
               setState(() {
                 _tappedRegionName = regionName;
-                _tappedRegionLayer = _activeBoundaryLayer == 'LocalUnit' ? 'Local Unit' : _activeBoundaryLayer;
+                _tappedRegionLayer =
+                    _activeBoundaryLayer == 'LocalUnit'
+                        ? 'Local Unit'
+                        : _activeBoundaryLayer;
               });
               _regionInfoTimer?.cancel();
               _regionInfoTimer = Timer(const Duration(seconds: 4), () {
@@ -357,22 +372,24 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     if (_activeBoundaryLayer == 'District') activeRegions = _cachedDistricts;
     if (_activeBoundaryLayer == 'LocalUnit') activeRegions = _cachedWards;
 
-    final color = _activeBoundaryLayer == 'Province' 
-        ? Colors.deepPurpleAccent 
-        : _activeBoundaryLayer == 'District' 
-            ? Colors.blueAccent 
+    final color =
+        _activeBoundaryLayer == 'Province'
+            ? Colors.deepPurpleAccent
+            : _activeBoundaryLayer == 'District'
+            ? Colors.blueAccent
             : Colors.teal;
 
     return PolygonLayer(
       simplificationTolerance: 0.5,
-      polygons: activeRegions.expand((r) => r.polygons).map<Polygon>((polyCoords) {
-        return Polygon(
-          points: polyCoords,
-          color: color.withOpacity(0.15),
-          borderColor: color.withOpacity(0.8),
-          borderStrokeWidth: 2.0,
-        );
-      }).toList(),
+      polygons:
+          activeRegions.expand((r) => r.polygons).map<Polygon>((polyCoords) {
+            return Polygon(
+              points: polyCoords,
+              color: color.withOpacity(0.15),
+              borderColor: color.withOpacity(0.8),
+              borderStrokeWidth: 2.0,
+            );
+          }).toList(),
     );
   }
 
@@ -396,25 +413,52 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                  ),
                 ],
               ),
-              child: _isLoadingBoundaries 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54))
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.layers_rounded, 
-                          color: _activeBoundaryLayer != 'None' ? AppColors.info : Colors.white54, 
-                          size: 20
+              child:
+                  _isLoadingBoundaries
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white54,
                         ),
-                        const SizedBox(width: 8),
-                        const Text('Boundary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                        const SizedBox(width: 4),
-                        Icon(_isBoundaryMenuOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down, color: Colors.white54, size: 18),
-                      ],
-                    ),
+                      )
+                      : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.layers_rounded,
+                            color:
+                                _activeBoundaryLayer != 'None'
+                                    ? AppColors.info
+                                    : Colors.white54,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Boundary',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            _isBoundaryMenuOpen
+                                ? Icons.arrow_drop_up
+                                : Icons.arrow_drop_down,
+                            color: Colors.white54,
+                            size: 18,
+                          ),
+                        ],
+                      ),
             ),
           ),
           if (_isBoundaryMenuOpen) ...[
@@ -427,19 +471,54 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                  ),
                 ],
               ),
               child: Column(
                 children: [
-                  _BoundaryBtn(label: 'None', active: _activeBoundaryLayer == 'None', onTap: () => setState(() { _activeBoundaryLayer = 'None'; _isBoundaryMenuOpen = false; })),
-                  _BoundaryBtn(label: 'Province', active: _activeBoundaryLayer == 'Province', onTap: () => setState(() { _activeBoundaryLayer = 'Province'; _isBoundaryMenuOpen = false; })),
-                  _BoundaryBtn(label: 'District', active: _activeBoundaryLayer == 'District', onTap: () => setState(() { _activeBoundaryLayer = 'District'; _isBoundaryMenuOpen = false; })),
-                  _BoundaryBtn(label: 'LocalUnit', active: _activeBoundaryLayer == 'LocalUnit', onTap: () => setState(() { _activeBoundaryLayer = 'LocalUnit'; _isBoundaryMenuOpen = false; })),
+                  _BoundaryBtn(
+                    label: 'None',
+                    active: _activeBoundaryLayer == 'None',
+                    onTap:
+                        () => setState(() {
+                          _activeBoundaryLayer = 'None';
+                          _isBoundaryMenuOpen = false;
+                        }),
+                  ),
+                  _BoundaryBtn(
+                    label: 'Province',
+                    active: _activeBoundaryLayer == 'Province',
+                    onTap:
+                        () => setState(() {
+                          _activeBoundaryLayer = 'Province';
+                          _isBoundaryMenuOpen = false;
+                        }),
+                  ),
+                  _BoundaryBtn(
+                    label: 'District',
+                    active: _activeBoundaryLayer == 'District',
+                    onTap:
+                        () => setState(() {
+                          _activeBoundaryLayer = 'District';
+                          _isBoundaryMenuOpen = false;
+                        }),
+                  ),
+                  _BoundaryBtn(
+                    label: 'LocalUnit',
+                    active: _activeBoundaryLayer == 'LocalUnit',
+                    onTap:
+                        () => setState(() {
+                          _activeBoundaryLayer = 'LocalUnit';
+                          _isBoundaryMenuOpen = false;
+                        }),
+                  ),
                 ],
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
@@ -462,13 +541,23 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                 duration: const Duration(milliseconds: 200),
                 opacity: _tappedRegionName != null ? 1.0 : 0.0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.bgSurface.withOpacity(0.95),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border.withOpacity(0.5), width: 1),
+                    border: Border.all(
+                      color: AppColors.border.withOpacity(0.5),
+                      width: 1,
+                    ),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
                     ],
                   ),
                   child: Column(
@@ -1807,7 +1896,11 @@ class _BoundaryBtn extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _BoundaryBtn({required this.label, required this.active, required this.onTap});
+  const _BoundaryBtn({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1820,7 +1913,10 @@ class _BoundaryBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: active ? AppColors.info.withOpacity(0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: active ? AppColors.info.withOpacity(0.5) : Colors.transparent),
+          border: Border.all(
+            color:
+                active ? AppColors.info.withOpacity(0.5) : Colors.transparent,
+          ),
         ),
         child: Center(
           child: Text(

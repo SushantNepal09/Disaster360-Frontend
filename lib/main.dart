@@ -9,8 +9,6 @@ import 'package:disaster360/services/deep_link_router.dart';
 import 'package:disaster360/services/notification_service.dart';
 import 'package:disaster360/splash_screen.dart';
 
-
-
 import 'package:google_fonts/google_fonts.dart';
 
 Future<void> main() async {

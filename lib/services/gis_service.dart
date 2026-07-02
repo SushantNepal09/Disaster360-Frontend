@@ -62,7 +62,7 @@ class GisService {
           if (coord is List && coord.length >= 2) {
             double lng = (coord[0] as num).toDouble();
             double lat = (coord[1] as num).toDouble();
-            
+
             // Filter invalid coordinates
             if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
 
@@ -70,11 +70,11 @@ class GisService {
             if (lat > maxLat) maxLat = lat;
             if (lng < minLng) minLng = lng;
             if (lng > maxLng) maxLng = lng;
-            
+
             poly.add(LatLng(lat, lng));
           }
         }
-        // Basic simplification can be done here if needed, but flutter_map's 
+        // Basic simplification can be done here if needed, but flutter_map's
         // PolygonLayer has simplification tolerance which we can use instead.
         if (poly.isNotEmpty) {
           polys.add(poly);
@@ -93,12 +93,17 @@ class GisService {
       }
 
       if (polys.isNotEmpty) {
-        regions.add(MapRegion(
-          name: name,
-          type: type,
-          bounds: LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng)),
-          polygons: polys,
-        ));
+        regions.add(
+          MapRegion(
+            name: name,
+            type: type,
+            bounds: LatLngBounds(
+              LatLng(minLat, minLng),
+              LatLng(maxLat, maxLng),
+            ),
+            polygons: polys,
+          ),
+        );
       }
     }
     return regions;
@@ -123,9 +128,13 @@ class GisService {
     bool c = false;
     int j = polygon.length - 1;
     for (int i = 0; i < polygon.length; i++) {
-      if (((polygon[i].latitude > point.latitude) != (polygon[j].latitude > point.latitude)) &&
-          (point.longitude < (polygon[j].longitude - polygon[i].longitude) * 
-          (point.latitude - polygon[i].latitude) / (polygon[j].latitude - polygon[i].latitude) + polygon[i].longitude)) {
+      if (((polygon[i].latitude > point.latitude) !=
+              (polygon[j].latitude > point.latitude)) &&
+          (point.longitude <
+              (polygon[j].longitude - polygon[i].longitude) *
+                      (point.latitude - polygon[i].latitude) /
+                      (polygon[j].latitude - polygon[i].latitude) +
+                  polygon[i].longitude)) {
         c = !c;
       }
       j = i;

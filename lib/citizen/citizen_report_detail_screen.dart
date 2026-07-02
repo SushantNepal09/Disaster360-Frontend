@@ -10,7 +10,13 @@ class CitizenReportDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final steps = ['Pending', 'Verified', 'Assigned', 'In Progress', 'Resolved'];
+    final steps = [
+      'Pending',
+      'Verified',
+      'Assigned',
+      'In Progress',
+      'Resolved',
+    ];
     final currentIndex = _currentStepIndex(report.status);
 
     return Scaffold(
@@ -53,11 +59,15 @@ class CitizenReportDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Metadata
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, color: Colors.white54, size: 16),
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: Colors.white54,
+                  size: 16,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -81,7 +91,7 @@ class CitizenReportDetailScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            
+
             // Status Pills
             Row(
               children: [
@@ -92,11 +102,11 @@ class CitizenReportDetailScreen extends StatelessWidget {
                 _buildDynamicStatusPill(report.status),
               ],
             ),
-            
+
             const SizedBox(height: 32),
             Container(height: 1, color: Colors.white.withOpacity(0.06)),
             const SizedBox(height: 32),
-            
+
             // Description
             Text(
               report.description,
@@ -106,13 +116,13 @@ class CitizenReportDetailScreen extends StatelessWidget {
                 height: 1.6,
               ),
             ),
-            
+
             const SizedBox(height: 32),
             if (report.mediaUrls.isNotEmpty) ...[
               _MinimalMediaGallery(urls: report.mediaUrls),
               const SizedBox(height: 32),
             ],
-            
+
             // Teams
             const Text(
               'ASSIGNED TEAMS',
@@ -125,11 +135,14 @@ class CitizenReportDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _MinimalTeamCard(
-              teamName: report.rescueTeam.isNotEmpty ? report.rescueTeam : 'Unassigned',
+              teamName:
+                  report.rescueTeam.isNotEmpty
+                      ? report.rescueTeam
+                      : 'Unassigned',
               role: 'First Responders',
               status: report.rescueTeam.isNotEmpty ? 'En route' : 'Standby',
             ),
-            
+
             const SizedBox(height: 32),
             _MinimalTimeline(steps: steps, currentIndex: currentIndex),
             const SizedBox(height: 40),
@@ -144,7 +157,12 @@ class CitizenReportDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        border: Border.all(color: isPrimary ? Colors.cyanAccent.withOpacity(0.3) : Colors.white.withOpacity(0.12)),
+        border: Border.all(
+          color:
+              isPrimary
+                  ? Colors.cyanAccent.withOpacity(0.3)
+                  : Colors.white.withOpacity(0.12),
+        ),
       ),
       child: Text(
         text,
@@ -209,7 +227,6 @@ class CitizenReportDetailScreen extends StatelessWidget {
   }
 }
 
-
 // ─── Minimal Timeline ────────────────────────────────────────────────────────
 
 class _MinimalTimeline extends StatelessWidget {
@@ -251,13 +268,19 @@ class _MinimalTimeline extends StatelessWidget {
                         height: 12,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isCurrent 
-                              ? Colors.cyanAccent 
-                              : (isDone ? Colors.white30 : Colors.transparent),
+                          color:
+                              isCurrent
+                                  ? Colors.cyanAccent
+                                  : (isDone
+                                      ? Colors.white30
+                                      : Colors.transparent),
                           border: Border.all(
-                            color: isCurrent 
-                                ? Colors.cyanAccent 
-                                : (isDone ? Colors.white30 : Colors.white12),
+                            color:
+                                isCurrent
+                                    ? Colors.cyanAccent
+                                    : (isDone
+                                        ? Colors.white30
+                                        : Colors.white12),
                             width: 2,
                           ),
                         ),
@@ -266,9 +289,10 @@ class _MinimalTimeline extends StatelessWidget {
                         Expanded(
                           child: Container(
                             width: 1.5,
-                            color: isDone && i < currentIndex
-                                ? Colors.white30
-                                : Colors.white12,
+                            color:
+                                isDone && i < currentIndex
+                                    ? Colors.white30
+                                    : Colors.white12,
                             margin: const EdgeInsets.symmetric(vertical: 4),
                           ),
                         ),
@@ -284,11 +308,13 @@ class _MinimalTimeline extends StatelessWidget {
                       Text(
                         steps[i].toUpperCase(),
                         style: TextStyle(
-                          color: isCurrent
-                              ? Colors.cyanAccent
-                              : (isDone ? Colors.white : Colors.white30),
+                          color:
+                              isCurrent
+                                  ? Colors.cyanAccent
+                                  : (isDone ? Colors.white : Colors.white30),
                           fontSize: 13,
-                          fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight:
+                              isCurrent ? FontWeight.w700 : FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -301,7 +327,7 @@ class _MinimalTimeline extends StatelessWidget {
                             fontSize: 11,
                           ),
                         ),
-                      ]
+                      ],
                     ],
                   ),
                 ),
@@ -354,25 +380,32 @@ class _MinimalMediaGallery extends StatelessWidget {
         if (urls.length > 1) ...[
           const SizedBox(height: 8),
           Row(
-            children: urls.skip(1).take(3).map((url) {
-              return Expanded(
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    margin: EdgeInsets.only(
-                      right: url == urls.last || url == urls[Math.min(3, urls.length - 1)] ? 0 : 8,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white.withOpacity(0.06)),
-                      image: DecorationImage(
-                        image: NetworkImage(url),
-                        fit: BoxFit.cover,
+            children:
+                urls.skip(1).take(3).map((url) {
+                  return Expanded(
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Container(
+                        margin: EdgeInsets.only(
+                          right:
+                              url == urls.last ||
+                                      url == urls[Math.min(3, urls.length - 1)]
+                                  ? 0
+                                  : 8,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.06),
+                          ),
+                          image: DecorationImage(
+                            image: NetworkImage(url),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           ),
         ],
       ],
@@ -420,9 +453,10 @@ class _MinimalTeamCard extends StatelessWidget {
               Text(
                 status.toUpperCase(),
                 style: TextStyle(
-                  color: status.toLowerCase() == 'on-site' 
-                      ? Colors.greenAccent 
-                      : Colors.white54,
+                  color:
+                      status.toLowerCase() == 'on-site'
+                          ? Colors.greenAccent
+                          : Colors.white54,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
@@ -433,10 +467,7 @@ class _MinimalTeamCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             role,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),
@@ -445,4 +476,3 @@ class _MinimalTeamCard extends StatelessWidget {
 }
 
 // ─── Shared Imports ──────────────────────────────────────────────────────────
-

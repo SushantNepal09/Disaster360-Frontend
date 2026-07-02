@@ -14,6 +14,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:disaster360/services/gis_cache_service.dart';
+
 class ReportDisasterScreen extends StatefulWidget {
   const ReportDisasterScreen({super.key});
 
@@ -143,7 +144,10 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
 
   Future<void> _updateAdministrativeAreas(Position pos) async {
     final cacheService = GisCacheService();
-    final areas = await cacheService.identifyAdministrativeAreas(pos.latitude, pos.longitude);
+    final areas = await cacheService.identifyAdministrativeAreas(
+      pos.latitude,
+      pos.longitude,
+    );
     if (mounted) {
       setState(() {
         _administrativeAreas = areas;
@@ -264,16 +268,18 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
     try {
       // Offline SMS Fallback Check
       final connectivityResult = await Connectivity().checkConnectivity();
-      final isOffline = connectivityResult.contains(ConnectivityResult.none) || connectivityResult.isEmpty;
-      
+      final isOffline =
+          connectivityResult.contains(ConnectivityResult.none) ||
+          connectivityResult.isEmpty;
+
       if (isOffline) {
-         _hourglassController.stop();
-         setState(() {
-            _isSubmitting = false;
-            _isDuplicateCheckRunning = false;
-         });
-         await _launchSmsFallback();
-         return;
+        _hourglassController.stop();
+        setState(() {
+          _isSubmitting = false;
+          _isDuplicateCheckRunning = false;
+        });
+        await _launchSmsFallback();
+        return;
       }
 
       // Ensure minimum photos
@@ -297,11 +303,10 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
         filesToUpload,
       );
 
-      String severityStr = "Low";
-      if (_severityLevel == 1) severityStr = "Medium";
-      if (_severityLevel == 2) severityStr = "High";
-      if (_severityLevel == 3) severityStr = "Critical";
-
+      String severityStr =
+          _severityLevel > 0
+              ? _severityLevels[_severityLevel - 1].label
+              : 'Unknown';
       // Step 2: Create Report
       final response = await api.post(
         '/reports/',
@@ -391,29 +396,33 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
     final user = authProvider.user;
     final userName = user?.fullName ?? user?.email ?? "Unknown User";
     final userId = user?.id ?? "UNKNOWN_ID";
-    
-    final severityStr = _severityLevel == 1 ? "Medium" : (_severityLevel == 2 ? "High" : (_severityLevel == 3 ? "Critical" : "Low"));
+
+    final severityStr =
+        _severityLevel > 0
+            ? _severityLevels[_severityLevel - 1].label
+            : 'Unknown';
     final lat = _currentPosition?.latitude.toStringAsFixed(4) ?? "0.0";
     final lng = _currentPosition?.longitude.toStringAsFixed(4) ?? "0.0";
-    
+
     // Format: TITLE|DESCRIPTION|SEVERITY|LATITUDE|LONGITUDE|DISASTER_TYPE|USER_NAME|USER_ID
-    final smsBody = "${_titleCtrl.text}|${_descCtrl.text}|$severityStr|$lat|$lng|$_selectedType|$userName|$userId";
+    final smsBody =
+        "${_titleCtrl.text}|${_descCtrl.text}|$severityStr|$lat|$lng|$_selectedType|$userName|$userId";
 
     String? encodeQueryParameters(Map<String, String> params) {
       return params.entries
-          .map((MapEntry<String, String> e) =>
-              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+          .map(
+            (MapEntry<String, String> e) =>
+                '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
+          )
           .join('&');
     }
-    
+
     final gatewayNumber = dotenv.env['SMS_GATEWAY_NUMBER'] ?? '';
 
     final Uri smsLaunchUri = Uri(
       scheme: 'sms',
       path: gatewayNumber,
-      query: encodeQueryParameters(<String, String>{
-        'body': smsBody,
-      }),
+      query: encodeQueryParameters(<String, String>{'body': smsBody}),
     );
 
     try {

@@ -46,7 +46,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
   ];
   String _selectedDisaster = 'Earthquake';
 
-  final int _severityLevel = 5; // Hardcoded to 5 (Critical)
+  final int _severityLevel = 5; // Hardcoded to 5 (Extreme)
   final List<String> _uploadedPhotos = []; // Simulated file paths
 
   static const List<_SeverityMeta> _severityLevels = [
@@ -219,8 +219,8 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
       List<String> adminAreas = ["Unknown", "Unknown", "Unknown"];
       try {
         adminAreas = await GisCacheService().identifyAdministrativeAreas(
-          _currentPosition!.latitude, 
-          _currentPosition!.longitude
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
         );
       } catch (e) {
         debugPrint("Failed to identify administrative areas: $e");
@@ -240,15 +240,19 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
 
       final api = ApiService();
       final storageService = SupabaseStorageService();
-      
+
       // Step 1: Upload images to Supabase
-      List<File> filesToUpload = _uploadedPhotos.map((path) => File(path)).toList();
-      List<String> uploadedUrls = await storageService.uploadImages(filesToUpload);
+      List<File> filesToUpload =
+          _uploadedPhotos.map((path) => File(path)).toList();
+      List<String> uploadedUrls = await storageService.uploadImages(
+        filesToUpload,
+      );
 
       final response = await api.post('/reports/', body: payload);
       final reportId = response['report_id'];
       final subId = response['submission_id'] ?? reportId;
-      final merged = response.containsKey('merged') ? response['merged'] : false;
+      final merged =
+          response.containsKey('merged') ? response['merged'] : false;
 
       // Step 3: Attach Media URLs to the report
       if (uploadedUrls.isNotEmpty) {
@@ -307,7 +311,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       } else {
-        // App was launched cold into this screen; exit app normally 
+        // App was launched cold into this screen; exit app normally
         // by popping the only route or pushing AuthWrapper if preferred.
         // As per the plan, exiting the app is acceptable here.
         Navigator.pop(context); // Will exit the app
@@ -327,7 +331,6 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
     );
   }
 
-  
   Widget _buildPhotoEvidence() {
     return Column(
       children: [
@@ -705,7 +708,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
                         : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                          Text(
+                            Text(
                               'SUBMIT EMERGENCY',
                               style: TextStyle(
                                 fontSize: 16,

@@ -42,10 +42,11 @@ class NotificationService {
 
   /// Initializes FCM and Local Notifications
   Future<void> initialize() async {
-    if (!kIsWeb && (!Platform.isAndroid && !Platform.isIOS && !Platform.isMacOS)) {
+    if (!kIsWeb &&
+        (!Platform.isAndroid && !Platform.isIOS && !Platform.isMacOS)) {
       return;
     }
-    
+
     _firebaseMessaging = FirebaseMessaging.instance;
 
     // 1. Request permissions for iOS and Android 13+
@@ -96,7 +97,8 @@ class NotificationService {
 
     if (hasPrompted) return;
 
-    NotificationSettings settings = await _firebaseMessaging!.getNotificationSettings();
+    NotificationSettings settings =
+        await _firebaseMessaging!.getNotificationSettings();
 
     if (settings.authorizationStatus == AuthorizationStatus.denied ||
         settings.authorizationStatus == AuthorizationStatus.notDetermined) {
@@ -110,43 +112,53 @@ class NotificationService {
       // If still denied, show manual prompt
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         if (!context.mounted) return;
-        
+
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF1E1E2C),
-            title: const Text('Enable Notifications', style: TextStyle(color: Colors.white)),
-            content: const Text(
-              'Disaster360 relies on notifications to send you critical disaster alerts near your location. Please enable notifications in your app settings.',
-              style: TextStyle(color: Colors.white70),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await prefs.setBool('hasPromptedForNotifications', true);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-                child: const Text('Not Now', style: TextStyle(color: Colors.white54)),
+          builder:
+              (ctx) => AlertDialog(
+                backgroundColor: const Color(0xFF1E1E2C),
+                title: const Text(
+                  'Enable Notifications',
+                  style: TextStyle(color: Colors.white),
+                ),
+                content: const Text(
+                  'Disaster360 relies on notifications to send you critical disaster alerts near your location. Please enable notifications in your app settings.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      await prefs.setBool('hasPromptedForNotifications', true);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                    child: const Text(
+                      'Not Now',
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Geolocator.openAppSettings();
+                    },
+                    child: const Text(
+                      'Open Settings',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Geolocator.openAppSettings();
-                },
-                child: const Text('Open Settings', style: TextStyle(color: Colors.orange)),
-              ),
-            ],
-          ),
         );
       }
     }
   }
 
-
   Future<void> _initLocalNotifications() async {
     // Android initialization (requires default icon setup in AndroidManifest)
-    const initializationSettingsAndroid =
-        AndroidInitializationSettings('@drawable/ic_warning_small');
+    const initializationSettingsAndroid = AndroidInitializationSettings(
+      '@drawable/ic_warning_small',
+    );
 
     // iOS initialization
     const initializationSettingsDarwin = DarwinInitializationSettings(
@@ -206,20 +218,26 @@ class NotificationService {
   }
 
   /// Sends the device token to the backend API endpoint
-  Future<void> sendTokenToBackend(String token, {double? lat, double? lon, String? localUnit}) async {
+  Future<void> sendTokenToBackend(
+    String token, {
+    double? lat,
+    double? lon,
+    String? localUnit,
+  }) async {
     try {
       final sessionToken = SessionService().token;
       if (sessionToken == null) {
         return;
       }
-      
+
       double? finalLat = lat;
       double? finalLon = lon;
 
       if (finalLat == null || finalLon == null) {
         try {
           final perm = await Geolocator.checkPermission();
-          if (perm == LocationPermission.always || perm == LocationPermission.whileInUse) {
+          if (perm == LocationPermission.always ||
+              perm == LocationPermission.whileInUse) {
             Position? pos;
             try {
               // Try to get a fresh location first so new devices don't send null location
@@ -242,14 +260,17 @@ class NotificationService {
 
       String? finalLocalUnit = localUnit;
       if (finalLocalUnit == null && finalLat != null && finalLon != null) {
-         try {
-            final areas = await GisCacheService().identifyAdministrativeAreas(finalLat, finalLon);
-            if (areas.length >= 3) {
-               finalLocalUnit = areas[2];
-            }
-         } catch (e) {
-            debugPrint("Failed to resolve local unit for token: $e");
-         }
+        try {
+          final areas = await GisCacheService().identifyAdministrativeAreas(
+            finalLat,
+            finalLon,
+          );
+          if (areas.length >= 3) {
+            finalLocalUnit = areas[2];
+          }
+        } catch (e) {
+          debugPrint("Failed to resolve local unit for token: $e");
+        }
       }
 
       // Use dotenv or fallback to a localhost URL
@@ -264,14 +285,17 @@ class NotificationService {
           'fcm_token': token,
           if (finalLat != null) 'latitude': finalLat,
           if (finalLon != null) 'longitude': finalLon,
-          if (finalLocalUnit != null && finalLocalUnit != "Unknown") 'local_unit': finalLocalUnit,
+          if (finalLocalUnit != null && finalLocalUnit != "Unknown")
+            'local_unit': finalLocalUnit,
         }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint("✅ Token sent to backend (Lat: $finalLat, Lon: $finalLon)");
       } else {
-        debugPrint("⚠️ Failed to send FCM token to backend. Status: ${response.statusCode}");
+        debugPrint(
+          "⚠️ Failed to send FCM token to backend. Status: ${response.statusCode}",
+        );
       }
     } catch (e) {
       debugPrint("❌ Error sending FCM token to backend: $e");
@@ -285,7 +309,8 @@ class NotificationService {
   }
 
   void _handleMessageOpenedApp(RemoteMessage message) {
-    final reportIdStr = message.data['incident_id'] ?? message.data['report_id'];
+    final reportIdStr =
+        message.data['incident_id'] ?? message.data['report_id'];
     if (reportIdStr != null) {
       final reportId = int.tryParse(reportIdStr.toString());
       if (reportId != null) {
@@ -302,24 +327,28 @@ class NotificationService {
     final data = message.data;
     if (data.containsKey('type')) {
       final type = data['type'];
-      
+
       if (type == 'incident_created' || type == 'earthquake_alert') {
         final dType = data['disaster_type'] ?? 'Disaster';
         final localUnit = data['local_unit'] ?? 'Unknown location';
-        final reporter = data['reporter_name']?.toString().split(' ').first ?? 'Someone';
-        final desc = data['description'] ?? body; // fallback to body if no description
-        
+        final reporter =
+            data['reporter_name']?.toString().split(' ').first ?? 'Someone';
+        final desc =
+            data['description'] ?? body; // fallback to body if no description
+
         if (data.containsKey('disaster_type')) {
           title = '$dType reported in $localUnit';
           body = '$reporter: $desc';
         }
       } else if (type == 'incident_verified') {
-        final reporter = data['reporter_name']?.toString().split(' ').first ?? 'User';
+        final reporter =
+            data['reporter_name']?.toString().split(' ').first ?? 'User';
         final dType = data['disaster_type'] ?? 'Disaster';
-        
+
         if (data.containsKey('reporter_name')) {
           title = "$reporter's report has been verified";
-          body = "$dType report has been verified and rescue teams have been notified to begin rescue operations.";
+          body =
+              "$dType report has been verified and rescue teams have been notified to begin rescue operations.";
         }
       }
     }

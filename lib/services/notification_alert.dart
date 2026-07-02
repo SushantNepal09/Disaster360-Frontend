@@ -62,7 +62,8 @@ class AppNotification {
         final dateTime = DateTime.parse(json['time']).toLocal();
         final diff = DateTime.now().difference(dateTime);
         if (diff.inMinutes < 60) {
-          formattedTime = diff.inMinutes <= 1 ? 'Just now' : '${diff.inMinutes} min ago';
+          formattedTime =
+              diff.inMinutes <= 1 ? 'Just now' : '${diff.inMinutes} min ago';
         } else if (diff.inHours < 24) {
           formattedTime = '${diff.inHours} hours ago';
         } else if (diff.inDays < 7) {
@@ -81,9 +82,12 @@ class AppNotification {
       title: json['title'] ?? 'Notification',
       body: json['message'] ?? '',
       time: formattedTime,
-      reportId: json['incident_id'] != null 
-          ? int.tryParse(json['incident_id'].toString()) 
-          : (json['report_id'] != null ? int.tryParse(json['report_id'].toString()) : null),
+      reportId:
+          json['incident_id'] != null
+              ? int.tryParse(json['incident_id'].toString())
+              : (json['report_id'] != null
+                  ? int.tryParse(json['report_id'].toString())
+                  : null),
       isRead: json['is_read'] ?? false,
     );
   }
@@ -152,12 +156,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
-
   void _showDetail(AppNotification notification) {
     if (!notification.isRead) {
       context.read<NotificationProvider>().markAsRead(notification.id);
     }
-    
+
     if (notification.reportId != null) {
       // Direct deep link to report on dashboard
       DeepLinkRouter().routeToReport(notification.reportId!);
@@ -182,38 +185,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Scaffold(
           backgroundColor: AppColors.bgPrimary,
           appBar: _buildAppBar(context, provider),
-          body: provider.isLoading && provider.notifications.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
-                  ),
-                )
-              : provider.notifications.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                      color: AppColors.orange,
-                      backgroundColor: AppColors.bgSurface,
-                      onRefresh: () => provider.fetchNotifications(),
-                      child: ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                        itemCount: provider.notifications.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) => _NotificationCard(
-                          notification: provider.notifications[i],
-                          onTap: () => _showDetail(provider.notifications[i]),
-                        ),
+          body:
+              provider.isLoading && provider.notifications.isEmpty
+                  ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.orange,
                       ),
                     ),
+                  )
+                  : provider.notifications.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                    color: AppColors.orange,
+                    backgroundColor: AppColors.bgSurface,
+                    onRefresh: () => provider.fetchNotifications(),
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      itemCount: provider.notifications.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder:
+                          (_, i) => _NotificationCard(
+                            notification: provider.notifications[i],
+                            onTap: () => _showDetail(provider.notifications[i]),
+                          ),
+                    ),
+                  ),
         );
       },
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, NotificationProvider provider) {
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    NotificationProvider provider,
+  ) {
     final unreadCount = provider.unreadCount;
     return AppBar(
       backgroundColor: AppColors.bgPrimary,
@@ -271,8 +281,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ],
     );
   }
-
-
 
   Widget _buildEmptyState() {
     return const Center(

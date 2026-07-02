@@ -222,7 +222,8 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
                     ),
                     Consumer<NotificationProvider>(
                       builder: (context, provider, _) {
-                        if (provider.unreadCount == 0) return const SizedBox.shrink();
+                        if (provider.unreadCount == 0)
+                          return const SizedBox.shrink();
                         return Positioned(
                           top: 7,
                           right: 7,
@@ -479,7 +480,8 @@ class _RescueHomeBody extends StatelessWidget {
         myAssignments.where((t) => t.status == TaskStatus.completed).toList();
 
     // Banner: show latest in-progress assignment
-    final latestAssigned = myAssignments.isNotEmpty ? myAssignments.first : null;
+    final latestAssigned =
+        myAssignments.isNotEmpty ? myAssignments.first : null;
 
     if (isLoading && myAssignments.isEmpty && homeFeed.isEmpty) {
       return const Center(
@@ -510,14 +512,21 @@ class _RescueHomeBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ActiveRescueDisasterCard(task: activeTask, onGoToTasks: onGoToTasks),
+                  _ActiveRescueDisasterCard(
+                    task: activeTask,
+                    onGoToTasks: onGoToTasks,
+                  ),
                   const SizedBox(height: 40),
                   // Hide normal assignments and stats
                   const Center(
                     child: Text(
                       'You are currently responding to this disaster.\nComplete or update this operation before accepting another assignment.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5),
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
                     ),
                   ),
                 ],
@@ -613,14 +622,20 @@ class _RescueHomeBody extends StatelessWidget {
                       isRescueMode: true,
                       onCardTap: () {
                         final provider = context.read<RescueProvider>();
-                        final matchingTask = provider.myAssignments.cast<RescueTask?>().firstWhere(
-                          (t) => t?.reportId == report.id.toString(),
-                          orElse: () => null,
-                        );
-                        
+                        final matchingTask = provider.myAssignments
+                            .cast<RescueTask?>()
+                            .firstWhere(
+                              (t) => t?.reportId == report.id.toString(),
+                              orElse: () => null,
+                            );
+
                         if (matchingTask == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Could not find task details. Please refresh.')),
+                            const SnackBar(
+                              content: Text(
+                                'Could not find task details. Please refresh.',
+                              ),
+                            ),
                           );
                           return;
                         }
@@ -628,9 +643,10 @@ class _RescueHomeBody extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => RescueReportDetailScreen(
-                              task: matchingTask,
-                            ),
+                            builder:
+                                (context) => RescueReportDetailScreen(
+                                  task: matchingTask,
+                                ),
                           ),
                         ).then((_) {
                           if (context.mounted) {
@@ -639,36 +655,53 @@ class _RescueHomeBody extends StatelessWidget {
                         });
                       },
                       onAccept: () {
-                        // Accept logic 
-                        context.read<RescueProvider>().acknowledgeReport(report.id).then((msg) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-                          }
-                        }).catchError((e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                          }
-                        });
+                        // Accept logic
+                        context
+                            .read<RescueProvider>()
+                            .acknowledgeReport(report.id)
+                            .then((msg) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(
+                                  context,
+                                ).showSnackBar(SnackBar(content: Text(msg)));
+                              }
+                            })
+                            .catchError((e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            });
                       },
                       onReject: () {
                         final provider = context.read<RescueProvider>();
-                        final matchingTask = provider.myAssignments.cast<RescueTask?>().firstWhere(
-                          (t) => t?.reportId == report.id.toString(),
-                          orElse: () => null,
-                        );
-                        
+                        final matchingTask = provider.myAssignments
+                            .cast<RescueTask?>()
+                            .firstWhere(
+                              (t) => t?.reportId == report.id.toString(),
+                              orElse: () => null,
+                            );
+
                         if (matchingTask == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Could not find task details. Please refresh.')),
+                            const SnackBar(
+                              content: Text(
+                                'Could not find task details. Please refresh.',
+                              ),
+                            ),
                           );
                           return;
                         }
 
                         showDialog(
                           context: context,
-                          builder: (ctx) => RejectionDialog(
-                            assignmentId: int.parse(matchingTask.assignmentId),
-                          ),
+                          builder:
+                              (ctx) => RejectionDialog(
+                                assignmentId: int.parse(
+                                  matchingTask.assignmentId,
+                                ),
+                              ),
                         );
                       },
                     );
@@ -838,7 +871,8 @@ class _MyOperationCardState extends State<_MyOperationCard> {
 
   @override
   Widget build(BuildContext context) {
-    final statusLabel = StatusTheme.getAssignmentTheme(widget.task.assignmentStatus).label;
+    final statusLabel =
+        StatusTheme.getAssignmentTheme(widget.task.assignmentStatus).label;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1210,16 +1244,31 @@ class _SideRail extends StatelessWidget {
             const SizedBox(height: 28),
             const Divider(color: AppColors.border),
             const SizedBox(height: 8),
-            
-            _SideRailItem(icon: _items[0].icon, label: _items[0].label, isActive: activeNav == 0, expanded: expanded, onTap: () => onNavTap(0)),
-            _SideRailItem(icon: _items[1].icon, label: _items[1].label, isActive: activeNav == 1, expanded: expanded, onTap: () => onNavTap(1)),
-            
+
+            _SideRailItem(
+              icon: _items[0].icon,
+              label: _items[0].label,
+              isActive: activeNav == 0,
+              expanded: expanded,
+              onTap: () => onNavTap(0),
+            ),
+            _SideRailItem(
+              icon: _items[1].icon,
+              label: _items[1].label,
+              isActive: activeNav == 1,
+              expanded: expanded,
+              onTap: () => onNavTap(1),
+            ),
+
             if (expanded) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                   child: const Text(
                     'REPORTS & TASKS',
                     style: TextStyle(
@@ -1240,16 +1289,31 @@ class _SideRail extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ],
-            
-            _SideRailItem(icon: _items[2].icon, label: _items[2].label, isActive: activeNav == 2, expanded: expanded, onTap: () => onNavTap(2)),
-            _SideRailItem(icon: _items[3].icon, label: _items[3].label, isActive: activeNav == 3, expanded: expanded, onTap: () => onNavTap(3)),
-            
+
+            _SideRailItem(
+              icon: _items[2].icon,
+              label: _items[2].label,
+              isActive: activeNav == 2,
+              expanded: expanded,
+              onTap: () => onNavTap(2),
+            ),
+            _SideRailItem(
+              icon: _items[3].icon,
+              label: _items[3].label,
+              isActive: activeNav == 3,
+              expanded: expanded,
+              onTap: () => onNavTap(3),
+            ),
+
             if (expanded) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                   child: const Text(
                     'ACCOUNT',
                     style: TextStyle(
@@ -1270,9 +1334,15 @@ class _SideRail extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ],
-            
-            _SideRailItem(icon: _items[4].icon, label: _items[4].label, isActive: activeNav == 4, expanded: expanded, onTap: () => onNavTap(4)),
-            
+
+            _SideRailItem(
+              icon: _items[4].icon,
+              label: _items[4].label,
+              isActive: activeNav == 4,
+              expanded: expanded,
+              onTap: () => onNavTap(4),
+            ),
+
             const Spacer(),
             const Divider(color: AppColors.border),
             Padding(
@@ -1467,7 +1537,10 @@ class _StatCard extends StatelessWidget {
 class _ActiveRescueDisasterCard extends StatelessWidget {
   final RescueTask task;
   final VoidCallback onGoToTasks;
-  const _ActiveRescueDisasterCard({required this.task, required this.onGoToTasks});
+  const _ActiveRescueDisasterCard({
+    required this.task,
+    required this.onGoToTasks,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1510,7 +1583,10 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -1534,7 +1610,11 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.local_fire_department_rounded, color: AppColors.orange, size: 28),
+                    const Icon(
+                      Icons.local_fire_department_rounded,
+                      color: AppColors.orange,
+                      size: 28,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -1551,12 +1631,19 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_rounded, color: Colors.white54, size: 16),
+                    const Icon(
+                      Icons.location_on_rounded,
+                      color: Colors.white54,
+                      size: 16,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         task.location,
-                        style: const TextStyle(color: Colors.white70, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                   ],
@@ -1572,8 +1659,16 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildInfoCol('Severity', task.severityLevel.toString(), AppColors.danger),
-                      _buildInfoCol('Status', task.assignmentStatus.toUpperCase(), AppColors.warning),
+                      _buildInfoCol(
+                        'Severity',
+                        task.severityLevel.toString(),
+                        AppColors.danger,
+                      ),
+                      _buildInfoCol(
+                        'Status',
+                        task.assignmentStatus.toUpperCase(),
+                        AppColors.warning,
+                      ),
                       _buildInfoCol('Assigned by', 'Admin', Colors.white),
                     ],
                   ),
@@ -1587,7 +1682,8 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => RescueReportDetailScreen(task: task),
+                          builder:
+                              (context) => RescueReportDetailScreen(task: task),
                         ),
                       ).then((_) {
                         if (context.mounted) {
@@ -1605,20 +1701,32 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
                     ),
                     child: const Text(
                       'OPEN RESCUE DETAILS',
-                      style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.1),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (task.assignmentStatus == 'Accepted' || task.assignmentStatus == 'In Progress')
+                if (task.assignmentStatus == 'Accepted' ||
+                    task.assignmentStatus == 'In Progress')
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
                       onPressed: () async {
-                        final nextStatus = task.assignmentStatus == 'Accepted' ? 'In Progress' : 'Completed';
+                        final nextStatus =
+                            task.assignmentStatus == 'Accepted'
+                                ? 'In Progress'
+                                : 'Completed';
                         try {
-                          await context.read<RescueProvider>().updateOperationStatus(int.parse(task.assignmentId), nextStatus);
+                          await context
+                              .read<RescueProvider>()
+                              .updateOperationStatus(
+                                int.parse(task.assignmentId),
+                                nextStatus,
+                              );
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -1647,8 +1755,13 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
                         elevation: 0,
                       ),
                       child: Text(
-                        task.assignmentStatus == 'Accepted' ? 'START OPERATION' : 'MARK AS COMPLETED',
-                        style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.1),
+                        task.assignmentStatus == 'Accepted'
+                            ? 'START OPERATION'
+                            : 'MARK AS COMPLETED',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
                       ),
                     ),
                   ),
@@ -1666,12 +1779,20 @@ class _ActiveRescueDisasterCard extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white38,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           value.toUpperCase(),
-          style: TextStyle(color: valueColor, fontSize: 13, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: valueColor,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );

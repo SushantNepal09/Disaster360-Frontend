@@ -25,6 +25,7 @@ class RescueProvider extends ChangeNotifier {
   // State
   // ---------------------------------------------------------------------------
   List<RescueTask> _myAssignments = [];
+  List<RescueTask> _completedAssignments = [];
   List<RescueTask> _allReports = [];
   List<ReportModel> _homeFeed = [];
   Map<String, dynamic>? _profile;
@@ -36,6 +37,7 @@ class RescueProvider extends ChangeNotifier {
   // Getters
   // ---------------------------------------------------------------------------
   List<RescueTask> get myAssignments => _myAssignments;
+  List<RescueTask> get completedAssignments => _completedAssignments;
   List<RescueTask> get allReports => _allReports;
   List<ReportModel> get homeFeed => _homeFeed;
   Map<String, dynamic>? get profile => _profile;
@@ -44,6 +46,7 @@ class RescueProvider extends ChangeNotifier {
 
   void clear() {
     _myAssignments.clear();
+    _completedAssignments.clear();
     _allReports.clear();
     _homeFeed.clear();
     _profile = null;
@@ -57,8 +60,7 @@ class RescueProvider extends ChangeNotifier {
       _myAssignments.where((t) => t.status == TaskStatus.active).length;
   int get pendingCount =>
       _myAssignments.where((t) => t.status == TaskStatus.pending).length;
-  int get completedCount =>
-      _myAssignments.where((t) => t.status == TaskStatus.completed).length;
+  int get completedCount => _completedAssignments.length;
 
   // ---------------------------------------------------------------------------
   // Fetch All Data (called on screen load)
@@ -70,7 +72,7 @@ class RescueProvider extends ChangeNotifier {
 
     try {
       await fetchProfile();
-      await Future.wait([fetchMyAssignments(), fetchAllReports(), fetchHomeFeed()]);
+      await Future.wait([fetchMyAssignments(), fetchCompletedAssignments(), fetchAllReports(), fetchHomeFeed()]);
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -89,6 +91,19 @@ class RescueProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('fetchMyAssignments error: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fetch Completed Assignments
+  // ---------------------------------------------------------------------------
+  Future<void> fetchCompletedAssignments() async {
+    try {
+      final data = await _service.getCompletedAssignments();
+      _completedAssignments = data.map((r) => RescueTask.fromJson(r)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('fetchCompletedAssignments error: $e');
     }
   }
 
@@ -162,7 +177,10 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   Future<void> updateOperationStatus(int assignmentId, String status) async {
     await _service.updateOperationStatus(assignmentId, status);
-    await fetchMyAssignments();
+    await Future.wait([
+      fetchMyAssignments(),
+      fetchCompletedAssignments(),
+    ]);
   }
 
   // ---------------------------------------------------------------------------
@@ -173,6 +191,9 @@ class RescueProvider extends ChangeNotifier {
     String reportText,
   ) async {
     await _service.submitPostIncidentReport(assignmentId, reportText);
-    await fetchMyAssignments();
+    await Future.wait([
+      fetchMyAssignments(),
+      fetchCompletedAssignments(),
+    ]);
   }
 }

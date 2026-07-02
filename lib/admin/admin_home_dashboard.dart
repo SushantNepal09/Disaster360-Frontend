@@ -2,6 +2,7 @@ import 'package:disaster360/admin/admin_analytics.dart';
 import 'package:disaster360/admin/admin_myreport.dart';
 import 'package:disaster360/admin/admin_profile.dart';
 import 'package:disaster360/admin/admin_user_management.dart';
+import 'package:disaster360/admin/admin_completed_operations_screen.dart';
 import 'package:disaster360/admin/admin_report_details.dart';
 import 'package:disaster360/services/fab_add_report.dart';
 import 'package:disaster360/services/map_screen.dart';
@@ -300,12 +301,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       case 1:
         return const AdminReportsScreen();
       case 2:
-        return const DisasterMapScreen();
+        return const AdminCompletedOperationsScreen();
       case 3:
-        return const AdminAnalyticsScreen();
+        return const DisasterMapScreen();
       case 4:
-        return const AdminProfileScreen();
+        return const AdminAnalyticsScreen();
       case 5:
+        return const AdminProfileScreen();
+      case 6:
         return const AdminUserManagementScreen();
       default:
         return const SizedBox();
@@ -627,6 +630,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       assignedRescueTeams: matchedReport?.rescueTeam ?? 'Not Assigned',
       isAccepted: matchedReport?.isAccepted ?? false,
       assignments: matchedReport?.assignments ?? [],
+      finalAdminReport: matchedReport?.finalAdminReport,
     );
   }
 
@@ -1462,30 +1466,37 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
+            icon: Icons.rate_review_outlined,
+            label: 'Review',
+            index: 2,
+            activeIndex: _activeNav,
+            onTap: _navigateTo,
+          ),
+          _AnimatedNavItem(
             icon: Icons.map_outlined,
             label: 'Risk Map',
-            index: 2,
+            index: 3,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
             icon: Icons.bar_chart_rounded,
             label: 'Analytics',
-            index: 3,
+            index: 4,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
             icon: Icons.person_outline_rounded,
             label: 'Profile',
-            index: 4,
+            index: 5,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
           _AnimatedNavItem(
             icon: Icons.people_alt_outlined,
             label: 'Users',
-            index: 5,
+            index: 6,
             activeIndex: _activeNav,
             onTap: _navigateTo,
           ),
@@ -1542,6 +1553,7 @@ class _SideRail extends StatelessWidget {
   static const _items = [
     _NavData(Icons.dashboard_rounded, 'Dashboard'),
     _NavData(Icons.warning_amber_rounded, 'Reports'),
+    _NavData(Icons.rate_review_outlined, 'Review'),
     _NavData(Icons.map_outlined, 'Risk Map'),
     _NavData(Icons.bar_chart_rounded, 'Analytics'),
     _NavData(Icons.person_outline_rounded, 'Profile'),

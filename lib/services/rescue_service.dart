@@ -106,4 +106,17 @@ class RescueService {
     final response = await _api.get('/rescue/home');
     return List<Map<String, dynamic>>.from(response as List);
   }
+
+  // ---------------------------------------------------------------------------
+  // GET /rescue/completed-assignments
+  // ---------------------------------------------------------------------------
+  Future<List<Map<String, dynamic>>> getCompletedAssignments() async {
+    final response = await _api.get('/rescue/completed-assignments');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true) {
+      final list = map['data'] as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
 }

@@ -108,7 +108,7 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'My Reports',
+                          'All Reports',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 22,

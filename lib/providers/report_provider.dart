@@ -24,6 +24,7 @@ class ReportModel {
   final String rescueTeam;
   final bool isAccepted;
   final List<dynamic> assignments;
+  final String? finalAdminReport;
 
   ReportModel({
     required this.id,
@@ -46,6 +47,7 @@ class ReportModel {
     this.rescueTeam = 'Not Assigned',
     this.isAccepted = false,
     this.assignments = const [],
+    this.finalAdminReport,
   });
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {
@@ -74,6 +76,7 @@ class ReportModel {
       rescueTeam: json['rescue_team']?.toString() ?? 'Not Assigned',
       isAccepted: json['is_accepted'] ?? false,
       assignments: List<dynamic>.from(json['assignments'] ?? []),
+      finalAdminReport: json['final_admin_report']?.toString(),
     );
   }
 }
@@ -82,6 +85,7 @@ class ReportProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   List<ReportModel> _reports = [];
   List<Map<String, dynamic>> _activeRescues = [];
+  List<Map<String, dynamic>> _completedOperations = [];
   List<Map<String, dynamic>> _duplicateReports = [];
   bool _isLoading = false;
   
@@ -89,6 +93,7 @@ class ReportProvider extends ChangeNotifier {
 
   List<ReportModel> get reports => _reports;
   List<Map<String, dynamic>> get activeRescues => _activeRescues;
+  List<Map<String, dynamic>> get completedOperations => _completedOperations;
   List<Map<String, dynamic>> get duplicateReports => _duplicateReports;
   bool get isLoading => _isLoading;
   int? get highlightedReportId => _highlightedReportId;
@@ -113,6 +118,7 @@ class ReportProvider extends ChangeNotifier {
   void clear() {
     _reports.clear();
     _activeRescues.clear();
+    _completedOperations.clear();
     _duplicateReports.clear();
     _isLoading = false;
     notifyListeners();
@@ -145,6 +151,33 @@ class ReportProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint("Error fetching active rescues: $e");
+    }
+  }
+
+  Future<void> fetchCompletedOperations() async {
+    try {
+      final response = await _apiService.get('/admin/completed-operations');
+      if (response != null && response['success'] == true) {
+        _completedOperations = List<Map<String, dynamic>>.from(response['data']);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Error fetching completed operations: $e");
+    }
+  }
+
+  Future<void> submitFinalAdminReport(int incidentId, String reportContent) async {
+    try {
+      final response = await _apiService.post(
+        '/admin/incidents/$incidentId/final-report',
+        body: {'final_report': reportContent},
+      );
+      // Remove from completed operations locally since it's now closed
+      _completedOperations.removeWhere((op) => op['incident_id'] == incidentId.toString());
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error submitting final admin report: $e");
+      rethrow;
     }
   }
 

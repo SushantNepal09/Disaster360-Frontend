@@ -29,6 +29,7 @@ class AdminReportData {
   final String assignedRescueTeams;
   final bool isAccepted;
   final List<dynamic> assignments;
+  final String? finalAdminReport;
 
   const AdminReportData({
     required this.reportId,
@@ -49,6 +50,7 @@ class AdminReportData {
     required this.assignedRescueTeams,
     required this.isAccepted,
     this.assignments = const [],
+    this.finalAdminReport,
   });
 }
 
@@ -105,7 +107,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     _decisionState = widget.initialDecisionState;
     try {
       final statusLower = widget.report.status.toLowerCase();
-      if (statusLower != 'pending' && statusLower != 'rejected') {
+      if (statusLower == 'closed') {
+        _decisionState = 'closed';
+      } else if (statusLower != 'pending' && statusLower != 'rejected') {
         _decisionState = 'verified';
       } else if (statusLower == 'rejected') {
         _decisionState = 'rejected';
@@ -983,7 +987,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                 ),
               ),
           child:
-              _decisionState == 'rejected'
+              _decisionState == 'closed'
+                  ? _buildClosedSummary()
+                  : _decisionState == 'rejected'
                   ? _buildRejectedBanner()
                   : _decisionState == 'verified'
                   ? (_hasAssignedTeam ? _buildAssignedTeamInfo() : _buildAssignTeamSection())
@@ -1112,6 +1118,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
   }
 
   Widget _buildAssignedTeamInfo() {
+    final assignments = widget.report.assignments.where((a) => a['status'] != 'Cancelled').toList();
+    final allCompleted = assignments.isNotEmpty && assignments.every((a) => a['status'] == 'Completed');
+    
     return Column(
       key: const ValueKey('assigned'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1141,7 +1150,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
             
             Color statusColor;
             IconData statusIcon;
-            if (status == 'Accepted' || status == 'In Progress' || status == 'Completed') {
+              if (status == 'Accepted' || status == 'In Progress' || status == 'Completed') {
               statusColor = AppColors.success;
               statusIcon = Icons.check_circle_rounded;
             } else if (status == 'Rejected') {
@@ -1263,23 +1272,163 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                         ],
                       ),
                     ),
+                  if (status == 'Completed' && assignment['post_incident_report'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12.0),
+                      child: _ActionButton(
+                        fullWidth: true,
+                        label: 'View Report',
+                        icon: Icons.description_rounded,
+                        color: AppColors.orange,
+                        filled: true,
+                        onTap: () {
+                          _showReportDialog(context, teamName, assignment['post_incident_report']);
+                        },
+                      ),
+                    ),
                 ],
               ),
             );
           }),
         const SizedBox(height: 12),
-        _ActionButton(
-          fullWidth: true,
-          label: 'Modify Assignments',
-          icon: Icons.edit_rounded,
-          color: AppColors.orange,
-          filled: true,
-          onTap: () {
-            setState(() {
-              _hasAssignedTeam = false; // Show assign section
-            });
-          },
+        if (!allCompleted)
+          _ActionButton(
+            fullWidth: true,
+            label: 'Modify Assignments',
+            icon: Icons.edit_rounded,
+            color: AppColors.orange,
+            filled: true,
+            onTap: () {
+              setState(() {
+                _hasAssignedTeam = false; // Show assign section
+              });
+            },
+          ),
+      ],
+    );
+  }
+
+  void _showReportDialog(BuildContext context, String teamName, String reportContent) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1F1F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('$teamName Report', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Text(
+            reportContent,
+            style: const TextStyle(color: Colors.white70, height: 1.5),
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClosedSummary() {
+    return Column(
+      key: const ValueKey('closed'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 16.0),
+          child: Text(
+            '🏁 Completed Rescue Teams',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        if (widget.report.assignments.isNotEmpty)
+          ...widget.report.assignments.where((a) => a['status'] != 'Cancelled').map((assignment) {
+            final teamName = assignment['team_name'] as String? ?? 'Unknown Team';
+            final report = assignment['post_incident_report'] as String?;
+            final status = assignment['status'] as String? ?? 'Unknown';
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.success.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          teamName,
+                          style: const TextStyle(
+                            color: AppColors.success,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildRescueDetailRow('Status', status),
+                  if (report != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: _ActionButton(
+                        fullWidth: true,
+                        label: 'View Rescue Team Report',
+                        icon: Icons.description_rounded,
+                        color: AppColors.orange,
+                        filled: true,
+                        onTap: () {
+                          _showReportDialog(context, teamName, report);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
+        if (widget.report.finalAdminReport != null) ...[
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white12),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16.0),
+            child: Text(
+              '📝 Overall Incident Report',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          _ActionButton(
+            fullWidth: true,
+            label: 'View Admin Overall Report',
+            icon: Icons.assignment_rounded,
+            color: Colors.purple,
+            filled: true,
+            onTap: () {
+              _showReportDialog(context, 'Overall Admin', widget.report.finalAdminReport!);
+            },
+          ),
+        ],
       ],
     );
   }

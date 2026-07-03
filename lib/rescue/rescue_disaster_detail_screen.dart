@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
+import 'package:disaster360/models/rescue_timeline_event.dart';
+import 'package:disaster360/services/rescue_service.dart';
 import 'package:disaster360/citizen/citizen_home_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
@@ -143,6 +145,14 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
     'Resources Used': false,
     'Post-Incident Report': false,
   };
+
+  final TextEditingController _timelineUpdateController = TextEditingController();
+
+  @override
+  void dispose() {
+    _timelineUpdateController.dispose();
+    super.dispose();
+  }
 
   void _toggleSection(String title) {
     setState(() {
@@ -521,129 +531,205 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
     );
   }
 
-  // ─── Section 4: Disaster Status ─────────────────────────────────────────────
-
-  Widget _buildDisasterStatus() {
-    return _buildAccordion(
-      'Disaster Status',
-      Icons.show_chart_rounded,
-      Column(
-        children: [
-          const Text('CURRENT STATUS', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.warning, width: 1.5),
-              boxShadow: [
-                BoxShadow(color: AppColors.warning.withOpacity(0.1), blurRadius: 20),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.circle, color: AppColors.warning, size: 12),
-                SizedBox(width: 12),
-                Text(
-                  'IN PROGRESS',
-                  style: TextStyle(color: AppColors.warning, fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ─── Section 5: Rescue Timeline ─────────────────────────────────────────────
 
   Widget _buildRescueTimeline() {
-    final steps = [
-      {'time': '11:05', 'text': 'Evacuation route secured — north exit clear', 'color': AppColors.primary},
-      {'time': '10:42', 'text': 'Team reached disaster site — flood level 1.2m', 'color': Colors.blueAccent},
-      {'time': '10:18', 'text': 'Team Alpha accepted assignment', 'color': AppColors.primary},
-      {'time': '10:15', 'text': 'Assigned to Team Alpha by Sushant Admin', 'color': AppColors.warning},
-      {'time': '10:10', 'text': 'Disaster verified by Admin', 'color': Colors.purpleAccent},
-      {'time': '09:58', 'text': 'Citizen submitted flood report', 'color': Colors.white54},
-    ];
-
     return _buildAccordion(
       'Rescue Timeline',
       Icons.access_time_filled_rounded,
-      Column(
-        children: List.generate(steps.length, (i) {
-          final isLast = i == steps.length - 1;
-          final step = steps[i];
-          final color = step['color'] as Color;
+      FutureBuilder<List<Map<String, dynamic>>>(
+        future: RescueService().getTimelineEvents(int.parse(widget.task.taskId)),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ));
+          }
+          if (snapshot.hasError) {
+            return const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Failed to load timeline.', style: TextStyle(color: Colors.white54)),
+            );
+          }
+          
+          final data = snapshot.data ?? [];
+          if (data.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('No timeline events yet.', style: TextStyle(color: Colors.white54)),
+            );
+          }
 
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: Column(
+          final events = data.map((e) => RescueTimelineEvent.fromJson(e)).toList();
+
+          return Column(
+            children: [
+              ...List.generate(events.length, (i) {
+                final isLast = i == events.length - 1;
+                final event = events[i];
+                
+                Color color;
+                if (event.eventType == 'SYSTEM') {
+                  color = AppColors.info;
+                } else {
+                  color = AppColors.primary;
+                }
+
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: color,
-                          border: Border.all(color: color, width: 2),
-                        ),
-                      ),
-                      if (!isLast)
-                        Expanded(
-                          child: Container(
-                            width: 2,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [color, steps[i+1]['color'] as Color],
+                      SizedBox(
+                        width: 24,
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: color,
+                                border: Border.all(color: color, width: 2),
                               ),
                             ),
-                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            if (!isLast)
+                              Expanded(
+                                child: Container(
+                                  width: 2,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        color, 
+                                        (i + 1 < events.length && events[i+1].eventType == 'SYSTEM') ? AppColors.info : AppColors.primary
+                                      ],
+                                    ),
+                                  ),
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                RescueTask.formatDateTime(event.createdAt),
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                event.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (event.description != null && event.description!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  event.description!,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                              if (event.teamName != null && event.teamName!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  "By ${event.teamName}",
+                                  style: TextStyle(
+                                    color: color.withOpacity(0.8),
+                                    fontSize: 12,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ]
+                            ],
                           ),
                         ),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          step['time'] as String,
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                );
+              }),
+              if (widget.task.status == TaskStatus.pending) ...[
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white12),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _timelineUpdateController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Add manual update (e.g., Arrived at site)',
+                          hintStyle: const TextStyle(color: Colors.white38),
+                          filled: true,
+                          fillColor: AppColors.bgDark,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Colors.white12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Colors.white12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: AppColors.primary),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          step['text'] as String,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () async {
+                        final text = _timelineUpdateController.text.trim();
+                        if (text.isEmpty) return;
+                        
+                        try {
+                          await RescueService().addManualTimelineEvent(
+                            int.parse(widget.task.taskId),
+                            text,
+                            null,
+                          );
+                          _timelineUpdateController.clear();
+                          setState(() {}); // refresh FutureBuilder
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error adding update: $e')),
+                          );
+                        }
+                      },
+                      child: const Icon(Icons.send, color: Colors.white, size: 20),
+                    ),
+                  ],
                 ),
               ],
-            ),
+            ],
           );
-        }),
+        },
       ),
     );
   }
@@ -804,7 +890,6 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
               _buildHeaderCard(),
               _buildDisasterInformation(),
               _buildLocation(),
-              _buildDisasterStatus(),
               _buildRescueTimeline(),
               _buildOperationUpdates(),
               _buildOperationNotes(),

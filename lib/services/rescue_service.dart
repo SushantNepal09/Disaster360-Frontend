@@ -190,13 +190,29 @@ class RescueService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getTimeline(int incidentId) async {
-    final response = await _api.get('/reports/incidents/$incidentId/timeline');
+  Future<List<Map<String, dynamic>>> getTimelineEvents(int operationId) async {
+    final response = await _api.get('/rescue/operations/$operationId/timeline');
     final map = response as Map<String, dynamic>;
     if (map['success'] == true) {
       final list = map['data'] as List;
       return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
     return [];
+  }
+
+  Future<Map<String, dynamic>> addManualTimelineEvent(
+    int operationId,
+    String title,
+    String? description,
+  ) async {
+    final response = await _api.post(
+      '/rescue/operations/$operationId/timeline',
+      body: {
+        'title': title,
+        'description': description,
+        'event_type': 'MANUAL',
+      },
+    );
+    return Map<String, dynamic>.from(response as Map);
   }
 }

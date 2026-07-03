@@ -14,6 +14,10 @@ import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/widgets/rejection_dialog.dart';
 import 'package:disaster360/services/session_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:disaster360/services/supabase_storage_service.dart';
+import 'package:disaster360/models/report_media.dart';
 
 // ─── Data Model ───────────────────────────────────────────────────────────────
 
@@ -61,11 +65,17 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
   String? _timelineError;
   String? _currentUserId;
   bool _isCurrentUserAdmin = false;
+  List<ReportMedia>? _operationMedia;
+  bool _isUploadingMedia = false;
+  final Map<int, GlobalKey> _mediaKeys = {};
+  int? _highlightedMediaId;
 
   Future<void> _fetchTimelineEvents() async {
     try {
       final eventsData = await RescueService().getTimelineEvents(int.parse(widget.task.taskId));
       final events = eventsData.map((e) => RescueTimelineEvent.fromJson(e)).toList();
+      final mediaData = await RescueService().getOperationMedia(int.parse(widget.task.taskId));
+      final media = mediaData.map((m) => ReportMedia.fromJson(m)).toList();
       final session = SessionService();
       if (session.currentUser == null) {
         await session.initialize();
@@ -73,6 +83,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
       if (mounted) {
         setState(() {
           _timelineEvents = events;
+          _operationMedia = media;
           _isLoadingTimeline = false;
           _currentUserId = session.currentUser?.id;
           _isCurrentUserAdmin = session.currentUser?.role == 'admin';
@@ -766,15 +777,46 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.only(bottom: 24),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: event.mediaId != null ? () {
+                                          setState(() {
+                                            _expandedSections['Operation Updates'] = true;
+                                          });
+                                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                                            final key = _mediaKeys[event.mediaId];
+                                            if (key != null && key.currentContext != null) {
+                                              Scrollable.ensureVisible(
+                                                key.currentContext!,
+                                                duration: const Duration(milliseconds: 400),
+                                                curve: Curves.easeInOut,
+                                              );
+                                              setState(() {
+                                                _highlightedMediaId = event.mediaId;
+                                              });
+                                              Future.delayed(const Duration(milliseconds: 2500), () {
+                                                if (mounted && _highlightedMediaId == event.mediaId) {
+                                                  setState(() {
+                                                    _highlightedMediaId = null;
+                                                  });
+                                                }
+                                              });
+                                            }
+                                          });
+                                        } : null,
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: event.mediaId != null ? 8.0 : 0.0),
+                                          child: Row(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                RescueTask.formatDateTime(event.createdAt),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      RescueTask.formatDateTime(event.createdAt),
                                                 style: TextStyle(
                                                   color: color,
                                                   fontSize: 13,
@@ -849,7 +891,10 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
                                               ),
                                             ],
                                           ),
-                                      ],
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -928,85 +973,261 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
   // ─── Section 6 & 7: Operation Updates & Media ───────────────────────────────
 
   Widget _buildOperationUpdates() {
+    Map<int, String> finalTitles = {};
+    if (_operationMedia != null && _operationMedia!.isNotEmpty) {
+      Map<String, int> titleCounts = {};
+      for (var media in _operationMedia!) {
+        if (!_mediaKeys.containsKey(media.id)) {
+          _mediaKeys[media.id] = GlobalKey();
+        }
+        String baseTitle = media.title ?? 'Image';
+        titleCounts[baseTitle] = (titleCounts[baseTitle] ?? 0) + 1;
+        if (titleCounts[baseTitle]! > 1) {
+          finalTitles[media.id] = '$baseTitle (${titleCounts[baseTitle]})';
+        } else {
+          finalTitles[media.id] = baseTitle;
+        }
+      }
+    }
+
     return _buildAccordion(
       'Operation Updates',
       Icons.description_outlined,
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.bgDark,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text('Before rescue — flooded road', style: TextStyle(color: Colors.white54, fontSize: 11)),
+          if (_operationMedia != null && _operationMedia!.isNotEmpty)
+            Column(
+              children: List.generate(_operationMedia!.length, (index) {
+                final media = _operationMedia![index];
+                
+                String subtitle = 'Unknown Upload Time';
+                if (media.createdAt != null) {
+                  try {
+                    final dateTime = DateTime.parse(media.createdAt!).toLocal();
+                    final hour = dateTime.hour > 12 ? dateTime.hour - 12 : (dateTime.hour == 0 ? 12 : dateTime.hour);
+                    final ampm = dateTime.hour >= 12 ? 'PM' : 'AM';
+                    final min = dateTime.minute.toString().padLeft(2, '0');
+                    subtitle = 'Uploaded $hour:$min $ampm';
+                  } catch (e) {
+                    // Ignore parsing error
+                  }
+                }
+
+                return Padding(
+                  key: _mediaKeys[media.id],
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgDark,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _highlightedMediaId == media.id ? AppColors.primary : AppColors.border,
+                        width: _highlightedMediaId == media.id ? 3 : 2,
+                      ),
+                      boxShadow: _highlightedMediaId == media.id 
+                          ? [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, spreadRadius: 2)] 
+                          : [],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        showGeneralDialog(
+                          context: context,
+                          barrierDismissible: true,
+                          barrierLabel: 'close',
+                          barrierColor: Colors.transparent,
+                          transitionDuration: const Duration(milliseconds: 250),
+                          pageBuilder: (_, __, ___) => ImageViewerOverlay(
+                            mediaUrls: _operationMedia!.map((m) => m.filePath).toList(),
+                            initialIndex: index,
+                            reportId: widget.task.taskId,
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.camera_alt, color: Colors.white70, size: 36),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    finalTitles[media.id] ?? 'Image ${index + 1}',
+                                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    subtitle,
+                                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.bgDark,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text('Stranded vehicles near bridge', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
+              );
+              }),
+            ),
           GestureDetector(
-            onTap: () {
+            onTap: _isUploadingMedia ? null : () async {
               int incidentId = 0;
               try {
                 incidentId = int.parse(widget.task.taskId.replaceAll(RegExp(r'[^0-9]'), ''));
               } catch (e) {
-                // Ignore
+                return;
               }
-              showModalBottomSheet(
+              
+              final picker = ImagePicker();
+              final List<XFile> images = await picker.pickMultiImage();
+              
+              if (images.isEmpty) return;
+
+              String? titleInput;
+              bool? proceed = await showDialog<bool>(
                 context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (ctx) => LiveUpdateFormSheet(
-                  incidentId: incidentId,
-                ),
+                builder: (context) {
+                  final textController = TextEditingController();
+                  return StatefulBuilder(
+                    builder: (context, setDialogState) {
+                      final isValid = textController.text.trim().isNotEmpty && textController.text.trim().length <= 100;
+                      
+                      return AlertDialog(
+                        backgroundColor: AppColors.bgDark,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        title: const Text('Upload Images', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Image Title', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: textController,
+                              style: const TextStyle(color: Colors.white),
+                              maxLength: 100,
+                              onChanged: (v) => setDialogState(() {}),
+                              decoration: InputDecoration(
+                                hintText: 'Enter a descriptive title...',
+                                hintStyle: const TextStyle(color: Colors.white38),
+                                prefixIcon: const Icon(Icons.camera_alt_outlined, color: Colors.white54),
+                                filled: true,
+                                fillColor: AppColors.bgSurface,
+                                counterText: '',
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppColors.border),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppColors.primary),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Example:\n"Collapsed Bridge"\n"Flooded Main Road"\n"Victim Evacuation"',
+                              style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.5),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'This title will appear in the Rescue Timeline.',
+                              style: TextStyle(color: AppColors.primary, fontSize: 12, fontStyle: FontStyle.italic),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                          ),
+                          ElevatedButton(
+                            onPressed: isValid ? () {
+                              titleInput = textController.text.trim();
+                              Navigator.pop(context, true);
+                            } : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
+                              disabledForegroundColor: Colors.white54,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text('Upload'),
+                          ),
+                        ],
+                      );
+                    }
+                  );
+                }
               );
+
+              if (proceed != true) return;
+              
+              setState(() {
+                _isUploadingMedia = true;
+              });
+              
+              try {
+                final storageService = SupabaseStorageService();
+                final filesToUpload = images.map((img) => File(img.path)).toList();
+                final uploadedUrls = await storageService.uploadImages(filesToUpload);
+                
+                final List<Map<String, dynamic>> mediaPayload = [];
+                for (int i = 0; i < uploadedUrls.length; i++) {
+                  final file = File(images[i].path);
+                  mediaPayload.add({
+                    'url': uploadedUrls[i],
+                    'filename': images[i].name,
+                    'size': await file.length(),
+                    'title': titleInput,
+                  });
+                }
+                
+                await RescueService().uploadOperationMedia(incidentId, mediaPayload);
+                
+                if (mounted) {
+                  _fetchTimelineEvents();
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+                }
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isUploadingMedia = false;
+                  });
+                }
+              }
             },
             child: Container(
               height: 100,
               width: MediaQuery.of(context).size.width * 0.45,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.05),
+                color: _isUploadingMedia ? Colors.transparent : AppColors.primary.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3), style: BorderStyle.solid),
+                border: Border.all(color: _isUploadingMedia ? Colors.transparent : AppColors.primary.withOpacity(0.3), style: BorderStyle.solid),
               ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add, color: AppColors.primary),
-                  SizedBox(height: 4),
-                  Text('Add Media', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                ],
-              ),
+              child: _isUploadingMedia 
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                : const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: AppColors.primary),
+                      SizedBox(height: 4),
+                      Text('Add Media', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
             ),
           ),
           const SizedBox(height: 16),

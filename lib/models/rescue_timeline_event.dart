@@ -5,10 +5,11 @@ class RescueTimelineEvent {
   final String? teamId;
   final String? teamName;
   final String? createdBy;
+  final int? mediaId;
   final String eventType;
   final String title;
   final String? description;
-  final String createdAt;
+  final String? createdAt;
   final String? updatedAt;
   final String? updatedBy;
   final Map<String, dynamic>? metadataJson;
@@ -22,10 +23,11 @@ class RescueTimelineEvent {
     this.teamId,
     this.teamName,
     this.createdBy,
+    this.mediaId,
     required this.eventType,
     required this.title,
     this.description,
-    required this.createdAt,
+    this.createdAt,
     this.updatedAt,
     this.updatedBy,
     this.metadataJson,
@@ -41,10 +43,11 @@ class RescueTimelineEvent {
       teamId: json['team_id'],
       teamName: json['team_name'],
       createdBy: json['created_by'],
-      eventType: json['event_type'] ?? 'SYSTEM',
-      title: json['title'] ?? 'Unknown Event',
+      mediaId: json['media_id'],
+      eventType: json['event_type'] ?? 'UNKNOWN',
+      title: json['title'] ?? '',
       description: json['description'],
-      createdAt: json['created_at'] ?? '',
+      createdAt: json['created_at'],
       updatedAt: json['updated_at'],
       updatedBy: json['updated_by'],
       metadataJson: json['metadata_json'] as Map<String, dynamic>?,

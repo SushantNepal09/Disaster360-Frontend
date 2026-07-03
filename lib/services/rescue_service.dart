@@ -232,4 +232,29 @@ class RescueService {
   Future<void> deleteTimelineEvent(int eventId) async {
     await _api.delete('/rescue/operations/timeline/$eventId');
   }
+
+  // ---------------------------------------------------------------------------
+  // MEDIA (Operation Updates)
+  // ---------------------------------------------------------------------------
+  
+  Future<Map<String, dynamic>> uploadOperationMedia(
+    int operationId,
+    List<Map<String, dynamic>> mediaItems,
+  ) async {
+    final response = await _api.post(
+      '/rescue/operations/$operationId/media',
+      body: {'media': mediaItems},
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getOperationMedia(int operationId) async {
+    final response = await _api.get('/rescue/operations/$operationId/media');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true) {
+      final list = map['data'] as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
 }

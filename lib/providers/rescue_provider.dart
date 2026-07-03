@@ -194,11 +194,20 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Submit post-incident report
   // ---------------------------------------------------------------------------
-  Future<void> submitPostIncidentReport(
+  Future<void> submitPostIncidentReport(int assignmentId, String reportText) async {
+    await _service.addManualTimelineEvent(
+      assignmentId,
+      'Post-Incident Report Submitted',
+      reportText,
+    );
+    await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
+  }
+
+  Future<void> uploadReportAttachments(
     int assignmentId,
-    String reportText,
+    List<String> filePaths,
   ) async {
-    await _service.submitPostIncidentReport(assignmentId, reportText);
+    await _service.uploadReportAttachments(assignmentId, filePaths);
     await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
   }
 }

@@ -18,6 +18,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:disaster360/services/supabase_storage_service.dart';
 import 'package:disaster360/models/report_media.dart';
+import 'package:disaster360/rescue/widgets/post_incident_report_widget.dart';
 
 // ─── Data Model ───────────────────────────────────────────────────────────────
 
@@ -309,8 +310,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
     'Disaster Status': true,
     'Rescue Timeline': true,
     'Operation Updates': true,
-    'Operation Notes': false,
-    'Resources Used': false,
+
     'Post-Incident Report': false,
   };
 
@@ -1240,22 +1240,19 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
     );
   }
 
-  // ─── Section 8: Operation Notes ─────────────────────────────────────────────
-
-  Widget _buildOperationNotes() {
-    return _buildAccordion('Operation Notes', Icons.visibility_outlined, const Text('Private team notes will go here.', style: TextStyle(color: Colors.white54)));
-  }
-
-  // ─── Section 9: Resources Used ──────────────────────────────────────────────
-
-  Widget _buildResourcesUsed() {
-    return _buildAccordion('Resources Used', Icons.inventory_2_outlined, const Text('Resources used tracking goes here.', style: TextStyle(color: Colors.white54)));
-  }
 
   // ─── Section 10: Post-Incident Report ───────────────────────────────────────
 
   Widget _buildPostIncidentReport() {
-    return _buildAccordion('Post-Incident Report', Icons.task_outlined, const Text('7 field form goes here.', style: TextStyle(color: Colors.white54)));
+    bool isCompleted = widget.task.status == TaskStatus.completed;
+    return _buildAccordion(
+      'Post-Incident Report',
+      Icons.task_outlined,
+      PostIncidentReportWidget(
+        operationId: int.parse(widget.task.taskId),
+        isCompleted: isCompleted,
+      ),
+    );
   }
 
   // ─── Bottom CTA ─────────────────────────────────────────────────────────────
@@ -1304,8 +1301,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
               _buildLocation(),
               _buildRescueTimeline(),
               _buildOperationUpdates(),
-              _buildOperationNotes(),
-              _buildResourcesUsed(),
+
               _buildPostIncidentReport(),
               _buildBottomCTA(),
             ],

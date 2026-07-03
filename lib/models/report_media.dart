@@ -35,7 +35,11 @@ class ReportMedia {
       originalFilename: json['original_filename'],
       title: json['title'],
       fileSize: json['file_size'],
-      createdAt: json['created_at'],
+      createdAt: json['created_at'] != null 
+          ? (json['created_at'].toString().endsWith('Z') 
+              ? json['created_at'] 
+              : '${json['created_at']}Z') 
+          : null,
     );
   }
 }

@@ -91,21 +91,6 @@ class RescueService {
   }
 
   // ---------------------------------------------------------------------------
-  // POST /rescue/operations/{assignmentId}/post-incident-report
-  // Submit a post-incident report (only when status is Completed)
-  // ---------------------------------------------------------------------------
-  Future<Map<String, dynamic>> submitPostIncidentReport(
-    int assignmentId,
-    String reportText,
-  ) async {
-    final response = await _api.post(
-      '/rescue/operations/$assignmentId/post-incident-report',
-      body: {'post_incident_report': reportText},
-    );
-    return Map<String, dynamic>.from(response as Map);
-  }
-
-  // ---------------------------------------------------------------------------
   // GET /rescue/home — Get home feed (assigned reports formatted as ReportModel)
   // ---------------------------------------------------------------------------
   Future<List<Map<String, dynamic>>> getHomeFeed() async {
@@ -256,5 +241,38 @@ class RescueService {
       return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
     return [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // POST INCIDENT REPORT
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>?> getPostIncidentReport(int operationId) async {
+    final response = await _api.get('/rescue/operations/$operationId/post-incident-report');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true && map['data'] != null) {
+      return Map<String, dynamic>.from(map['data'] as Map);
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> uploadReportAttachments(
+    int assignmentId,
+    List<String> filePaths,
+  ) async {
+    final response = await _api.multipartFiles(
+      '/rescue/operations/$assignmentId/post-incident-report/attachments',
+      filePaths,
+      fieldName: 'files',
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<Map<String, dynamic>> deleteReportAttachment(
+    int reportId,
+    int attachmentId,
+  ) async {
+    final response = await _api.delete('/rescue/reports/$reportId/attachments/$attachmentId');
+    return Map<String, dynamic>.from(response as Map);
   }
 }

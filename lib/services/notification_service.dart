@@ -302,25 +302,29 @@ class NotificationService {
     final data = message.data;
     if (data.containsKey('type')) {
       final type = data['type'];
+      final dType = data['disaster_type'] ?? 'Disaster';
+      final reporter = data['reporter_name']?.toString() ?? 'Someone';
       
       if (type == 'incident_created' || type == 'earthquake_alert') {
-        final dType = data['disaster_type'] ?? 'Disaster';
-        final localUnit = data['local_unit'] ?? 'Unknown location';
-        final reporter = data['reporter_name']?.toString().split(' ').first ?? 'Someone';
-        final desc = data['description'] ?? body; // fallback to body if no description
-        
-        if (data.containsKey('disaster_type')) {
-          title = '$dType reported in $localUnit';
-          body = '$reporter: $desc';
-        }
+        title = '$reporter reported $dType in your area';
+        body = data['description'] ?? body;
       } else if (type == 'incident_verified') {
-        final reporter = data['reporter_name']?.toString().split(' ').first ?? 'User';
-        final dType = data['disaster_type'] ?? 'Disaster';
-        
-        if (data.containsKey('reporter_name')) {
-          title = "$reporter's report has been verified";
-          body = "$dType report has been verified and rescue teams have been notified to begin rescue operations.";
+        title = "$reporter's $dType report got verified";
+        body = data['description'] ?? body;
+      } else if (type == 'rescue_accepted' || type == 'rescue_assigned') {
+        title = "$reporter's $dType report was accepted by the rescue team";
+        body = data['description'] ?? body;
+      } else if (type == 'rescue_update' || type == 'status_update') {
+        final status = data['status'] ?? 'Updated';
+        if (status.toString().toLowerCase() == 'accepted') {
+          title = "$reporter's $dType report was accepted by the rescue team";
+        } else {
+          title = "$reporter's $dType report was $status by the rescue team";
         }
+        body = data['description'] ?? body;
+      } else if (type == 'incident_closed') {
+        title = "$reporter's $dType report was closed";
+        body = data['description'] ?? body;
       }
     }
 
@@ -330,7 +334,7 @@ class NotificationService {
       channelDescription: 'This channel is used for important disaster alerts.',
       importance: Importance.max,
       priority: Priority.high,
-      icon: '@drawable/ic_warning_small',
+      icon: '@mipmap/ic_launcher',
       color: const Color(0xFFF05A28),
       styleInformation: BigTextStyleInformation(body),
     );

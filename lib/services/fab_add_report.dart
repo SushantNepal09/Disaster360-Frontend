@@ -14,6 +14,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:disaster360/services/gis_cache_service.dart';
+import 'package:disaster360/utils/sms_helper.dart';
+
 class ReportDisasterScreen extends StatefulWidget {
   const ReportDisasterScreen({super.key});
 
@@ -396,35 +398,21 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
     final lat = _currentPosition?.latitude.toStringAsFixed(4) ?? "0.0";
     final lng = _currentPosition?.longitude.toStringAsFixed(4) ?? "0.0";
     
-    // Format: TITLE|DESCRIPTION|SEVERITY|LATITUDE|LONGITUDE|DISASTER_TYPE|USER_NAME|USER_ID
-    final smsBody = "${_titleCtrl.text}|${_descCtrl.text}|$severityStr|$lat|$lng|$_selectedType|$userName|$userId";
-
-    String? encodeQueryParameters(Map<String, String> params) {
-      return params.entries
-          .map((MapEntry<String, String> e) =>
-              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-          .join('&');
-    }
-    
-    final gatewayNumber = dotenv.env['SMS_GATEWAY_NUMBER'] ?? '';
-
-    final Uri smsLaunchUri = Uri(
-      scheme: 'sms',
-      path: gatewayNumber,
-      query: encodeQueryParameters(<String, String>{
-        'body': smsBody,
-      }),
+    final success = await SmsHelper.launchSmsFallback(
+      title: _titleCtrl.text,
+      description: _descCtrl.text,
+      severity: severityStr,
+      latitude: lat,
+      longitude: lng,
+      disasterType: _selectedType,
+      userName: userName,
+      userId: userId,
     );
 
-    try {
-      if (await canLaunchUrl(smsLaunchUri)) {
-        await launchUrl(smsLaunchUri);
-        _snack('Opened SMS app for offline reporting.');
-      } else {
-        _snack('Could not launch SMS app. Please manually text: $smsBody');
-      }
-    } catch (e) {
-      _snack('Failed to open SMS: $e');
+    if (success) {
+      _snack('Opened SMS app for offline reporting.');
+    } else {
+      _snack('Could not launch SMS app.');
     }
   }
 

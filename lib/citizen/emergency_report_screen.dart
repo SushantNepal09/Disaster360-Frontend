@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:disaster360/utils/sms_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:disaster360/colors.dart';
@@ -214,6 +217,39 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
     });
 
     try {
+      // Offline SMS Fallback Check
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isOffline = connectivityResult.contains(ConnectivityResult.none) || connectivityResult.isEmpty;
+
+      if (isOffline) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        
+        final userName = user.fullName ?? user.email ?? "Unknown User";
+        final userId = user.id;
+        final lat = _currentPosition?.latitude.toStringAsFixed(4) ?? "0.0";
+        final lng = _currentPosition?.longitude.toStringAsFixed(4) ?? "0.0";
+        
+        final success = await SmsHelper.launchSmsFallback(
+          title: 'EMERGENCY: $_selectedDisaster',
+          description: _descriptionController.text.trim(),
+          severity: "Severe",
+          latitude: lat,
+          longitude: lng,
+          disasterType: _selectedDisaster,
+          userName: userName,
+          userId: userId,
+        );
+
+        if (success) {
+          _snack('Opened SMS app for offline emergency reporting.');
+        } else {
+          _snack('Could not launch SMS app.');
+        }
+        return;
+      }
+
       String severityStr = _severityLevels[_severityLevel - 1].label;
 
       List<String> adminAreas = ["Unknown", "Unknown", "Unknown"];

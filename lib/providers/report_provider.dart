@@ -25,6 +25,9 @@ class ReportModel {
   final bool isAccepted;
   final List<dynamic> assignments;
   final String? finalAdminReport;
+  final String? localUnit;
+  final String? district;
+  final String? province;
 
   ReportModel({
     required this.id,
@@ -48,6 +51,9 @@ class ReportModel {
     this.isAccepted = false,
     this.assignments = const [],
     this.finalAdminReport,
+    this.localUnit,
+    this.district,
+    this.province,
   });
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {
@@ -77,6 +83,9 @@ class ReportModel {
       isAccepted: json['is_accepted'] ?? false,
       assignments: List<dynamic>.from(json['assignments'] ?? []),
       finalAdminReport: json['final_admin_report']?.toString(),
+      localUnit: json['local_unit']?.toString(),
+      district: json['district']?.toString(),
+      province: json['province']?.toString(),
     );
   }
 }

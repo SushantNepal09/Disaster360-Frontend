@@ -215,4 +215,21 @@ class RescueService {
     );
     return Map<String, dynamic>.from(response as Map);
   }
+
+  Future<Map<String, dynamic>> updateTimelineEvent(
+    int eventId,
+    String description,
+  ) async {
+    final response = await _api.put(
+      '/rescue/operations/timeline/$eventId',
+      body: {
+        'description': description,
+      },
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<void> deleteTimelineEvent(int eventId) async {
+    await _api.delete('/rescue/operations/timeline/$eventId');
+  }
 }

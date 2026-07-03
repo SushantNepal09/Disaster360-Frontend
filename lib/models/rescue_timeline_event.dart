@@ -9,8 +9,11 @@ class RescueTimelineEvent {
   final String title;
   final String? description;
   final String createdAt;
+  final String? updatedAt;
+  final String? updatedBy;
   final Map<String, dynamic>? metadataJson;
   final bool isSystemGenerated;
+  final bool isEdited;
 
   RescueTimelineEvent({
     required this.id,
@@ -23,8 +26,11 @@ class RescueTimelineEvent {
     required this.title,
     this.description,
     required this.createdAt,
+    this.updatedAt,
+    this.updatedBy,
     this.metadataJson,
     required this.isSystemGenerated,
+    this.isEdited = false,
   });
 
   factory RescueTimelineEvent.fromJson(Map<String, dynamic> json) {
@@ -39,8 +45,11 @@ class RescueTimelineEvent {
       title: json['title'] ?? 'Unknown Event',
       description: json['description'],
       createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'],
+      updatedBy: json['updated_by'],
       metadataJson: json['metadata_json'] as Map<String, dynamic>?,
       isSystemGenerated: json['is_system_generated'] ?? false,
+      isEdited: json['is_edited'] ?? false,
     );
   }
 }

@@ -13,6 +13,7 @@ import 'package:disaster360/citizen/citizen_home_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/widgets/rejection_dialog.dart';
+import 'package:disaster360/services/session_service.dart';
 
 // ─── Data Model ───────────────────────────────────────────────────────────────
 
@@ -55,6 +56,161 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
   late Animation<double> _decisionFade;
   late Animation<Offset> _decisionSlide;
 
+  List<RescueTimelineEvent>? _timelineEvents;
+  bool _isLoadingTimeline = true;
+  String? _timelineError;
+  String? _currentUserId;
+  bool _isCurrentUserAdmin = false;
+
+  Future<void> _fetchTimelineEvents() async {
+    try {
+      final eventsData = await RescueService().getTimelineEvents(int.parse(widget.task.taskId));
+      final events = eventsData.map((e) => RescueTimelineEvent.fromJson(e)).toList();
+      final session = SessionService();
+      if (session.currentUser == null) {
+        await session.initialize();
+      }
+      if (mounted) {
+        setState(() {
+          _timelineEvents = events;
+          _isLoadingTimeline = false;
+          _currentUserId = session.currentUser?.id;
+          _isCurrentUserAdmin = session.currentUser?.role == 'admin';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _timelineError = e.toString();
+          _isLoadingTimeline = false;
+        });
+      }
+    }
+  }
+
+  void _showEditTimelineDialog(RescueTimelineEvent event, int index) {
+    final controller = TextEditingController(text: event.description ?? event.title);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.bgSurface,
+          title: const Text('Edit Timeline Event', style: TextStyle(color: Colors.white)),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: Colors.white),
+            maxLines: 3,
+            decoration: const InputDecoration(
+              filled: true,
+              fillColor: AppColors.bgDark,
+              border: OutlineInputBorder(),
+              hintText: 'Enter description',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              onPressed: () async {
+                final newDescription = controller.text.trim();
+                if (newDescription.isEmpty) return;
+                Navigator.pop(context);
+                
+                final oldDescription = event.description ?? "";
+                if (newDescription == oldDescription.trim()) return;
+                
+                final oldEvent = _timelineEvents![index];
+                
+                setState(() {
+                  _timelineEvents![index] = RescueTimelineEvent(
+                    id: oldEvent.id,
+                    incidentId: oldEvent.incidentId,
+                    assignmentId: oldEvent.assignmentId,
+                    teamId: oldEvent.teamId,
+                    teamName: oldEvent.teamName,
+                    createdBy: oldEvent.createdBy,
+                    eventType: oldEvent.eventType,
+                    title: oldEvent.title,
+                    description: newDescription,
+                    createdAt: oldEvent.createdAt,
+                    updatedAt: DateTime.now().toUtc().toIso8601String(),
+                    updatedBy: _currentUserId,
+                    metadataJson: oldEvent.metadataJson,
+                    isSystemGenerated: oldEvent.isSystemGenerated,
+                    isEdited: true,
+                  );
+                });
+
+                try {
+                  final updatedMap = await RescueService().updateTimelineEvent(event.id, newDescription);
+                  if (mounted) {
+                    setState(() {
+                      _timelineEvents![index] = RescueTimelineEvent.fromJson(updatedMap);
+                    });
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    setState(() {
+                      _timelineEvents![index] = oldEvent;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update event: $e')));
+                  }
+                }
+              },
+              child: const Text('Save', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteTimelineEvent(RescueTimelineEvent event, int index) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.bgSurface,
+          title: const Text('Delete Event?', style: TextStyle(color: Colors.white)),
+          content: const Text('Are you sure you want to delete this event? This action cannot be undone.', style: TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+              onPressed: () async {
+                Navigator.pop(context);
+                
+                final oldEvent = _timelineEvents![index];
+                
+                setState(() {
+                  _timelineEvents!.removeAt(index);
+                });
+
+                try {
+                  await RescueService().deleteTimelineEvent(event.id);
+                } catch (e) {
+                  if (mounted) {
+                    setState(() {
+                      _timelineEvents!.insert(index, oldEvent);
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete event: $e')));
+                  }
+                }
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -88,6 +244,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
 
     _cardController.forward();
     _decisionController.forward();
+    _fetchTimelineEvents();
   }
 
   // ─── Build ───────────────────────────────────────────────────────────────
@@ -537,200 +694,234 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
     return _buildAccordion(
       'Rescue Timeline',
       Icons.access_time_filled_rounded,
-      FutureBuilder<List<Map<String, dynamic>>>(
-        future: RescueService().getTimelineEvents(int.parse(widget.task.taskId)),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: Padding(
+      _isLoadingTimeline
+          ? const Center(child: Padding(
               padding: EdgeInsets.all(16.0),
               child: CircularProgressIndicator(color: AppColors.primary),
-            ));
-          }
-          if (snapshot.hasError) {
-            return const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text('Failed to load timeline.', style: TextStyle(color: Colors.white54)),
-            );
-          }
-          
-          final data = snapshot.data ?? [];
-          if (data.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text('No timeline events yet.', style: TextStyle(color: Colors.white54)),
-            );
-          }
+            ))
+          : _timelineError != null
+              ? Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('Failed to load timeline: $_timelineError', style: const TextStyle(color: Colors.white54)),
+                )
+              : _timelineEvents == null || _timelineEvents!.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No timeline events yet.', style: TextStyle(color: Colors.white54)),
+                    )
+                  : Column(
+                      children: [
+                        ...List.generate(_timelineEvents!.length, (i) {
+                          final events = _timelineEvents!;
+                          final isLast = i == events.length - 1;
+                          final event = events[i];
+                          
+                          Color color;
+                          if (event.eventType == 'SYSTEM') {
+                            color = AppColors.info;
+                          } else {
+                            color = AppColors.primary;
+                          }
+                          
+                          final bool canEdit = !event.isSystemGenerated && (_isCurrentUserAdmin || event.createdBy == _currentUserId);
 
-          final events = data.map((e) => RescueTimelineEvent.fromJson(e)).toList();
-
-          return Column(
-            children: [
-              ...List.generate(events.length, (i) {
-                final isLast = i == events.length - 1;
-                final event = events[i];
-                
-                Color color;
-                if (event.eventType == 'SYSTEM') {
-                  color = AppColors.info;
-                } else {
-                  color = AppColors.primary;
-                }
-
-                return IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 24,
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: color,
-                                border: Border.all(color: color, width: 2),
-                              ),
-                            ),
-                            if (!isLast)
-                              Expanded(
-                                child: Container(
-                                  width: 2,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        color, 
-                                        (i + 1 < events.length && events[i+1].eventType == 'SYSTEM') ? AppColors.info : AppColors.primary
+                          return IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: color,
+                                          border: Border.all(color: color, width: 2),
+                                        ),
+                                      ),
+                                      if (!isLast)
+                                        Expanded(
+                                          child: Container(
+                                            width: 2,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  color, 
+                                                  (i + 1 < events.length && events[i+1].eventType == 'SYSTEM') ? AppColors.info : AppColors.primary
+                                                ],
+                                              ),
+                                            ),
+                                            margin: const EdgeInsets.symmetric(vertical: 4),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 24),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                RescueTask.formatDateTime(event.createdAt),
+                                                style: TextStyle(
+                                                  color: color,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                (event.isEdited && event.description != null && event.description!.isNotEmpty) 
+                                                    ? event.description! 
+                                                    : event.title,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              if (!event.isEdited && event.description != null && event.description!.isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  event.description!,
+                                                  style: const TextStyle(
+                                                    color: Colors.white70,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ],
+                                              if (event.isEdited && event.updatedAt != null) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  "Edited • ${RescueTask.formatDateTime(event.updatedAt!)}",
+                                                  style: TextStyle(
+                                                    color: color.withOpacity(0.6),
+                                                    fontSize: 11,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                              ],
+                                              if (event.teamName != null && event.teamName!.isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  "By ${event.teamName}",
+                                                  style: TextStyle(
+                                                    color: color.withOpacity(0.8),
+                                                    fontSize: 12,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                              ]
+                                            ],
+                                          ),
+                                        ),
+                                        if (canEdit)
+                                          PopupMenuButton<String>(
+                                            icon: const Icon(Icons.more_vert, color: Colors.white54, size: 20),
+                                            color: AppColors.bgDark,
+                                            onSelected: (value) {
+                                              if (value == 'edit') {
+                                                _showEditTimelineDialog(event, i);
+                                              } else if (value == 'delete') {
+                                                _confirmDeleteTimelineEvent(event, i);
+                                              }
+                                            },
+                                            itemBuilder: (context) => [
+                                              const PopupMenuItem(
+                                                value: 'edit',
+                                                child: Text('Edit', style: TextStyle(color: Colors.white)),
+                                              ),
+                                              const PopupMenuItem(
+                                                value: 'delete',
+                                                child: Text('Delete', style: TextStyle(color: AppColors.danger)),
+                                              ),
+                                            ],
+                                          ),
                                       ],
                                     ),
                                   ),
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                RescueTask.formatDateTime(event.createdAt),
-                                style: TextStyle(
-                                  color: color,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                event.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (event.description != null && event.description!.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  event.description!,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
                                 ),
                               ],
-                              if (event.teamName != null && event.teamName!.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  "By ${event.teamName}",
-                                  style: TextStyle(
-                                    color: color.withOpacity(0.8),
-                                    fontSize: 12,
-                                    fontStyle: FontStyle.italic,
+                            ),
+                          );
+                        }),
+                        if (widget.task.status == TaskStatus.pending) ...[
+                          const SizedBox(height: 16),
+                          const Divider(color: Colors.white12),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _timelineUpdateController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    hintText: 'Add manual update (e.g., Arrived at site)',
+                                    hintStyle: const TextStyle(color: Colors.white38),
+                                    filled: true,
+                                    fillColor: AppColors.bgDark,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: Colors.white12),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: Colors.white12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: AppColors.primary),
+                                    ),
                                   ),
                                 ),
-                              ]
+                              ),
+                              const SizedBox(width: 12),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () async {
+                                  final text = _timelineUpdateController.text.trim();
+                                  if (text.isEmpty) return;
+                                  
+                                  try {
+                                    final newMap = await RescueService().addManualTimelineEvent(
+                                      int.parse(widget.task.taskId),
+                                      text,
+                                      null,
+                                    );
+                                    _timelineUpdateController.clear();
+                                    _fetchTimelineEvents();
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error adding update: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                                child: const Icon(Icons.send, color: Colors.white, size: 20),
+                              ),
                             ],
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              if (widget.task.status == TaskStatus.pending) ...[
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white12),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _timelineUpdateController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Add manual update (e.g., Arrived at site)',
-                          hintStyle: const TextStyle(color: Colors.white38),
-                          filled: true,
-                          fillColor: AppColors.bgDark,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Colors.white12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Colors.white12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: AppColors.primary),
-                          ),
-                        ),
-                      ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: () async {
-                        final text = _timelineUpdateController.text.trim();
-                        if (text.isEmpty) return;
-                        
-                        try {
-                          await RescueService().addManualTimelineEvent(
-                            int.parse(widget.task.taskId),
-                            text,
-                            null,
-                          );
-                          _timelineUpdateController.clear();
-                          setState(() {}); // refresh FutureBuilder
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error adding update: $e')),
-                          );
-                        }
-                      },
-                      child: const Icon(Icons.send, color: Colors.white, size: 20),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          );
-        },
-      ),
     );
   }
 

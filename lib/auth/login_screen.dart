@@ -201,8 +201,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                           }
                                         }
                                       } finally {
-                                        if (mounted)
+                                        if (mounted) {
                                           setState(() => _isLoading = false);
+                                        }
                                       }
                                     },
                             child:

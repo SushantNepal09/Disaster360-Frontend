@@ -49,7 +49,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
   ];
   String _selectedDisaster = 'Earthquake';
 
-  int _severityLevel = 5; // Hardcoded to 5 (Critical)
+  final int _severityLevel = 5; // Hardcoded to 5 (Critical)
   final List<String> _uploadedPhotos = []; // Simulated file paths
 
   static const List<_SeverityMeta> _severityLevels = [
@@ -634,7 +634,7 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
             _sectionLabel('DISASTER TYPE'),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedDisaster,
+              initialValue: _selectedDisaster,
               dropdownColor: AppColors.bgSurface,
               icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
               style: const TextStyle(

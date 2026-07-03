@@ -24,22 +24,22 @@ class _BP {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-class RescueReportDetailScreen extends StatefulWidget {
+class CompletedTaskDetailScreen extends StatefulWidget {
   final RescueTask task;
   final String initialDecisionState;
 
-  const RescueReportDetailScreen({
+  const CompletedTaskDetailScreen({
     super.key,
     required this.task,
     this.initialDecisionState = 'pending',
   });
 
   @override
-  State<RescueReportDetailScreen> createState() =>
-      _RescueReportDetailScreenState();
+  State<CompletedTaskDetailScreen> createState() =>
+      _CompletedTaskDetailScreenState();
 }
 
-class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
+class _CompletedTaskDetailScreenState extends State<CompletedTaskDetailScreen>
     with TickerProviderStateMixin {
   
   // Animation controllers
@@ -537,53 +537,61 @@ class _RescueReportDetailScreenState extends State<RescueReportDetailScreen>
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  fullWidth: true,
-                  label: 'Reject',
-                  icon: Icons.close_rounded,
-                  color: AppColors.danger,
-                  filled: false,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => RejectionDialog(
-                        assignmentId: int.parse(widget.task.assignmentId),
-                        onSuccess: () {
-                          if (mounted) {
-                            Navigator.pop(context); // close screen
-                          }
-                        },
+          child: widget.task.postIncidentReport != null
+              ? _AnimatedCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Your Post Disaster Report',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.task.postIncidentReport!,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Submit Post Disaster Report',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    _ActionButton(
+                      fullWidth: true,
+                      label: 'Draft Report',
+                      icon: Icons.edit_document,
+                      color: AppColors.orange,
+                      filled: true,
+                      onTap: () {
+                        // In a real app, this would open a dialog or another screen to type the report
+                        // We will just show a snackbar for now
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Not implemented yet in this iteration. See full report screen.')),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  fullWidth: true,
-                  label: 'Accept',
-                  icon: Icons.check_rounded,
-                  color: AppColors.success,
-                  filled: true,
-                  onTap: () async {
-                    if (widget.task.canAcknowledge) {
-                      await context.read<RescueProvider>().acknowledgeReport(int.parse(widget.task.reportId));
-                    }
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Assignment accepted')),
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

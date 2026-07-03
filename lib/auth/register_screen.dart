@@ -205,12 +205,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Password is required';
     if (value.length < 8) return 'Password must be at least 8 characters';
-    if (!value.contains(RegExp(r'[A-Z]')))
+    if (!value.contains(RegExp(r'[A-Z]'))) {
       return 'Must contain at least 1 uppercase letter';
-    if (!value.contains(RegExp(r'[0-9]')))
+    }
+    if (!value.contains(RegExp(r'[0-9]'))) {
       return 'Must contain at least 1 number';
-    if (!value.contains(RegExp(r'[!@#%^&*(),.?":{}|<>]')))
+    }
+    if (!value.contains(RegExp(r'[!@#%^&*(),.?":{}|<>]'))) {
       return 'Must contain at least 1 special character';
+    }
     return null;
   }
 
@@ -332,13 +335,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             style: const TextStyle(color: Colors.white),
                             keyboardType: TextInputType.emailAddress,
                             validator: (val) {
-                              if (val == null || val.isEmpty)
+                              if (val == null || val.isEmpty) {
                                 return 'Email is required';
+                              }
                               final emailRegex = RegExp(
                                 r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)+$",
                               );
-                              if (!emailRegex.hasMatch(val))
+                              if (!emailRegex.hasMatch(val)) {
                                 return 'Enter a valid email address';
+                              }
                               return null;
                             },
                             decoration: _getInputDecoration(
@@ -358,14 +363,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ],
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty)
+                              if (val == null || val.trim().isEmpty) {
                                 return 'Full Name is required';
-                              if (val.trim().length < 2)
+                              }
+                              if (val.trim().length < 2) {
                                 return 'Name must be at least 2 characters';
-                              if (!val.startsWith(RegExp(r'[A-Z]')))
+                              }
+                              if (!val.startsWith(RegExp(r'[A-Z]'))) {
                                 return 'Must start with a capital letter';
-                              if (!val.trim().contains(' '))
+                              }
+                              if (!val.trim().contains(' ')) {
                                 return 'Must include at least one space';
+                              }
                               return null;
                             },
                             decoration: _getInputDecoration(
@@ -382,12 +391,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             keyboardType: TextInputType.phone,
                             inputFormatters: [NepalPhoneFormatter()],
                             validator: (val) {
-                              if (val == null || val.isEmpty)
+                              if (val == null || val.isEmpty) {
                                 return 'Phone number is required';
-                              if (!val.startsWith('+977-'))
+                              }
+                              if (!val.startsWith('+977-')) {
                                 return 'Must start with +977-';
-                              if (val.length != 15)
+                              }
+                              if (val.length != 15) {
                                 return 'Invalid phone number length';
+                              }
                               return null;
                             },
                             decoration: _getInputDecoration(
@@ -404,10 +416,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             keyboardType: TextInputType.number,
                             inputFormatters: [CitizenshipFormatter()],
                             validator: (val) {
-                              if (val == null || val.isEmpty)
+                              if (val == null || val.isEmpty) {
                                 return 'Citizenship number is required';
-                              if (val.length != 14)
+                              }
+                              if (val.length != 14) {
                                 return 'Format must be xx-xx-xx-xxxxx';
+                              }
                               if (_selectedIssueDate != null) {
                                 final parts = val.split('-');
                                 if (parts.length == 4) {
@@ -436,7 +450,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           // District Dropdown
                           DropdownButtonFormField<String>(
-                            value: _selectedDistrict,
+                            initialValue: _selectedDistrict,
                             validator:
                                 (val) =>
                                     val == null
@@ -567,8 +581,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ),
                                     ),
                                     onSelected: (selected) {
-                                      if (selected)
+                                      if (selected) {
                                         setState(() => _selectedRole = role);
+                                      }
                                     },
                                   );
                                 }).toList(),
@@ -578,7 +593,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Conditional Specialization Dropdown
                           if (_selectedRole.toLowerCase() == 'rescue') ...[
                             DropdownButtonFormField<String>(
-                              value: _selectedSpecialization,
+                              initialValue: _selectedSpecialization,
                               validator:
                                   (val) =>
                                       val == null
@@ -788,7 +803,7 @@ class NepalPhoneFormatter extends TextInputFormatter {
       } else if (text.startsWith('+')) {
         // user is typing +
       } else {
-        text = '+977-' + text;
+        text = '+977-$text';
       }
     }
 

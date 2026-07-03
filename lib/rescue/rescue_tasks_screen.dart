@@ -1557,8 +1557,8 @@ class RescueTask {
   final int severityLevel;
   final String verifiedByAdmin;
   final List<String> mediaUrls;
-  final String lat;
-  final String lng;
+  final double lat;
+  final double lng;
   final String reportId;
   final String reporterName;
   final String reporterStatus;
@@ -1569,6 +1569,11 @@ class RescueTask {
   final bool canSubmitReport;
   final List<String> assignedTeams;
   final String? postIncidentReport;
+  
+  final String? acceptedAt;
+  final String? reportedAt;
+  final String? assignedBy;
+  final int mergedReports;
 
   const RescueTask({
     required this.assignmentId,
@@ -1597,6 +1602,10 @@ class RescueTask {
     this.canSubmitReport = false,
     this.assignedTeams = const [],
     this.postIncidentReport,
+    this.acceptedAt,
+    this.reportedAt,
+    this.assignedBy,
+    required this.mergedReports,
   });
 
   // ── Severity string → int ─────────────────────────────────────────────────
@@ -1633,6 +1642,77 @@ class RescueTask {
   }
 
   // ── Build from new Backend JSON Envelope ──────────────────────────────────
+
+  String get formattedSeverity {
+    switch (severityLevel) {
+      case 1: return 'LOW SEVERITY';
+      case 2: return 'MODERATE SEVERITY';
+      case 3: return 'HIGH SEVERITY';
+      case 4: return 'SEVERE';
+      case 5: return 'EXTREME SEVERITY';
+      default: return 'UNKNOWN SEVERITY';
+    }
+  }
+
+  Color get severityColor {
+    switch (severityLevel) {
+      case 1: return AppColors.success;
+      case 2: return AppColors.info;
+      case 3: return AppColors.warning;
+      case 4:
+      case 5: return AppColors.danger;
+      default: return AppColors.primary;
+    }
+  }
+
+  String get formattedStatus {
+    return assignmentStatus.toUpperCase();
+  }
+
+  Color get statusColor {
+    switch (assignmentStatus.toLowerCase()) {
+      case 'in progress':
+      case 'accepted':
+        return AppColors.warning;
+      case 'completed':
+      case 'controlled':
+      case 'closed':
+        return AppColors.success;
+      case 'cancelled':
+      case 'rejected':
+        return AppColors.danger;
+      case 'assigned':
+      default:
+        return AppColors.info;
+    }
+  }
+
+  static String formatDateTime(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return 'Unknown Time';
+    try {
+      if (!isoString.endsWith('Z') && !isoString.contains(RegExp(r'[+-]\d{2}:?\d{2}$'))) {
+        isoString = '${isoString}Z';
+      }
+      final dt = DateTime.parse(isoString).toLocal();
+      final now = DateTime.now();
+      
+      final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+      
+      String hour = (dt.hour % 12 == 0 ? 12 : dt.hour % 12).toString();
+      String min = dt.minute.toString().padLeft(2, '0');
+      String ampm = dt.hour < 12 ? 'AM' : 'PM';
+      
+      String timeStr = '$hour:$min $ampm';
+      
+      if (isToday) {
+        return 'Today $timeStr';
+      } else {
+        return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $timeStr';
+      }
+    } catch (_) {
+      return 'Invalid Time';
+    }
+  }
   factory RescueTask.fromJson(Map<String, dynamic> json) {
     final assignmentStatus = json['assignmentStatus'] ?? json['status'] ?? '';
     TaskStatus tStatus;
@@ -1708,8 +1788,8 @@ class RescueTask {
       severityLevel: _parseSeverity(json['severity']?.toString()),
       verifiedByAdmin: json['verificationStatus'] ?? 'Admin',
       mediaUrls: parsedMediaUrls,
-      lat: loc['latitude']?.toString() ?? '0.0',
-      lng: loc['longitude']?.toString() ?? '0.0',
+      lat: double.tryParse(loc['latitude']?.toString() ?? '0.0') ?? 0.0,
+      lng: double.tryParse(loc['longitude']?.toString() ?? '0.0') ?? 0.0,
       reportId: json['incidentId']?.toString() ?? '',
       reporterName: json['reporterName'] ?? 'Unknown Reporter',
       reporterStatus: json['reporterStatus'] ?? 'Unknown',
@@ -1720,6 +1800,10 @@ class RescueTask {
       canSubmitReport: actions['canSubmitReport'] == true,
       assignedTeams: parsedAssignedTeams,
       postIncidentReport: json['postIncidentReport']?.toString(),
+      acceptedAt: json['acceptedAt']?.toString(),
+      reportedAt: json['reportedAt']?.toString(),
+      assignedBy: json['assignedBy']?.toString(),
+      mergedReports: json['sources'] as int? ?? 1,
     );
   }
 }

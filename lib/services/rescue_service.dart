@@ -125,4 +125,78 @@ class RescueService {
     }
     return [];
   }
+
+  // ---------------------------------------------------------------------------
+  // LIVE UPDATES & OFFLINE QUEUE
+  // ---------------------------------------------------------------------------
+  
+  // Simple in-memory queue for offline updates (would be persisted via Hive/SQLite in prod)
+  static final List<Map<String, dynamic>> _offlineUpdatesQueue = [];
+
+  Future<Map<String, dynamic>> postLiveUpdate(
+    int incidentId,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await _api.post(
+        '/rescue/incidents/$incidentId/live-updates',
+        body: payload,
+      );
+      
+      // If successful, try to sync queued items
+      _syncOfflineUpdates();
+      
+      return Map<String, dynamic>.from(response as Map);
+    } catch (e) {
+      // If network error, queue the update
+      payload['incident_id'] = incidentId;
+      _offlineUpdatesQueue.add(payload);
+      print("Network error. Live update queued offline. Queue size: ${_offlineUpdatesQueue.length}");
+      
+      // Return a simulated success response so the UI can proceed
+      return {
+        "success": true,
+        "message": "Update queued offline",
+        "data": {"id": -1, "queued": true}
+      };
+    }
+  }
+  
+  Future<void> _syncOfflineUpdates() async {
+    if (_offlineUpdatesQueue.isEmpty) return;
+    
+    print("Attempting to sync ${_offlineUpdatesQueue.length} offline updates...");
+    final List<Map<String, dynamic>> failedUpdates = [];
+    
+    for (var update in _offlineUpdatesQueue) {
+      final int incidentId = update['incident_id'];
+      
+      // Remove incident_id from body payload to match schema exactly
+      final payload = Map<String, dynamic>.from(update);
+      payload.remove('incident_id');
+      
+      try {
+        await _api.post('/rescue/incidents/$incidentId/live-updates', body: payload);
+      } catch (e) {
+        failedUpdates.add(update);
+      }
+    }
+    
+    _offlineUpdatesQueue.clear();
+    _offlineUpdatesQueue.addAll(failedUpdates);
+    
+    if (_offlineUpdatesQueue.isEmpty) {
+      print("All offline updates synced successfully.");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTimeline(int incidentId) async {
+    final response = await _api.get('/reports/incidents/$incidentId/timeline');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true) {
+      final list = map['data'] as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
 }

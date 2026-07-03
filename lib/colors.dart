@@ -20,6 +20,7 @@ class AppColors {
     0xFFFF6B2B,
   ); // Primary orange, active states
   static const Color orangeLight = Color(0xFFFF6B2B); // Orange with opacity
+  static const Color primary = orange; // Alias for orange
 
   // ─────────────────────────────────────────────────────────────────────────
   // STATUS & SEMANTIC COLORS
@@ -46,4 +47,6 @@ class AppColors {
   // ─────────────────────────────────────────────────────────────────────────
   static const Color textLight = Colors.white;
   static const Color textMuted = Colors.white38;
+  static const Color textPrimary = Colors.white;
+  static const Color textSecondary = Colors.white70;
 }

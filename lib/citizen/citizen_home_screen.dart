@@ -1,4 +1,4 @@
-import 'package:disaster360/widgets/shared_report_card.dart';
+import 'package:disaster360/citizen/citizen_report_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
@@ -219,7 +219,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         ],
       ),
       bottomNavigationBar: _buildBottomNav(context),
-      floatingActionButton: Padding(
+      floatingActionButton: _activeNav == 2 ? null : Padding(
         padding: const EdgeInsets.only(bottom: 20),
         child: FloatingActionButton(
           onPressed:
@@ -765,7 +765,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         ),
         const SizedBox(height: 12),
         ...reports.map((report) {
-          return SharedReportCard(
+          return CitizenReportCard(
             key: ValueKey(report.id.toString()),
             report: report,
             animationDelay: Duration(

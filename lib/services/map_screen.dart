@@ -116,6 +116,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
   bool _showLegend = false;
   bool _showZones = true;
   bool _isSatellite = false;
+  bool _isFilterExpanded = false;
   LatLng? _myLocation;
 
   Future<void> _locateMe() async {
@@ -225,6 +226,9 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
 
   List<ReportModel> get _filtered =>
       _reports.where((i) {
+        if (_activeFilter == 'Active') return i.status.toLowerCase() != 'controlled';
+        if (_activeFilter == 'High') return i.severity.toLowerCase() == 'high' && i.status.toLowerCase() != 'controlled';
+        if (_activeFilter == 'Moderate') return i.severity.toLowerCase() == 'moderate' && i.status.toLowerCase() != 'controlled';
         if (_activeFilter != null &&
             i.disasterType.toLowerCase() != _activeFilter!.toLowerCase()) {
           return false;
@@ -271,12 +275,11 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
       body: Stack(
         children: [
           _buildMap(),
-          _buildTopBar(),
-          _buildStatsStrip(),
-          _buildFilterBar(),
+          _buildExpandableFilterPanel(),
+          _buildFloatingHeader(),
+          _buildBottomRiskLegend(),
           if (_showLegend) _buildLegend(),
           _buildMapControls(),
-          _buildBoundaryToggle(),
           if (_tappedRegionName != null) _buildRegionInfoPopup(),
           if (_selectedIncident != null) _buildDetailPanel(),
         ],
@@ -376,74 +379,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     );
   }
 
-  Widget _buildBoundaryToggle() {
-    return Positioned(
-      top: 230,
-      right: 16,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isBoundaryMenuOpen = !_isBoundaryMenuOpen;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.bgSurface.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8),
-                ],
-              ),
-              child: _isLoadingBoundaries 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54))
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.layers_rounded, 
-                          color: _activeBoundaryLayer != 'None' ? AppColors.info : Colors.white54, 
-                          size: 20
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Boundary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                        const SizedBox(width: 4),
-                        Icon(_isBoundaryMenuOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down, color: Colors.white54, size: 18),
-                      ],
-                    ),
-            ),
-          ),
-          if (_isBoundaryMenuOpen) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: 140,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.bgSurface.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _BoundaryBtn(label: 'None', active: _activeBoundaryLayer == 'None', onTap: () => setState(() { _activeBoundaryLayer = 'None'; _isBoundaryMenuOpen = false; })),
-                  _BoundaryBtn(label: 'Province', active: _activeBoundaryLayer == 'Province', onTap: () => setState(() { _activeBoundaryLayer = 'Province'; _isBoundaryMenuOpen = false; })),
-                  _BoundaryBtn(label: 'District', active: _activeBoundaryLayer == 'District', onTap: () => setState(() { _activeBoundaryLayer = 'District'; _isBoundaryMenuOpen = false; })),
-                  _BoundaryBtn(label: 'LocalUnit', active: _activeBoundaryLayer == 'LocalUnit', onTap: () => setState(() { _activeBoundaryLayer = 'LocalUnit'; _isBoundaryMenuOpen = false; })),
-                ],
-              ),
-            ),
-          ]
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildRegionInfoPopup() {
     return Positioned(
@@ -611,90 +547,111 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
     return markers;
   }
 
-  // ─── TOP BAR ─────────────────────────────────
+  // ─── FLOATING HEADER ─────────────────────────
 
-  Widget _buildTopBar() {
+  Widget _buildFloatingHeader() {
+    final topPadding = MediaQuery.of(context).padding.top + 16;
     return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.bgPrimary.withOpacity(0.97),
-              AppColors.bgPrimary.withOpacity(0.0),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+      top: topPadding,
+      left: 16,
+      right: 16,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.bgSurface.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+              ],
+            ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _GlassBtn(
-                  icon: Icons.arrow_back_ios_new_rounded,
-                  onTap: () => Navigator.of(context).maybePop(),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'DISASTER360',
-                        style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2.5,
-                        ),
+                // Boundary Selector
+                GestureDetector(
+                  onTap: () => setState(() => _isBoundaryMenuOpen = !_isBoundaryMenuOpen),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _isBoundaryMenuOpen
+                          ? AppColors.info.withOpacity(0.15)
+                          : Colors.black.withOpacity(0.45),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _isBoundaryMenuOpen
+                            ? AppColors.info.withOpacity(0.4)
+                            : Colors.white.withOpacity(0.1),
                       ),
-                      const Text(
-                        'Nepal Risk Map',
-                        style: TextStyle(
-                          color: AppColors.textLight,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ],
+                    ),
+                    child: _isLoadingBoundaries
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
+                          )
+                        : Row(
+                            children: [
+                              Text(
+                                _activeBoundaryLayer == 'None' ? 'Boundary' : _activeBoundaryLayer,
+                                style: TextStyle(
+                                  color: _activeBoundaryLayer != 'None' ? AppColors.info : Colors.white54,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isBoundaryMenuOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                                color: _activeBoundaryLayer != 'None' ? AppColors.info : Colors.white54,
+                                size: 18,
+                              ),
+                            ],
+                          ),
                   ),
                 ),
-                // LIVE indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.danger.withOpacity(0.35),
+                
+                // Map Type Selector
+                GestureDetector(
+                  onTap: () => setState(() => _isSatellite = !_isSatellite),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _isSatellite
+                          ? AppColors.info.withOpacity(0.15)
+                          : Colors.black.withOpacity(0.45),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _isSatellite
+                            ? AppColors.info.withOpacity(0.4)
+                            : Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          _isSatellite ? 'Satellite' : 'Standard',
+                          style: TextStyle(
+                            color: _isSatellite ? AppColors.info : Colors.white54,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: _isSatellite ? AppColors.info : Colors.white54,
+                          size: 18,
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      _PulseDot(color: AppColors.danger),
-                      const SizedBox(width: 5),
-                      Text(
-                        'LIVE',
-                        style: TextStyle(
-                          color: AppColors.danger,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-                const SizedBox(width: 8),
+                
+                // Layer Icon
                 _GlassBtn(
                   icon: Icons.layers_rounded,
                   onTap: () => setState(() => _showLegend = !_showLegend),
@@ -703,150 +660,169 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  // ─── STATS STRIP ─────────────────────────────
-
-  Widget _buildStatsStrip() {
-    final top = MediaQuery.of(context).padding.top + 76;
-    return Positioned(
-      top: top,
-      left: 16,
-      right: 16,
-      child: Row(
-        children: [
-          _StatPill(
-            label: 'Active',
-            value: '$_activeCount',
-            color: AppColors.info,
-            icon: Icons.warning_amber_rounded,
-          ),
-          const SizedBox(width: 8),
-          _StatPill(
-            label: 'High',
-            value: '$_highCount',
-            color: AppColors.danger,
-            icon: Icons.priority_high_rounded,
-          ),
-          const SizedBox(width: 8),
-          _StatPill(
-            label: 'Moderate',
-            value: '$_moderateCount',
-            color: AppColors.warning,
-            icon: Icons.remove_circle_outline_rounded,
-          ),
-          const Spacer(),
-          // Satellite toggle
-          GestureDetector(
-            onTap: () => setState(() => _isSatellite = !_isSatellite),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          
+          if (_isBoundaryMenuOpen) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: 140,
+              padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color:
-                    _isSatellite
-                        ? AppColors.info.withOpacity(0.15)
-                        : Colors.black.withOpacity(0.45),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color:
-                      _isSatellite
-                          ? AppColors.info.withOpacity(0.4)
-                          : Colors.white.withOpacity(0.1),
-                ),
+                color: AppColors.bgSurface.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+                ],
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Icon(
-                    _isSatellite
-                        ? Icons.satellite_alt_rounded
-                        : Icons.map_rounded,
-                    color: _isSatellite ? AppColors.info : Colors.white54,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _isSatellite ? 'Satellite' : 'Standard',
-                    style: TextStyle(
-                      color: _isSatellite ? AppColors.info : Colors.white54,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  _BoundaryBtn(label: 'None', active: _activeBoundaryLayer == 'None', onTap: () => setState(() { _activeBoundaryLayer = 'None'; _isBoundaryMenuOpen = false; })),
+                  _BoundaryBtn(label: 'Province', active: _activeBoundaryLayer == 'Province', onTap: () => setState(() { _activeBoundaryLayer = 'Province'; _isBoundaryMenuOpen = false; })),
+                  _BoundaryBtn(label: 'District', active: _activeBoundaryLayer == 'District', onTap: () => setState(() { _activeBoundaryLayer = 'District'; _isBoundaryMenuOpen = false; })),
+                  _BoundaryBtn(label: 'LocalUnit', active: _activeBoundaryLayer == 'LocalUnit', onTap: () => setState(() { _activeBoundaryLayer = 'LocalUnit'; _isBoundaryMenuOpen = false; })),
                 ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  // ─── FILTER BAR ──────────────────────────────
+  // ─── EXPANDABLE FILTER PANEL ─────────────────
 
-  Widget _buildFilterBar() {
-    final top = MediaQuery.of(context).padding.top + 122;
-    final dynamicTypes = _reports.map((e) => e.disasterType).toSet().toList();
-    if (dynamicTypes.isEmpty) {
-      dynamicTypes.addAll([
-        'Flood',
-        'Landslide',
-        'Earthquake',
-        'Fire',
-        'Roadblock',
-      ]);
-    }
-
+  Widget _buildExpandableFilterPanel() {
+    final topPadding = MediaQuery.of(context).padding.top + 92;
     return Positioned(
-      top: top,
-      left: 0,
-      right: 0,
-      child: SizedBox(
-        height: 40,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          children: [
-            _FilterChip(
-              label: 'All',
-              icon: Icons.public_rounded,
-              color: Colors.white,
-              selected: _activeFilter == null,
-              onTap: () => setState(() => _activeFilter = null),
-              count: _activeCount,
-            ),
-            const SizedBox(width: 8),
-            ...dynamicTypes.map(
-              (t) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _FilterChip(
-                  label: DisasterStyle.labelForType(t),
-                  icon: DisasterStyle.iconForType(t),
-                  color: DisasterStyle.colorForType(t),
-                  selected: _activeFilter?.toLowerCase() == t.toLowerCase(),
-                  onTap:
-                      () => setState(() {
-                        _activeFilter =
-                            _activeFilter?.toLowerCase() == t.toLowerCase()
-                                ? null
-                                : t;
-                      }),
-                  count:
-                      _reports
-                          .where(
-                            (i) =>
-                                i.disasterType.toLowerCase() ==
-                                    t.toLowerCase() &&
-                                i.status.toLowerCase() != 'controlled',
-                          )
-                          .length,
+      top: topPadding,
+      left: 16,
+      right: 16,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _isFilterExpanded = !_isFilterExpanded),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface.withOpacity(0.95),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4),
+                ],
+              ),
+              child: AnimatedRotation(
+                turns: _isFilterExpanded ? 0.25 : 0.0,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white,
+                  size: 22,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(-0.05, 0.0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child: !_isFilterExpanded
+                ? const SizedBox.shrink(key: ValueKey('closed'))
+                : Container(
+                    key: const ValueKey('open'),
+                    margin: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgSurface.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Top row: Active, High, Moderate
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _FilterChip(
+                              label: 'Active',
+                              color: AppColors.info,
+                              selected: _activeFilter == 'Active',
+                              onTap: () => setState(() => _activeFilter = _activeFilter == 'Active' ? null : 'Active'),
+                              count: _activeCount,
+                            ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: 'High',
+                              color: AppColors.danger,
+                              selected: _activeFilter == 'High',
+                              onTap: () => setState(() => _activeFilter = _activeFilter == 'High' ? null : 'High'),
+                              count: _highCount,
+                            ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: 'Moderate',
+                              color: AppColors.warning,
+                              selected: _activeFilter == 'Moderate',
+                              onTap: () => setState(() => _activeFilter = _activeFilter == 'Moderate' ? null : 'Moderate'),
+                              count: _moderateCount,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Second row: All, Earthquake, Flood, Landslide, Fire
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _FilterChip(
+                                label: 'All',
+                                icon: Icons.public_rounded,
+                                color: Colors.white,
+                                selected: _activeFilter == null,
+                                onTap: () => setState(() => _activeFilter = null),
+                              ),
+                              const SizedBox(width: 8),
+                              ...['Earthquake', 'Flood', 'Landslide', 'Fire'].map(
+                                (t) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: _FilterChip(
+                                    label: DisasterStyle.labelForType(t),
+                                    icon: DisasterStyle.iconForType(t),
+                                    color: DisasterStyle.colorForType(t),
+                                    selected: _activeFilter?.toLowerCase() == t.toLowerCase(),
+                                    onTap: () => setState(() {
+                                      _activeFilter = _activeFilter?.toLowerCase() == t.toLowerCase() ? null : t;
+                                    }),
+                                    count: _reports.where((i) => i.disasterType.toLowerCase() == t.toLowerCase() && i.status.toLowerCase() != 'controlled').length,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -985,6 +961,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
       right: 16,
       child: Column(
         children: [
+          _GlassBtn(icon: Icons.my_location_rounded, onTap: _locateMe),
+          const SizedBox(height: 12),
           _GlassBtn(
             icon: Icons.add_rounded,
             onTap:
@@ -1002,11 +980,45 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                   _mapController.camera.zoom - 1,
                 ),
           ),
-          const SizedBox(height: 8),
-          _GlassBtn(icon: Icons.my_location_rounded, onTap: _locateMe),
-          const SizedBox(height: 8),
-          _GlassBtn(icon: Icons.list_rounded, onTap: _showIncidentsList),
         ],
+      ),
+    );
+  }
+
+  // ─── BOTTOM RISK LEGEND ──────────────────────
+
+  Widget _buildBottomRiskLegend() {
+    return Positioned(
+      bottom: 12, // Lowered closer to bottom nav
+      left: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _LegendItem(label: 'High Risk', count: _highCount, color: AppColors.danger),
+            _LegendItem(label: 'Moderate', count: _moderateCount, color: AppColors.warning),
+            _LegendItem(
+              label: 'Low Risk', 
+              count: _reports.where((i) => i.severity.toLowerCase() == 'low' && i.status.toLowerCase() != 'controlled').length, 
+              color: AppColors.success
+            ),
+            _LegendItem(
+              label: 'Safe', 
+              count: _reports.where((i) => i.status.toLowerCase() == 'controlled').length, 
+              color: Colors.blueAccent
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1400,6 +1412,48 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
 
 // ─── REUSABLE WIDGETS ──────────────────────────────
 
+class _LegendItem extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+  const _LegendItem({required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(color: color.withOpacity(0.5), blurRadius: 4),
+            ]
+          ),
+        ),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+            Text(
+              '$count',
+              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class _MarkerWidget extends StatelessWidget {
   final ReportModel incident;
   final bool isSelected;
@@ -1551,14 +1605,14 @@ class _StatPill extends StatelessWidget {
 
 class _FilterChip extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final IconData? icon;
   final Color color;
   final bool selected;
   final VoidCallback onTap;
   final int count;
   const _FilterChip({
     required this.label,
-    required this.icon,
+    this.icon,
     required this.color,
     required this.selected,
     required this.onTap,
@@ -1585,8 +1639,10 @@ class _FilterChip extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: selected ? color : Colors.white38, size: 13),
-            const SizedBox(width: 5),
+            if (icon != null) ...[
+              Icon(icon, color: selected ? color : Colors.white38, size: 13),
+              const SizedBox(width: 5),
+            ],
             Text(
               label,
               style: TextStyle(

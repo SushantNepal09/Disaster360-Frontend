@@ -10,7 +10,7 @@ import 'package:disaster360/auth/auth_wrapper.dart';
 import 'package:disaster360/services/notification_service.dart';
 
 class SecureLogout {
-  /// Executes a scorched-earth cleanup of all user-specific memory, 
+  /// Executes a scorched-earth cleanup of all user-specific memory,
   /// tokens, and caches, ensuring no leakage across sessions.
   static Future<void> performLogout(BuildContext context) async {
     // 1. Clear memory caches in Providers

@@ -59,7 +59,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
   List<AdminReportData> get _filteredReports {
     final reportProvider = context.watch<ReportProvider>();
     final allReports =
-        reportProvider.reports.map((m) {
+        reportProvider.reports.map<AdminReportData>((m) {
           final s =
               m.status.isEmpty
                   ? 'Pending'
@@ -86,6 +86,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
             assignedRescueTeams: m.rescueTeam ?? 'Not Assigned',
             isAccepted: m.isAccepted,
             assignments: m.assignments,
+            severity: m.severity,
             finalAdminReport: m.finalAdminReport,
           );
         }).toList();
@@ -1267,7 +1268,6 @@ class _AdminReportCardState extends State<_AdminReportCard> {
 // 140px height = passport-photo visible size, clearly readable at a glance.
 // Up to 3 tiles. If photoCount > 3, last tile shows "+N more" overlay.
 // 1.5px border visible on every tile as requested.
-
 
 // ─── Status Banner ────────────────────────────────────────────────────────────
 class _StatusBanner extends StatelessWidget {

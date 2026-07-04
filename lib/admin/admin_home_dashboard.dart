@@ -610,8 +610,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     }
   }
 
-  AdminReportData _toAdminReportData(_PendingReportData p, ReportProvider reportProvider) {
-    final matchedReport = reportProvider.reports.where((r) => 'RPT-${r.id}' == p.reportId).firstOrNull;
+  AdminReportData _toAdminReportData(
+    _PendingReportData p,
+    ReportProvider reportProvider,
+  ) {
+    final matchedReport =
+        reportProvider.reports
+            .where((r) => 'RPT-${r.id}' == p.reportId)
+            .firstOrNull;
     return AdminReportData(
       reportId: p.reportId,
       status: p.status,
@@ -631,6 +637,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       assignedRescueTeams: matchedReport?.rescueTeam ?? 'Not Assigned',
       isAccepted: matchedReport?.isAccepted ?? false,
       assignments: matchedReport?.assignments ?? [],
+      severity: p.severity,
       finalAdminReport: matchedReport?.finalAdminReport,
     );
   }
@@ -806,7 +813,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                         return const SizedBox.shrink();
                       }
                       final report = reports[_currentReportIndex];
-                      final adminReport = _toAdminReportData(report, reportProvider);
+                      final adminReport = _toAdminReportData(
+                        report,
+                        reportProvider,
+                      );
                       final intId = int.tryParse(
                         report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
                       );
@@ -1344,15 +1354,32 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: report.status == 'Verified' ? AppColors.success.withOpacity(0.2) : (report.status == 'Rejected' ? AppColors.danger.withOpacity(0.2) : AppColors.warning.withOpacity(0.2)),
+                                      color:
+                                          report.status == 'Verified'
+                                              ? AppColors.success.withOpacity(
+                                                0.2,
+                                              )
+                                              : (report.status == 'Rejected'
+                                                  ? AppColors.danger
+                                                      .withOpacity(0.2)
+                                                  : AppColors.warning
+                                                      .withOpacity(0.2)),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
                                       report.status,
                                       style: TextStyle(
-                                        color: report.status == 'Verified' ? AppColors.success : (report.status == 'Rejected' ? AppColors.danger : AppColors.warning),
+                                        color:
+                                            report.status == 'Verified'
+                                                ? AppColors.success
+                                                : (report.status == 'Rejected'
+                                                    ? AppColors.danger
+                                                    : AppColors.warning),
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -1392,37 +1419,61 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                     Expanded(
                                       child: OutlinedButton(
                                         onPressed: () {
-                                          context.read<ReportProvider>().updateSubmissionStatus(report.intId, 'Rejected').then((_) {
-                                            Navigator.pop(context);
-                                          });
+                                          context
+                                              .read<ReportProvider>()
+                                              .updateSubmissionStatus(
+                                                report.intId,
+                                                'Rejected',
+                                              )
+                                              .then((_) {
+                                                Navigator.pop(context);
+                                              });
                                         },
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: AppColors.danger,
-                                          side: const BorderSide(color: AppColors.danger),
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          side: const BorderSide(
+                                            color: AppColors.danger,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                          ),
                                         ),
-                                        child: const Text('Reject', style: TextStyle(fontSize: 12)),
+                                        child: const Text(
+                                          'Reject',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton(
                                         onPressed: () {
-                                          context.read<ReportProvider>().updateSubmissionStatus(report.intId, 'Verified').then((_) {
-                                            Navigator.pop(context);
-                                          });
+                                          context
+                                              .read<ReportProvider>()
+                                              .updateSubmissionStatus(
+                                                report.intId,
+                                                'Verified',
+                                              )
+                                              .then((_) {
+                                                Navigator.pop(context);
+                                              });
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.success,
                                           foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                          ),
                                         ),
-                                        child: const Text('Verify', style: TextStyle(fontSize: 12)),
+                                        child: const Text(
+                                          'Verify',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ]
+                              ],
                             ],
                           ),
                         ),
@@ -1891,7 +1942,7 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
     if (s == 'high' || s == '3') return (const Color(0xFFFFB800), 'HIGH');
     if (s == 'severe' || s == '4') return (const Color(0xFFFF6B2B), 'SEVERE');
     if (s == 'extreme' || s == 'critical' || s == '5') {
-      return (const Color(0xFFFF3B3B), 'CRITICAL');
+      return (const Color(0xFFFF3B3B), 'EXTREME');
     }
     return (
       AppColors.warning,
@@ -2835,7 +2886,7 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = StatusHelper.getStatusBgColor(status);
     final text = StatusHelper.getStatusColor(status);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(

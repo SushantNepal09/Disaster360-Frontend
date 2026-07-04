@@ -5,10 +5,10 @@ class StatusHelper {
   /// Returns the formatted status string (Title Cased)
   static String getStatusText(String status) {
     if (status.isEmpty) return 'Unknown';
-    
+
     // Normalize to lowercase for comparison
     final s = status.toLowerCase().trim();
-    
+
     switch (s) {
       case 'pending':
         return 'Pending Verification';
@@ -40,7 +40,7 @@ class StatusHelper {
     if (status.isEmpty) return Colors.grey;
 
     final s = status.toLowerCase().trim();
-    
+
     switch (s) {
       case 'pending':
         return AppColors.warning; // Yellow
@@ -75,12 +75,12 @@ class StatusHelper {
     if (status.isEmpty) return Icons.help_outline_rounded;
 
     final s = status.toLowerCase().trim();
-    
+
     switch (s) {
       case 'pending':
         return Icons.pending_actions_rounded;
       case 'verified':
-        return Icons.verified_user_rounded; 
+        return Icons.verified_user_rounded;
       case 'assigned':
         return Icons.assignment_ind_rounded;
       case 'accepted':

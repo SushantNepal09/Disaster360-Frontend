@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
-import 'package:disaster360/rescue/completed_task_detail_screen.dart';
+import 'package:disaster360/rescue/rescue_disaster_detail_screen.dart';
 import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
@@ -78,7 +78,6 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Consumer<RescueProvider>(
@@ -92,67 +91,95 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
             children: [
               _buildStickyTopBar(),
               Expanded(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 680),
-                          child: provider.isLoading && allTasks.isEmpty
-                              ? const Center(child: CircularProgressIndicator(color: AppColors.orange))
-                              : RefreshIndicator(
-                                  color: AppColors.orange,
-                                  backgroundColor: const Color(0xFF1F1F1F),
-                                  onRefresh: () => provider.fetchAll(),
-                                  child: CustomScrollView(
-                                    slivers: [
-                                      SliverToBoxAdapter(
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                              'All Completed Assignments',
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(0.7),
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
+                    child:
+                        provider.isLoading && allTasks.isEmpty
+                            ? const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.orange,
+                              ),
+                            )
+                            : RefreshIndicator(
+                              color: AppColors.orange,
+                              backgroundColor: const Color(0xFF1F1F1F),
+                              onRefresh: () => provider.fetchAll(),
+                              child: CustomScrollView(
+                                slivers: [
+                                  SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        16,
+                                        16,
+                                        8,
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          'All Completed Assignments',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(
+                                              0.7,
                                             ),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
-                                      if (filtered.isEmpty)
-                                        SliverFillRemaining(
-                                          child: _buildEmptyState(),
-                                        )
-                                      else
-                                        SliverList(
-                                          delegate: SliverChildBuilderDelegate(
-                                            (context, i) {
-                                              return Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                                child: _FacebookReportCard(
-                                                  task: filtered[i],
-                                                  onAccept: () => _handleAccept(context, filtered[i]),
-                                                  onReject: () => _handleReject(context, filtered[i]),
-                                                  onDetails: () => RescueMotion.push(
-                                                    context,
-                                                    CompletedTaskDetailScreen(task: filtered[i]),
+                                    ),
+                                  ),
+                                  if (filtered.isEmpty)
+                                    SliverFillRemaining(
+                                      child: _buildEmptyState(),
+                                    )
+                                  else
+                                    SliverList(
+                                      delegate: SliverChildBuilderDelegate((
+                                        context,
+                                        i,
+                                      ) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                          child: _FacebookReportCard(
+                                            task: filtered[i],
+                                            onAccept:
+                                                () => _handleAccept(
+                                                  context,
+                                                  filtered[i],
+                                                ),
+                                            onReject:
+                                                () => _handleReject(
+                                                  context,
+                                                  filtered[i],
+                                                ),
+                                            onDetails:
+                                                () => RescueMotion.push(
+                                                  context,
+                                                  RescueDisasterDetailScreen(
+                                                    task: filtered[i],
                                                   ),
                                                 ),
-                                              );
-                                            },
-                                            childCount: filtered.length,
                                           ),
-                                        ),
-                                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                                    ],
+                                        );
+                                      }, childCount: filtered.length),
+                                    ),
+                                  const SliverToBoxAdapter(
+                                    child: SizedBox(height: 32),
                                   ),
-                                ),
-                        ), // ConstrainedBox
-                      ), // Center
-                    ), // Expanded
-                  ], // children
-                ), // Column
-              ); // Scaffold
+                                ],
+                              ),
+                            ),
+                  ), // ConstrainedBox
+                ), // Center
+              ), // Expanded
+            ], // children
+          ), // Column
+        ); // Scaffold
         return content;
       },
     );
@@ -167,10 +194,13 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
       ),
       child: Row(
         children: [
-
           const Text(
             'Completed Tasks',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const Spacer(),
           Container(
@@ -222,9 +252,12 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
                 child: Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              )
+              ),
             ],
           ),
         ],
@@ -232,35 +265,40 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
     );
   }
 
-
-
   Widget _buildFilterTabs() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: _filters.map((filter) {
-          final isActive = _selectedFilter == filter;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedFilter = filter),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isActive ? Colors.white : const Color(0xFF1F1F1F),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isActive ? Colors.white : const Color(0x0FFFFFFF)),
-              ),
-              child: Text(
-                filter,
-                style: TextStyle(
-                  color: isActive ? Colors.black : Colors.white54,
-                  fontSize: 13,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        children:
+            _filters.map((filter) {
+              final isActive = _selectedFilter == filter;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedFilter = filter),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isActive ? Colors.white : const Color(0xFF1F1F1F),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isActive ? Colors.white : const Color(0x0FFFFFFF),
+                    ),
+                  ),
+                  child: Text(
+                    filter,
+                    style: TextStyle(
+                      color: isActive ? Colors.black : Colors.white54,
+                      fontSize: 13,
+                      fontWeight:
+                          isActive ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
       ),
     );
   }
@@ -272,7 +310,10 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
         children: [
           Icon(Icons.inbox_outlined, color: Colors.white24, size: 64),
           SizedBox(height: 16),
-          Text('No assignments yet', style: TextStyle(color: Colors.white54, fontSize: 16)),
+          Text(
+            'No assignments yet',
+            style: TextStyle(color: Colors.white54, fontSize: 16),
+          ),
         ],
       ),
     );
@@ -283,9 +324,8 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
   void _handleReject(BuildContext context, RescueTask task) {
     showDialog(
       context: context,
-      builder: (ctx) => RejectionDialog(
-        assignmentId: int.parse(task.assignmentId),
-      ),
+      builder:
+          (ctx) => RejectionDialog(assignmentId: int.parse(task.assignmentId)),
     );
   }
 
@@ -338,7 +378,10 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
   }
 
   void _handleCompletionReport(BuildContext context, RescueTask task) {
-    RescueMotion.push(context, PostDisasterReportScreen(preSelectedTask: task)).then((_) {
+    RescueMotion.push(
+      context,
+      PostDisasterReportScreen(preSelectedTask: task),
+    ).then((_) {
       if (context.mounted) context.read<RescueProvider>().fetchMyAssignments();
     });
   }
@@ -743,8 +786,6 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
     );
   }
 
-
-
   Widget _sheetHandle() {
     return Container(
       width: 40,
@@ -1062,7 +1103,6 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
 //  TASK CARD — with two‑image grid + full‑screen viewer
 // ══════════════════════════════════════════════════════════════════════════════
 
-
 class _FacebookReportCard extends StatelessWidget {
   final RescueTask task;
   final VoidCallback onAccept;
@@ -1094,7 +1134,11 @@ class _FacebookReportCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: AppColors.orange.withOpacity(0.2),
-                  child: const Icon(Icons.person, color: AppColors.orange, size: 20),
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.orange,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1103,38 +1147,61 @@ class _FacebookReportCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(task.reporterName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(
+                            task.reporterName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: task.reporterStatus.toLowerCase() == 'active' ? AppColors.success.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                              color:
+                                  task.reporterStatus.toLowerCase() == 'active'
+                                      ? AppColors.success.withOpacity(0.2)
+                                      : Colors.grey.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              task.reporterStatus, 
+                              task.reporterStatus,
                               style: TextStyle(
-                                color: task.reporterStatus.toLowerCase() == 'active' ? AppColors.success : Colors.grey, 
-                                fontSize: 10, 
-                                fontWeight: FontWeight.w600
-                              )
+                                color:
+                                    task.reporterStatus.toLowerCase() ==
+                                            'active'
+                                        ? AppColors.success
+                                        : Colors.grey,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text(task.assignedAgo, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                      Text(
+                        task.assignedAgo,
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_horiz, color: Colors.white54),
                   onPressed: onDetails, // Map details to more_horiz
-                )
+                ),
               ],
             ),
           ),
-          
+
           // Body
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1143,12 +1210,20 @@ class _FacebookReportCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 18),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppColors.danger,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         task.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     _SeverityBadge(level: task.severityLevel),
@@ -1157,15 +1232,31 @@ class _FacebookReportCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, color: Colors.white38, size: 14),
+                    const Icon(
+                      Icons.location_on,
+                      color: Colors.white38,
+                      size: 14,
+                    ),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(task.location, style: const TextStyle(color: Colors.white70, fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        task.location,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   task.description,
-                  style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -1177,7 +1268,7 @@ class _FacebookReportCard extends StatelessWidget {
             mediaUrls: task.mediaUrls,
             reportId: task.reportId,
           ),
-          
+
           // Action Row
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1191,12 +1282,24 @@ class _FacebookReportCard extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: onReject,
-                      icon: const Icon(Icons.cancel_outlined, size: 18, color: AppColors.danger),
-                      label: const Text('Reject', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                      icon: const Icon(
+                        Icons.cancel_outlined,
+                        size: 18,
+                        color: AppColors.danger,
+                      ),
+                      label: const Text(
+                        'Reject',
+                        style: TextStyle(
+                          color: AppColors.danger,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.danger),
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
@@ -1204,23 +1307,44 @@ class _FacebookReportCard extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: onAccept,
-                      icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
-                      label: const Text('Accept', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      icon: const Icon(
+                        Icons.check_circle_outline,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Accept',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
                 ] else
                   OutlinedButton.icon(
                     onPressed: onDetails,
-                    icon: const Icon(Icons.info_outline, size: 18, color: Colors.white70),
-                    label: const Text('View Details', style: TextStyle(color: Colors.white70)),
+                    icon: const Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
+                    label: const Text(
+                      'View Details',
+                      style: TextStyle(color: Colors.white70),
+                    ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0x0FFFFFFF)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
               ],
@@ -1236,7 +1360,10 @@ class _FacebookPhotoGallery extends StatelessWidget {
   final List<String> mediaUrls;
   final String reportId;
 
-  const _FacebookPhotoGallery({required this.mediaUrls, required this.reportId});
+  const _FacebookPhotoGallery({
+    required this.mediaUrls,
+    required this.reportId,
+  });
 
   void _open(BuildContext context, int index) {
     showGeneralDialog(
@@ -1244,21 +1371,30 @@ class _FacebookPhotoGallery extends StatelessWidget {
       barrierDismissible: true,
       barrierLabel: 'close',
       barrierColor: Colors.transparent,
-      pageBuilder: (_, __, ___) => ImageViewerOverlay(
-        mediaUrls: mediaUrls,
-        initialIndex: index,
-        reportId: reportId,
-      ),
+      pageBuilder:
+          (_, __, ___) => ImageViewerOverlay(
+            mediaUrls: mediaUrls,
+            initialIndex: index,
+            reportId: reportId,
+          ),
     );
   }
 
-  Widget _buildImage(BuildContext context, int index, {BoxFit fit = BoxFit.cover}) {
+  Widget _buildImage(
+    BuildContext context,
+    int index, {
+    BoxFit fit = BoxFit.cover,
+  }) {
     return GestureDetector(
       onTap: () => _open(context, index),
       child: Image.network(
         mediaUrls[index],
         fit: fit,
-        errorBuilder: (_, __, ___) => Container(color: Colors.white12, child: const Icon(Icons.broken_image, color: Colors.white38)),
+        errorBuilder:
+            (_, __, ___) => Container(
+              color: Colors.white12,
+              child: const Icon(Icons.broken_image, color: Colors.white38),
+            ),
       ),
     );
   }
@@ -1280,9 +1416,16 @@ class _FacebookPhotoGallery extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.image_not_supported_outlined, color: Colors.white38, size: 40),
+              Icon(
+                Icons.image_not_supported_outlined,
+                color: Colors.white38,
+                size: 40,
+              ),
               SizedBox(height: 8),
-              Text('No media attached', style: TextStyle(color: Colors.white38, fontSize: 12)),
+              Text(
+                'No media attached',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
             ],
           ),
         ),
@@ -1363,7 +1506,14 @@ class _FacebookPhotoGallery extends StatelessWidget {
                             child: Container(
                               color: Colors.black54,
                               child: Center(
-                                child: Text('+${count - 4}', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  '+${count - 4}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1504,4 +1654,3 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
-

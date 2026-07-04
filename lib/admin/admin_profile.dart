@@ -1631,10 +1631,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
       );
     } else {
       // Mobile: push full screen
-      Navigator.push(
-        context,
-        _fadeRoute(const FeedbackScreen()),
-      );
+      Navigator.push(context, _fadeRoute(const FeedbackScreen()));
     }
   }
 
@@ -2324,7 +2321,6 @@ class _SectionLabel extends StatelessWidget {
 }
 
 // ── Dialog text field ──────────────────────────────────────────────────────────
-
 
 // ── Fade route transition ──────────────────────────────────────────────────────
 PageRouteBuilder _fadeRoute(Widget page) {

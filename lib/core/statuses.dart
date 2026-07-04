@@ -104,18 +104,20 @@ class StatusTheme {
   };
 
   static StatusMetadata getIncidentTheme(String? status) {
-    return incidentMetadata[status] ?? StatusMetadata(
-      label: status ?? "Unknown",
-      color: Colors.grey,
-      icon: Icons.help_outline,
-    );
+    return incidentMetadata[status] ??
+        StatusMetadata(
+          label: status ?? "Unknown",
+          color: Colors.grey,
+          icon: Icons.help_outline,
+        );
   }
 
   static StatusMetadata getAssignmentTheme(String? status) {
-    return assignmentMetadata[status] ?? StatusMetadata(
-      label: status ?? "Unknown",
-      color: Colors.grey,
-      icon: Icons.help_outline,
-    );
+    return assignmentMetadata[status] ??
+        StatusMetadata(
+          label: status ?? "Unknown",
+          color: Colors.grey,
+          icon: Icons.help_outline,
+        );
   }
 }

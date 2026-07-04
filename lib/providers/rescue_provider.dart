@@ -72,7 +72,12 @@ class RescueProvider extends ChangeNotifier {
 
     try {
       await fetchProfile();
-      await Future.wait([fetchMyAssignments(), fetchCompletedAssignments(), fetchAllReports(), fetchHomeFeed()]);
+      await Future.wait([
+        fetchMyAssignments(),
+        fetchCompletedAssignments(),
+        fetchAllReports(),
+        fetchHomeFeed(),
+      ]);
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -166,8 +171,14 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Reject a Rescue Assignment
   // ---------------------------------------------------------------------------
-  Future<String> rejectAssignment(int assignmentId, {required String reason}) async {
-    final result = await _service.rejectAssignment(assignmentId, reason: reason);
+  Future<String> rejectAssignment(
+    int assignmentId, {
+    required String reason,
+  }) async {
+    final result = await _service.rejectAssignment(
+      assignmentId,
+      reason: reason,
+    );
     await fetchAll(); // Ensure complete synchronization across Home, My Tasks, and Reports
     return result['message'] ?? 'Assignment rejected successfully';
   }
@@ -177,23 +188,26 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   Future<void> updateOperationStatus(int assignmentId, String status) async {
     await _service.updateOperationStatus(assignmentId, status);
-    await Future.wait([
-      fetchMyAssignments(),
-      fetchCompletedAssignments(),
-    ]);
+    await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
   }
 
   // ---------------------------------------------------------------------------
   // Submit post-incident report
   // ---------------------------------------------------------------------------
-  Future<void> submitPostIncidentReport(
+  Future<void> submitPostIncidentReport(int assignmentId, String reportText) async {
+    await _service.addManualTimelineEvent(
+      assignmentId,
+      'Post-Incident Report Submitted',
+      reportText,
+    );
+    await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
+  }
+
+  Future<void> uploadReportAttachments(
     int assignmentId,
-    String reportText,
+    List<String> filePaths,
   ) async {
-    await _service.submitPostIncidentReport(assignmentId, reportText);
-    await Future.wait([
-      fetchMyAssignments(),
-      fetchCompletedAssignments(),
-    ]);
+    await _service.uploadReportAttachments(assignmentId, filePaths);
+    await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
   }
 }

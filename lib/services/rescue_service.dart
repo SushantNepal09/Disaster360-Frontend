@@ -52,9 +52,15 @@ class RescueService {
   // ---------------------------------------------------------------------------
   // PUT /rescue/assignments/{assignmentId}/reject
   // ---------------------------------------------------------------------------
-  Future<Map<String, dynamic>> rejectAssignment(int assignmentId, {required String reason}) async {
+  Future<Map<String, dynamic>> rejectAssignment(
+    int assignmentId, {
+    required String reason,
+  }) async {
     final Map<String, dynamic> body = {'reason': reason};
-    final response = await _api.put('/rescue/assignments/$assignmentId/reject', body: body);
+    final response = await _api.put(
+      '/rescue/assignments/$assignmentId/reject',
+      body: body,
+    );
     return Map<String, dynamic>.from(response as Map);
   }
 
@@ -85,21 +91,6 @@ class RescueService {
   }
 
   // ---------------------------------------------------------------------------
-  // POST /rescue/operations/{assignmentId}/post-incident-report
-  // Submit a post-incident report (only when status is Completed)
-  // ---------------------------------------------------------------------------
-  Future<Map<String, dynamic>> submitPostIncidentReport(
-    int assignmentId,
-    String reportText,
-  ) async {
-    final response = await _api.post(
-      '/rescue/operations/$assignmentId/post-incident-report',
-      body: {'post_incident_report': reportText},
-    );
-    return Map<String, dynamic>.from(response as Map);
-  }
-
-  // ---------------------------------------------------------------------------
   // GET /rescue/home — Get home feed (assigned reports formatted as ReportModel)
   // ---------------------------------------------------------------------------
   Future<List<Map<String, dynamic>>> getHomeFeed() async {
@@ -118,5 +109,170 @@ class RescueService {
       return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
     return [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // LIVE UPDATES & OFFLINE QUEUE
+  // ---------------------------------------------------------------------------
+  
+  // Simple in-memory queue for offline updates (would be persisted via Hive/SQLite in prod)
+  static final List<Map<String, dynamic>> _offlineUpdatesQueue = [];
+
+  Future<Map<String, dynamic>> postLiveUpdate(
+    int incidentId,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await _api.post(
+        '/rescue/incidents/$incidentId/live-updates',
+        body: payload,
+      );
+      
+      // If successful, try to sync queued items
+      _syncOfflineUpdates();
+      
+      return Map<String, dynamic>.from(response as Map);
+    } catch (e) {
+      // If network error, queue the update
+      payload['incident_id'] = incidentId;
+      _offlineUpdatesQueue.add(payload);
+      print("Network error. Live update queued offline. Queue size: ${_offlineUpdatesQueue.length}");
+      
+      // Return a simulated success response so the UI can proceed
+      return {
+        "success": true,
+        "message": "Update queued offline",
+        "data": {"id": -1, "queued": true}
+      };
+    }
+  }
+  
+  Future<void> _syncOfflineUpdates() async {
+    if (_offlineUpdatesQueue.isEmpty) return;
+    
+    print("Attempting to sync ${_offlineUpdatesQueue.length} offline updates...");
+    final List<Map<String, dynamic>> failedUpdates = [];
+    
+    for (var update in _offlineUpdatesQueue) {
+      final int incidentId = update['incident_id'];
+      
+      // Remove incident_id from body payload to match schema exactly
+      final payload = Map<String, dynamic>.from(update);
+      payload.remove('incident_id');
+      
+      try {
+        await _api.post('/rescue/incidents/$incidentId/live-updates', body: payload);
+      } catch (e) {
+        failedUpdates.add(update);
+      }
+    }
+    
+    _offlineUpdatesQueue.clear();
+    _offlineUpdatesQueue.addAll(failedUpdates);
+    
+    if (_offlineUpdatesQueue.isEmpty) {
+      print("All offline updates synced successfully.");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTimelineEvents(int operationId) async {
+    final response = await _api.get('/rescue/operations/$operationId/timeline');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true) {
+      final list = map['data'] as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> addManualTimelineEvent(
+    int operationId,
+    String title,
+    String? description,
+  ) async {
+    final response = await _api.post(
+      '/rescue/operations/$operationId/timeline',
+      body: {
+        'title': title,
+        'description': description,
+        'event_type': 'MANUAL',
+      },
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<Map<String, dynamic>> updateTimelineEvent(
+    int eventId,
+    String description,
+  ) async {
+    final response = await _api.put(
+      '/rescue/operations/timeline/$eventId',
+      body: {
+        'description': description,
+      },
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<void> deleteTimelineEvent(int eventId) async {
+    await _api.delete('/rescue/operations/timeline/$eventId');
+  }
+
+  // ---------------------------------------------------------------------------
+  // MEDIA (Operation Updates)
+  // ---------------------------------------------------------------------------
+  
+  Future<Map<String, dynamic>> uploadOperationMedia(
+    int operationId,
+    List<Map<String, dynamic>> mediaItems,
+  ) async {
+    final response = await _api.post(
+      '/rescue/operations/$operationId/media',
+      body: {'media': mediaItems},
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getOperationMedia(int operationId) async {
+    final response = await _api.get('/rescue/operations/$operationId/media');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true) {
+      final list = map['data'] as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // POST INCIDENT REPORT
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>?> getPostIncidentReport(int operationId) async {
+    final response = await _api.get('/rescue/operations/$operationId/post-incident-report');
+    final map = response as Map<String, dynamic>;
+    if (map['success'] == true && map['data'] != null) {
+      return Map<String, dynamic>.from(map['data'] as Map);
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> uploadReportAttachments(
+    int assignmentId,
+    List<String> filePaths,
+  ) async {
+    final response = await _api.multipartFiles(
+      '/rescue/operations/$assignmentId/post-incident-report/attachments',
+      filePaths,
+      fieldName: 'files',
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<Map<String, dynamic>> deleteReportAttachment(
+    int reportId,
+    int attachmentId,
+  ) async {
+    final response = await _api.delete('/rescue/reports/$reportId/attachments/$attachmentId');
+    return Map<String, dynamic>.from(response as Map);
   }
 }

@@ -14,10 +14,12 @@ class AdminCompletedOperationsScreen extends StatefulWidget {
   const AdminCompletedOperationsScreen({super.key});
 
   @override
-  State<AdminCompletedOperationsScreen> createState() => _AdminCompletedOperationsScreenState();
+  State<AdminCompletedOperationsScreen> createState() =>
+      _AdminCompletedOperationsScreenState();
 }
 
-class _AdminCompletedOperationsScreenState extends State<AdminCompletedOperationsScreen>
+class _AdminCompletedOperationsScreenState
+    extends State<AdminCompletedOperationsScreen>
     with SingleTickerProviderStateMixin {
   String _activeFilter = 'All';
   final TextEditingController _searchController = TextEditingController();
@@ -64,9 +66,18 @@ class _AdminCompletedOperationsScreenState extends State<AdminCompletedOperation
     return allOperations.where((op) {
       final matchesSearch =
           _searchQuery.isEmpty ||
-          (op['title']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (op['incident_id']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (op['location']?['address']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+          (op['title']?.toString().toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ) ??
+              false) ||
+          (op['incident_id']?.toString().toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ) ??
+              false) ||
+          (op['location']?['address']?.toString().toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ) ??
+              false);
       return matchesSearch;
     }).toList();
   }
@@ -170,7 +181,8 @@ class _AdminCompletedOperationsScreenState extends State<AdminCompletedOperation
       context,
       PageRouteBuilder(
         pageBuilder:
-            (_, animation, __) => AdminCompletedReportDetailScreen(report: report),
+            (_, animation, __) =>
+                AdminCompletedReportDetailScreen(report: report),
         transitionsBuilder:
             (_, animation, __, child) => FadeTransition(
               opacity: CurvedAnimation(
@@ -523,14 +535,34 @@ class _AdminReportCardState extends State<_AdminReportCard> {
         return '${diff.inDays} days ago';
       } else if (diff.inDays < 365) {
         const monthNames = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}';
       } else {
         const monthNames = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year}';
       }
@@ -615,7 +647,9 @@ class _AdminReportCardState extends State<_AdminReportCard> {
                 const Spacer(),
                 Flexible(
                   child: Text(
-                    report['created_at'] != null ? _relativeDate(report['created_at'].toString()) : '',
+                    report['created_at'] != null
+                        ? _relativeDate(report['created_at'].toString())
+                        : '',
                     style: const TextStyle(color: Colors.white38, fontSize: 11),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -679,7 +713,6 @@ class _AdminReportCardState extends State<_AdminReportCard> {
 // 140px height = passport-photo visible size, clearly readable at a glance.
 // Up to 3 tiles. If photoCount > 3, last tile shows "+N more" overlay.
 // 1.5px border visible on every tile as requested.
-
 
 // ─── Status Banner ────────────────────────────────────────────────────────────
 class _StatusBanner extends StatelessWidget {

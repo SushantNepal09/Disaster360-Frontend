@@ -13,7 +13,7 @@ import 'package:disaster360/services/deep_link_router.dart';
 void main() {
   testWidgets('App builds smoke test', (WidgetTester tester) async {
     final router = DeepLinkRouter();
-    
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(DisasterApp(router: router));
 

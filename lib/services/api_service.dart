@@ -72,6 +72,23 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<dynamic> multipartFiles(String endpoint, List<String> filePaths, {String fieldName = 'files'}) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final request = http.MultipartRequest('POST', uri);
+
+    final headers = await _getHeaders();
+    headers.remove('Content-Type');
+    request.headers.addAll(headers);
+
+    for (String path in filePaths) {
+      request.files.add(await http.MultipartFile.fromPath(fieldName, path));
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return _handleResponse(response);
+  }
+
   Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     final response = await http.put(

@@ -7,10 +7,7 @@ import 'package:disaster360/providers/report_provider.dart';
 class AdminCompletedReportDetailScreen extends StatefulWidget {
   final Map<String, dynamic> report;
 
-  const AdminCompletedReportDetailScreen({
-    super.key,
-    required this.report,
-  });
+  const AdminCompletedReportDetailScreen({super.key, required this.report});
 
   @override
   State<AdminCompletedReportDetailScreen> createState() =>
@@ -37,8 +34,11 @@ class _AdminCompletedReportDetailScreenState
     setState(() => _isSubmitting = true);
     try {
       final incidentId = int.parse(widget.report['incident_id'].toString());
-      await context.read<ReportProvider>().submitFinalAdminReport(incidentId, text);
-      
+      await context.read<ReportProvider>().submitFinalAdminReport(
+        incidentId,
+        text,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -74,8 +74,18 @@ class _AdminCompletedReportDetailScreenState
       }
       final dt = DateTime.parse(dateStr).toLocal();
       const monthNames = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
       ];
       return '${monthNames[dt.month - 1]} ${dt.day}, ${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
@@ -135,7 +145,10 @@ class _AdminCompletedReportDetailScreenState
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.success.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
@@ -153,7 +166,9 @@ class _AdminCompletedReportDetailScreenState
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    (report['disaster_type'] ?? 'Unknown').toString().toUpperCase(),
+                    (report['disaster_type'] ?? 'Unknown')
+                        .toString()
+                        .toUpperCase(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -163,12 +178,20 @@ class _AdminCompletedReportDetailScreenState
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.location_on, color: Colors.white54, size: 16),
+                      const Icon(
+                        Icons.location_on,
+                        color: Colors.white54,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          (report['location']?['address'] ?? 'Unknown').toString(),
-                          style: const TextStyle(color: Colors.white70, fontSize: 14),
+                          (report['location']?['address'] ?? 'Unknown')
+                              .toString(),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
@@ -185,10 +208,7 @@ class _AdminCompletedReportDetailScreenState
                   const SizedBox(height: 8),
                   Text(
                     (report['description'] ?? 'No description').toString(),
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      height: 1.5,
-                    ),
+                    style: const TextStyle(color: Colors.white70, height: 1.5),
                   ),
                 ],
               ),
@@ -230,7 +250,9 @@ class _AdminCompletedReportDetailScreenState
                           ),
                         ),
                         Text(
-                          t['completed_at'] != null ? _relativeDate(t['completed_at'].toString()) : '',
+                          t['completed_at'] != null
+                              ? _relativeDate(t['completed_at'].toString())
+                              : '',
                           style: const TextStyle(
                             color: Colors.white38,
                             fontSize: 12,
@@ -283,7 +305,8 @@ class _AdminCompletedReportDetailScreenState
                 maxLines: 5,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
-                  hintText: 'Enter final resolution report to close this incident...',
+                  hintText:
+                      'Enter final resolution report to close this incident...',
                   hintStyle: TextStyle(color: Colors.white38),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
@@ -305,20 +328,24 @@ class _AdminCompletedReportDetailScreenState
                   ),
                   elevation: 0,
                 ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        'SUBMIT & CLOSE INCIDENT',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
+                child:
+                    _isSubmitting
+                        ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                        : const Text(
+                          'SUBMIT & CLOSE INCIDENT',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
                         ),
-                      ),
               ),
             ).animate().fade().slideY(begin: 0.05, end: 0),
             const SizedBox(height: 40),

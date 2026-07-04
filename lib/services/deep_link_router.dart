@@ -21,10 +21,10 @@ class DeepLinkRouter {
   bool _isNavigated = false;
   final List<Uri> _eventBuffer = [];
   bool _isAppReady = false;
-  
+
   bool _hasInitialEmergencyLink = false;
   bool get hasInitialEmergencyLink => _hasInitialEmergencyLink;
-  
+
   void consumeInitialEmergencyLink() {
     _hasInitialEmergencyLink = false;
   }
@@ -114,7 +114,8 @@ class DeepLinkRouter {
             .then((_) {
               // Unlock when returning
               _isNavigated = false;
-            }).catchError((_) {
+            })
+            .catchError((_) {
               _isNavigated = false;
             });
       } else {
@@ -126,7 +127,8 @@ class DeepLinkRouter {
             )
             .then((_) {
               _isNavigated = false;
-            }).catchError((_) {
+            })
+            .catchError((_) {
               _isNavigated = false;
             });
       }
@@ -146,7 +148,10 @@ class DeepLinkRouter {
         context.read<ReportProvider>().highlightReport(reportId);
       }
     } else {
-      Future.delayed(const Duration(milliseconds: 200), () => routeToReport(reportId));
+      Future.delayed(
+        const Duration(milliseconds: 200),
+        () => routeToReport(reportId),
+      );
     }
   }
 

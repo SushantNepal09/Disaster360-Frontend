@@ -9,7 +9,7 @@ import 'package:disaster360/rescue/rescue_disaster_report.dart';
 import 'package:disaster360/rescue/rescue_mark_controlled.dart';
 import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
-import 'package:disaster360/rescue/completed_task_detail_screen.dart';
+import 'package:disaster360/rescue/rescue_disaster_detail_screen.dart';
 import 'package:disaster360/widgets/rejection_dialog.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -98,7 +98,6 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Consumer<RescueProvider>(
@@ -111,54 +110,83 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
             children: [
               _buildStickyTopBar(),
               Expanded(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 680),
-                          child: provider.isLoading && provider.myAssignments.isEmpty && provider.completedAssignments.isEmpty
-                              ? const Center(child: CircularProgressIndicator(color: AppColors.orange))
-                              : RefreshIndicator(
-                                  color: AppColors.orange,
-                                  backgroundColor: const Color(0xFF1F1F1F),
-                                  onRefresh: () => provider.fetchAll(),
-                                  child: CustomScrollView(
-                                    slivers: [
-                                      SliverToBoxAdapter(
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                                          child: _buildFilterTabs(),
-                                        ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
+                    child:
+                        provider.isLoading &&
+                                provider.myAssignments.isEmpty &&
+                                provider.completedAssignments.isEmpty
+                            ? const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.orange,
+                              ),
+                            )
+                            : RefreshIndicator(
+                              color: AppColors.orange,
+                              backgroundColor: const Color(0xFF1F1F1F),
+                              onRefresh: () => provider.fetchAll(),
+                              child: CustomScrollView(
+                                slivers: [
+                                  SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        16,
+                                        16,
+                                        8,
                                       ),
-                                      if (filtered.isEmpty)
-                                        SliverFillRemaining(
-                                          child: _buildEmptyState(),
-                                        )
-                                      else
-                                        SliverList(
-                                          delegate: SliverChildBuilderDelegate(
-                                            (context, i) {
-                                              return Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                                child: _FacebookReportCard(
-                                                  task: filtered[i],
-                                                  onAccept: () => _handleAccept(context, filtered[i]),
-                                                  onReject: () => _handleReject(context, filtered[i]),
-                                                  onDetails: () => _handleDetails(context, filtered[i]),
-                                                ),
-                                              );
-                                            },
-                                            childCount: filtered.length,
-                                          ),
-                                        ),
-                                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                                    ],
+                                      child: _buildFilterTabs(),
+                                    ),
                                   ),
-                                ),
-                        ), // ConstrainedBox
-                      ), // Center
-                    ), // Expanded
-                  ], // children
-                ), // Column
-              ); // Scaffold
+                                  if (filtered.isEmpty)
+                                    SliverFillRemaining(
+                                      child: _buildEmptyState(),
+                                    )
+                                  else
+                                    SliverList(
+                                      delegate: SliverChildBuilderDelegate((
+                                        context,
+                                        i,
+                                      ) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                          child: _FacebookReportCard(
+                                            task: filtered[i],
+                                            onAccept:
+                                                () => _handleAccept(
+                                                  context,
+                                                  filtered[i],
+                                                ),
+                                            onReject:
+                                                () => _handleReject(
+                                                  context,
+                                                  filtered[i],
+                                                ),
+                                            onDetails:
+                                                () => _handleDetails(
+                                                  context,
+                                                  filtered[i],
+                                                ),
+                                          ),
+                                        );
+                                      }, childCount: filtered.length),
+                                    ),
+                                  const SliverToBoxAdapter(
+                                    child: SizedBox(height: 32),
+                                  ),
+                                ],
+                              ),
+                            ),
+                  ), // ConstrainedBox
+                ), // Center
+              ), // Expanded
+            ], // children
+          ), // Column
+        ); // Scaffold
         return content;
       },
     );
@@ -173,10 +201,13 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
       ),
       child: Row(
         children: [
-
           const Text(
             'Your Tasks',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const Spacer(),
           Container(
@@ -228,9 +259,12 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                 child: Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              )
+              ),
             ],
           ),
         ],
@@ -238,35 +272,40 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
     );
   }
 
-
-
   Widget _buildFilterTabs() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: _filters.map((filter) {
-          final isActive = _selectedFilter == filter;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedFilter = filter),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isActive ? Colors.white : const Color(0xFF1F1F1F),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isActive ? Colors.white : const Color(0x0FFFFFFF)),
-              ),
-              child: Text(
-                filter,
-                style: TextStyle(
-                  color: isActive ? Colors.black : Colors.white54,
-                  fontSize: 13,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        children:
+            _filters.map((filter) {
+              final isActive = _selectedFilter == filter;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedFilter = filter),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isActive ? Colors.white : const Color(0xFF1F1F1F),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isActive ? Colors.white : const Color(0x0FFFFFFF),
+                    ),
+                  ),
+                  child: Text(
+                    filter,
+                    style: TextStyle(
+                      color: isActive ? Colors.black : Colors.white54,
+                      fontSize: 13,
+                      fontWeight:
+                          isActive ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
       ),
     );
   }
@@ -278,7 +317,10 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
         children: [
           Icon(Icons.inbox_outlined, color: Colors.white24, size: 64),
           SizedBox(height: 16),
-          Text('No assignments yet', style: TextStyle(color: Colors.white54, fontSize: 16)),
+          Text(
+            'No assignments yet',
+            style: TextStyle(color: Colors.white54, fontSize: 16),
+          ),
         ],
       ),
     );
@@ -289,9 +331,8 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   void _handleReject(BuildContext context, RescueTask task) {
     showDialog(
       context: context,
-      builder: (ctx) => RejectionDialog(
-        assignmentId: int.parse(task.assignmentId),
-      ),
+      builder:
+          (ctx) => RejectionDialog(assignmentId: int.parse(task.assignmentId)),
     );
   }
 
@@ -328,15 +369,12 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
     );
   }
 
-  void _handleDetails(BuildContext context, RescueTask task) {
-    if (task.status == TaskStatus.completed) {
-      RescueMotion.push(
-        context,
-        CompletedTaskDetailScreen(task: task),
-      );
-    } else {
-      _showTaskDetailSheet(context, task);
-    }
+void _handleDetails(BuildContext context, RescueTask task) {
+    RescueMotion.push(context, RescueDisasterDetailScreen(task: task)).then((_) {
+      if (context.mounted) {
+        context.read<RescueProvider>().fetchMyAssignments();
+      }
+    });
   }
 
   void _handleStatusReport(BuildContext context, RescueTask task) {
@@ -351,7 +389,10 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
   }
 
   void _handleCompletionReport(BuildContext context, RescueTask task) {
-    RescueMotion.push(context, PostDisasterReportScreen(preSelectedTask: task)).then((_) {
+    RescueMotion.push(
+      context,
+      PostDisasterReportScreen(preSelectedTask: task),
+    ).then((_) {
       if (context.mounted) context.read<RescueProvider>().fetchMyAssignments();
     });
   }
@@ -429,136 +470,6 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                 ),
               ),
             ],
-          ),
-    );
-  }
-
-  void _showTaskDetailSheet(BuildContext context, RescueTask task) {
-    RescueMotion.showSweetBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder:
-          (_) => DraggableScrollableSheet(
-            initialChildSize: 0.65,
-            maxChildSize: 0.92,
-            minChildSize: 0.4,
-            builder:
-                (_, ctrl) => Container(
-                  decoration: const BoxDecoration(
-                    color: AppColors.bgSurface,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(child: _sheetHandle()),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '#${task.taskId}',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                          _TaskStatusBadge(status: task.assignmentStatus),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${task.type} — ${task.location}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        task.description,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(color: AppColors.border),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: ListView(
-                          controller: ctrl,
-                          children: [
-                            _DetailRow(
-                              icon: Icons.local_fire_department_outlined,
-                              label: 'Severity',
-                              widget: _SeverityBadge(level: task.severityLevel),
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.verified_user_outlined,
-                              label: 'Verified by Admin',
-                              value: task.verifiedByAdmin,
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.location_on_outlined,
-                              label: 'GPS',
-                              value: '${task.lat}, ${task.lng}',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.report_outlined,
-                              label: 'Report ID',
-                              value: '#${task.reportId}',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.image_outlined,
-                              label: 'Photos',
-                              value: '${task.mediaUrls.length} attached',
-                            ),
-                            const SizedBox(height: 10),
-                            _DetailRow(
-                              icon: Icons.access_time_outlined,
-                              label: 'Assigned',
-                              value: task.assignedAgo,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.border),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Close',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
           ),
     );
   }
@@ -755,8 +666,6 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
           ),
     );
   }
-
-
 
   Widget _sheetHandle() {
     return Container(
@@ -1075,7 +984,6 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
 //  TASK CARD — with two‑image grid + full‑screen viewer
 // ══════════════════════════════════════════════════════════════════════════════
 
-
 class _FacebookReportCard extends StatelessWidget {
   final RescueTask task;
   final VoidCallback onAccept;
@@ -1107,7 +1015,11 @@ class _FacebookReportCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: AppColors.orange.withOpacity(0.2),
-                  child: const Icon(Icons.person, color: AppColors.orange, size: 20),
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.orange,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1116,38 +1028,61 @@ class _FacebookReportCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(task.reporterName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(
+                            task.reporterName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: task.reporterStatus.toLowerCase() == 'active' ? AppColors.success.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                              color:
+                                  task.reporterStatus.toLowerCase() == 'active'
+                                      ? AppColors.success.withOpacity(0.2)
+                                      : Colors.grey.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              task.reporterStatus, 
+                              task.reporterStatus,
                               style: TextStyle(
-                                color: task.reporterStatus.toLowerCase() == 'active' ? AppColors.success : Colors.grey, 
-                                fontSize: 10, 
-                                fontWeight: FontWeight.w600
-                              )
+                                color:
+                                    task.reporterStatus.toLowerCase() ==
+                                            'active'
+                                        ? AppColors.success
+                                        : Colors.grey,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text(task.assignedAgo, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                      Text(
+                        task.assignedAgo,
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_horiz, color: Colors.white54),
                   onPressed: onDetails, // Map details to more_horiz
-                )
+                ),
               ],
             ),
           ),
-          
+
           // Body
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1156,12 +1091,20 @@ class _FacebookReportCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 18),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppColors.danger,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         task.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     _SeverityBadge(level: task.severityLevel),
@@ -1170,15 +1113,31 @@ class _FacebookReportCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, color: Colors.white38, size: 14),
+                    const Icon(
+                      Icons.location_on,
+                      color: Colors.white38,
+                      size: 14,
+                    ),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(task.location, style: const TextStyle(color: Colors.white70, fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        task.location,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   task.description,
-                  style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -1190,7 +1149,7 @@ class _FacebookReportCard extends StatelessWidget {
             mediaUrls: task.mediaUrls,
             reportId: task.reportId,
           ),
-          
+
           // Action Row
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1204,12 +1163,24 @@ class _FacebookReportCard extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: onReject,
-                      icon: const Icon(Icons.cancel_outlined, size: 18, color: AppColors.danger),
-                      label: const Text('Reject', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                      icon: const Icon(
+                        Icons.cancel_outlined,
+                        size: 18,
+                        color: AppColors.danger,
+                      ),
+                      label: const Text(
+                        'Reject',
+                        style: TextStyle(
+                          color: AppColors.danger,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.danger),
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
@@ -1217,23 +1188,44 @@ class _FacebookReportCard extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: onAccept,
-                      icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
-                      label: const Text('Accept', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      icon: const Icon(
+                        Icons.check_circle_outline,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Accept',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
                 ] else
                   OutlinedButton.icon(
                     onPressed: onDetails,
-                    icon: const Icon(Icons.info_outline, size: 18, color: Colors.white70),
-                    label: const Text('View Details', style: TextStyle(color: Colors.white70)),
+                    icon: const Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
+                    label: const Text(
+                      'View Details',
+                      style: TextStyle(color: Colors.white70),
+                    ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0x0FFFFFFF)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
               ],
@@ -1249,7 +1241,10 @@ class _FacebookPhotoGallery extends StatelessWidget {
   final List<String> mediaUrls;
   final String reportId;
 
-  const _FacebookPhotoGallery({required this.mediaUrls, required this.reportId});
+  const _FacebookPhotoGallery({
+    required this.mediaUrls,
+    required this.reportId,
+  });
 
   void _open(BuildContext context, int index) {
     showGeneralDialog(
@@ -1257,21 +1252,30 @@ class _FacebookPhotoGallery extends StatelessWidget {
       barrierDismissible: true,
       barrierLabel: 'close',
       barrierColor: Colors.transparent,
-      pageBuilder: (_, __, ___) => ImageViewerOverlay(
-        mediaUrls: mediaUrls,
-        initialIndex: index,
-        reportId: reportId,
-      ),
+      pageBuilder:
+          (_, __, ___) => ImageViewerOverlay(
+            mediaUrls: mediaUrls,
+            initialIndex: index,
+            reportId: reportId,
+          ),
     );
   }
 
-  Widget _buildImage(BuildContext context, int index, {BoxFit fit = BoxFit.cover}) {
+  Widget _buildImage(
+    BuildContext context,
+    int index, {
+    BoxFit fit = BoxFit.cover,
+  }) {
     return GestureDetector(
       onTap: () => _open(context, index),
       child: Image.network(
         mediaUrls[index],
         fit: fit,
-        errorBuilder: (_, __, ___) => Container(color: Colors.white12, child: const Icon(Icons.broken_image, color: Colors.white38)),
+        errorBuilder:
+            (_, __, ___) => Container(
+              color: Colors.white12,
+              child: const Icon(Icons.broken_image, color: Colors.white38),
+            ),
       ),
     );
   }
@@ -1293,9 +1297,16 @@ class _FacebookPhotoGallery extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.image_not_supported_outlined, color: Colors.white38, size: 40),
+              Icon(
+                Icons.image_not_supported_outlined,
+                color: Colors.white38,
+                size: 40,
+              ),
               SizedBox(height: 8),
-              Text('No media attached', style: TextStyle(color: Colors.white38, fontSize: 12)),
+              Text(
+                'No media attached',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
             ],
           ),
         ),
@@ -1376,7 +1387,14 @@ class _FacebookPhotoGallery extends StatelessWidget {
                             child: Container(
                               color: Colors.black54,
                               child: Center(
-                                child: Text('+${count - 4}', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  '+${count - 4}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1529,6 +1547,8 @@ class RescueTask {
   final String assignmentStatus;
   final String? rejectionReason;
   final String taskId;
+  final String teamAssignmentStatus;
+  final bool isAssignedToCurrentTeam;
   final TaskStatus status;
   final String type;
   final String location;
@@ -1537,8 +1557,8 @@ class RescueTask {
   final int severityLevel;
   final String verifiedByAdmin;
   final List<String> mediaUrls;
-  final String lat;
-  final String lng;
+  final double lat;
+  final double lng;
   final String reportId;
   final String reporterName;
   final String reporterStatus;
@@ -1549,12 +1569,19 @@ class RescueTask {
   final bool canSubmitReport;
   final List<String> assignedTeams;
   final String? postIncidentReport;
+  
+  final String? acceptedAt;
+  final String? reportedAt;
+  final String? assignedBy;
+  final int mergedReports;
 
   const RescueTask({
     required this.assignmentId,
     required this.assignmentStatus,
     this.rejectionReason,
     required this.taskId,
+    this.teamAssignmentStatus = '',
+    this.isAssignedToCurrentTeam = false,
     required this.status,
     required this.type,
     required this.location,
@@ -1575,6 +1602,10 @@ class RescueTask {
     this.canSubmitReport = false,
     this.assignedTeams = const [],
     this.postIncidentReport,
+    this.acceptedAt,
+    this.reportedAt,
+    this.assignedBy,
+    required this.mergedReports,
   });
 
   // ── Severity string → int ─────────────────────────────────────────────────
@@ -1611,12 +1642,86 @@ class RescueTask {
   }
 
   // ── Build from new Backend JSON Envelope ──────────────────────────────────
+
+  String get formattedSeverity {
+    switch (severityLevel) {
+      case 1: return 'LOW SEVERITY';
+      case 2: return 'MODERATE SEVERITY';
+      case 3: return 'HIGH SEVERITY';
+      case 4: return 'SEVERE';
+      case 5: return 'EXTREME SEVERITY';
+      default: return 'UNKNOWN SEVERITY';
+    }
+  }
+
+  Color get severityColor {
+    switch (severityLevel) {
+      case 1: return AppColors.success;
+      case 2: return AppColors.info;
+      case 3: return AppColors.warning;
+      case 4:
+      case 5: return AppColors.danger;
+      default: return AppColors.primary;
+    }
+  }
+
+  String get formattedStatus {
+    return assignmentStatus.toUpperCase();
+  }
+
+  Color get statusColor {
+    switch (assignmentStatus.toLowerCase()) {
+      case 'in progress':
+      case 'accepted':
+        return AppColors.warning;
+      case 'completed':
+      case 'controlled':
+      case 'closed':
+        return AppColors.success;
+      case 'cancelled':
+      case 'rejected':
+        return AppColors.danger;
+      case 'assigned':
+      default:
+        return AppColors.info;
+    }
+  }
+
+  static String formatDateTime(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return 'Unknown Time';
+    try {
+      if (!isoString.endsWith('Z') && !isoString.contains(RegExp(r'[+-]\d{2}:?\d{2}$'))) {
+        isoString = '${isoString}Z';
+      }
+      final dt = DateTime.parse(isoString).toLocal();
+      final now = DateTime.now();
+      
+      final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+      
+      String hour = (dt.hour % 12 == 0 ? 12 : dt.hour % 12).toString();
+      String min = dt.minute.toString().padLeft(2, '0');
+      String ampm = dt.hour < 12 ? 'AM' : 'PM';
+      
+      String timeStr = '$hour:$min $ampm';
+      
+      if (isToday) {
+        return 'Today $timeStr';
+      } else {
+        return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $timeStr';
+      }
+    } catch (_) {
+      return 'Invalid Time';
+    }
+  }
   factory RescueTask.fromJson(Map<String, dynamic> json) {
     final assignmentStatus = json['assignmentStatus'] ?? json['status'] ?? '';
     TaskStatus tStatus;
-    if (assignmentStatus == 'Completed') {
+    if (assignmentStatus == 'Completed' ||
+        assignmentStatus == 'Controlled' ||
+        assignmentStatus == 'Closed') {
       tStatus = TaskStatus.completed;
-    } else if (assignmentStatus == 'Accepted' || assignmentStatus == 'In Progress') {
+    } else if (assignmentStatus == 'Accepted' ||
+        assignmentStatus == 'In Progress') {
       tStatus = TaskStatus.pending;
     } else {
       tStatus = TaskStatus.active;
@@ -1624,27 +1729,34 @@ class RescueTask {
 
     final loc = json['location'] as Map<String, dynamic>? ?? {};
     final mediaList = json['media'] as List<dynamic>? ?? [];
-    List<String> parsedMediaUrls = mediaList.map((m) => m['url'].toString()).toList();
-    
+    List<String> parsedMediaUrls =
+        mediaList.map((m) => m['url'].toString()).toList();
+
     if (parsedMediaUrls.isEmpty && json['media_urls'] != null) {
       parsedMediaUrls.addAll(List<String>.from(json['media_urls']));
     }
     if (parsedMediaUrls.isEmpty) {
       if (json['image'] != null && json['image'].toString().isNotEmpty) {
         parsedMediaUrls.add(json['image'].toString());
-      } else if (json['imageUrl'] != null && json['imageUrl'].toString().isNotEmpty) {
+      } else if (json['imageUrl'] != null &&
+          json['imageUrl'].toString().isNotEmpty) {
         parsedMediaUrls.add(json['imageUrl'].toString());
-      } else if (json['operation'] != null && json['operation']['image'] != null) {
+      } else if (json['operation'] != null &&
+          json['operation']['image'] != null) {
         parsedMediaUrls.add(json['operation']['image'].toString());
-      } else if (json['incident'] != null && json['incident']['image'] != null) {
+      } else if (json['incident'] != null &&
+          json['incident']['image'] != null) {
         parsedMediaUrls.add(json['incident']['image'].toString());
       }
     }
     // Clean out 'null' strings that may have been parsed
-    parsedMediaUrls = parsedMediaUrls.where((url) => url.trim() != 'null' && url.isNotEmpty).toList();
+    parsedMediaUrls =
+        parsedMediaUrls
+            .where((url) => url.trim() != 'null' && url.isNotEmpty)
+            .toList();
 
     final actions = json['actions'] as Map<String, dynamic>? ?? {};
-    
+
     // Parse rescueUpdateId which might be inside actions or root
     int? parsedRescueUpdateId;
     if (json['rescueUpdateId'] != null) {
@@ -1664,16 +1776,20 @@ class RescueTask {
       assignmentStatus: json['assignmentStatus']?.toString() ?? '',
       rejectionReason: json['rejectionReason']?.toString(),
       taskId: json['incidentId']?.toString() ?? '',
+      teamAssignmentStatus: json['teamAssignmentStatus']?.toString() ?? '',
+      isAssignedToCurrentTeam: json['isAssignedToCurrentTeam'] ?? false,
       status: tStatus,
       type: json['disasterType'] ?? 'Unknown',
       location: loc['address'] ?? 'Unknown',
       description: json['description'] ?? '',
-      assignedAgo: _timeAgo((json['assignedAt'] ?? json['reportedAt'])?.toString()),
+      assignedAgo: _timeAgo(
+        (json['assignedAt'] ?? json['reportedAt'])?.toString(),
+      ),
       severityLevel: _parseSeverity(json['severity']?.toString()),
       verifiedByAdmin: json['verificationStatus'] ?? 'Admin',
       mediaUrls: parsedMediaUrls,
-      lat: loc['latitude']?.toString() ?? '0.0',
-      lng: loc['longitude']?.toString() ?? '0.0',
+      lat: double.tryParse(loc['latitude']?.toString() ?? '0.0') ?? 0.0,
+      lng: double.tryParse(loc['longitude']?.toString() ?? '0.0') ?? 0.0,
       reportId: json['incidentId']?.toString() ?? '',
       reporterName: json['reporterName'] ?? 'Unknown Reporter',
       reporterStatus: json['reporterStatus'] ?? 'Unknown',
@@ -1684,6 +1800,10 @@ class RescueTask {
       canSubmitReport: actions['canSubmitReport'] == true,
       assignedTeams: parsedAssignedTeams,
       postIncidentReport: json['postIncidentReport']?.toString(),
+      acceptedAt: json['acceptedAt']?.toString(),
+      reportedAt: json['reportedAt']?.toString(),
+      assignedBy: json['assignedBy']?.toString(),
+      mergedReports: json['sources'] as int? ?? 1,
     );
   }
 }

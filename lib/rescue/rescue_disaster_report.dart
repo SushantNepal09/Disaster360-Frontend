@@ -144,7 +144,15 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
   Future<void> _submit() async {
     if (_selectedTask == null) {
       _showSnack(
-        'Please select a completed task first.',
+        'Please select a task first.',
+        color: AppColors.warning,
+      );
+      return;
+    }
+
+    if (_selectedTask!.status != TaskStatus.completed) {
+      _showSnack(
+        'The operation must be marked as "Completed" before submitting a report.',
         color: AppColors.warning,
       );
       return;

@@ -1,0 +1,58 @@
+class RescueTimelineEvent {
+  final int id;
+  final int incidentId;
+  final int? assignmentId;
+  final String? teamId;
+  final String? teamName;
+  final String? createdBy;
+  final int? mediaId;
+  final String eventType;
+  final String title;
+  final String? description;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? updatedBy;
+  final Map<String, dynamic>? metadataJson;
+  final bool isSystemGenerated;
+  final bool isEdited;
+
+  RescueTimelineEvent({
+    required this.id,
+    required this.incidentId,
+    this.assignmentId,
+    this.teamId,
+    this.teamName,
+    this.createdBy,
+    this.mediaId,
+    required this.eventType,
+    required this.title,
+    this.description,
+    this.createdAt,
+    this.updatedAt,
+    this.updatedBy,
+    this.metadataJson,
+    required this.isSystemGenerated,
+    this.isEdited = false,
+  });
+
+  factory RescueTimelineEvent.fromJson(Map<String, dynamic> json) {
+    return RescueTimelineEvent(
+      id: json['id'],
+      incidentId: json['incident_id'],
+      assignmentId: json['assignment_id'],
+      teamId: json['team_id'],
+      teamName: json['team_name'],
+      createdBy: json['created_by'],
+      mediaId: json['media_id'],
+      eventType: json['event_type'] ?? 'UNKNOWN',
+      title: json['title'] ?? '',
+      description: json['description'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+      updatedBy: json['updated_by'],
+      metadataJson: json['metadata_json'] as Map<String, dynamic>?,
+      isSystemGenerated: json['is_system_generated'] ?? false,
+      isEdited: json['is_edited'] ?? false,
+    );
+  }
+}

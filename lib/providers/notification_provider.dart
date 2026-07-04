@@ -9,16 +9,21 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<AppNotification> _notifications = [];
   bool _isLoading = false;
   String? _error;
+  
+  int _offset = 0;
+  final int _limit = 15;
+  bool _hasMore = true;
 
   List<AppNotification> get notifications => _notifications;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasMore => _hasMore;
 
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
   NotificationProvider() {
     WidgetsBinding.instance.addObserver(this);
-
+    
     // Fetch immediately
     fetchNotifications();
 
@@ -43,23 +48,38 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     super.dispose();
   }
 
-  Future<void> fetchNotifications() async {
-    _isLoading = true;
+  Future<void> fetchNotifications({bool loadMore = false}) async {
+    if (loadMore) {
+      if (!_hasMore) return;
+      _offset += _limit;
+    } else {
+      _offset = 0;
+      _hasMore = true;
+      _isLoading = true;
+      notifyListeners();
+    }
+    
     _error = null;
-    notifyListeners();
 
     try {
-      final response = await ApiService().get('/notifications/');
+      final response = await ApiService().get('/notifications/?limit=$_limit&offset=$_offset');
       if (response is List) {
-        _notifications =
-            response.map((json) => AppNotification.fromJson(json)).toList();
+        final newItems = response.map((json) => AppNotification.fromJson(json)).toList();
+        if (newItems.length < _limit) {
+          _hasMore = false;
+        }
+        if (loadMore) {
+          _notifications.addAll(newItems);
+        } else {
+          _notifications = newItems;
+        }
       } else {
-        _error = 'Failed to load notifications';
+        if (!loadMore) _error = 'Failed to load notifications';
       }
     } catch (e) {
-      _error = 'An error occurred: $e';
+      if (!loadMore) _error = 'An error occurred: $e';
     } finally {
-      _isLoading = false;
+      if (!loadMore) _isLoading = false;
       notifyListeners();
     }
   }
@@ -90,7 +110,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
         _notifications[i].isRead = true;
       }
     }
-
+    
     if (unreadIndices.isEmpty) return;
     notifyListeners();
 

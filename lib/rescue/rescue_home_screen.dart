@@ -6,7 +6,7 @@ import 'package:disaster360/rescue/rescue_motion.dart';
 import 'package:disaster360/rescue/rescue_profile_screen.dart';
 import 'package:disaster360/rescue/rescue_disaster_detail_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
-import 'package:disaster360/services/map_screen.dart';
+import 'package:disaster360/services/desktop_map_screen.dart';
 import 'package:disaster360/services/notification_alert.dart';
 import 'package:disaster360/services/notification_service.dart';
 import 'package:disaster360/widgets/rejection_dialog.dart';
@@ -133,7 +133,7 @@ class _RescueHomeScreenState extends State<RescueHomeScreen>
           ],
         );
       case 1:
-        return const DisasterMapScreen();
+        return const DesktopMapScreen();
       case 2:
         return const RescueTasksScreen();
       case 3:

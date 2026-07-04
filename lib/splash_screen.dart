@@ -11,6 +11,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:disaster360/colors.dart';
+
 // Required by Firebase for background/terminated state messages
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -138,19 +142,58 @@ class _SplashScreenState extends State<SplashScreen>
     final animWidth = screenWidth > 600 ? 400.0 : screenWidth * 0.7;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF13151A), // Matches AppColors.bgPrimary
-      body: Center(
-        child: SizedBox(
-          width: animWidth,
-          child: Lottie.asset(
-            'assets/animations/nepal_delivery.json',
-            controller: _animationController,
-            fit: BoxFit.contain,
-            onLoaded: (composition) {
-              _animationController.duration = composition.duration;
-              _animationController.forward();
-            },
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.0,
+            colors: [
+              Color(0xFF2C2E33), // Center soft dark grey
+              Color(0xFF0C0D0F), // Outer dark edges
+            ],
           ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "DISASTER360",
+              style: GoogleFonts.outfit(
+                fontSize: screenWidth > 600 ? 46 : 38,
+                fontWeight: FontWeight.w900,
+                color: AppColors.successLight, // Professional Green
+                letterSpacing: 2.0,
+              ),
+            ).animate().fade(duration: 800.ms).slideY(begin: 0.2, end: 0, duration: 800.ms, curve: Curves.easeOutQuart),
+            
+            const SizedBox(height: 20),
+            
+            SizedBox(
+              width: animWidth,
+              child: Lottie.asset(
+                'assets/animations/nepal_delivery.json',
+                controller: _animationController,
+                fit: BoxFit.contain,
+                onLoaded: (composition) {
+                  _animationController.duration = composition.duration;
+                  _animationController.forward();
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
+                strokeWidth: 4.5,
+                strokeCap: StrokeCap.round,
+              ),
+            ).animate().fade(delay: 400.ms, duration: 600.ms),
+          ],
         ),
       ),
     );

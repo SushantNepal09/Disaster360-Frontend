@@ -5,7 +5,7 @@ import 'package:disaster360/admin/admin_user_management.dart';
 import 'package:disaster360/admin/admin_completed_operations_screen.dart';
 import 'package:disaster360/admin/admin_report_details.dart';
 import 'package:disaster360/services/fab_add_report.dart';
-import 'package:disaster360/services/map_screen.dart';
+import 'package:disaster360/services/desktop_map_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
@@ -170,6 +170,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   // ── FAB (mobile: circular +, tablet/desktop: extended with label) ───────────
   Widget? _buildFloatingButton(BuildContext context) {
     if (_activeNav == 5) return null; // Hide FAB on User Management section
+    if (_activeNav == 3) return null; // Hide FAB on Map section
 
     final isMobile = _Breakpoint.isMobile(context);
 
@@ -303,7 +304,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       case 2:
         return const AdminCompletedOperationsScreen();
       case 3:
-        return const DisasterMapScreen();
+        return const DesktopMapScreen();
       case 4:
         return const AdminAnalyticsScreen();
       case 5:

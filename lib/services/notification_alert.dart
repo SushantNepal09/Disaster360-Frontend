@@ -22,6 +22,10 @@ class AppNotification {
   final String body;
   final String time;
   final int? reportId;
+  final String reporterName;
+  final String disasterType;
+  final String rescueStatus;
+  final DateTime rawDate;
   bool isRead;
 
   AppNotification({
@@ -30,6 +34,10 @@ class AppNotification {
     required this.title,
     required this.body,
     required this.time,
+    required this.reporterName,
+    required this.disasterType,
+    required this.rescueStatus,
+    required this.rawDate,
     this.reportId,
     this.isRead = false,
   });
@@ -62,8 +70,7 @@ class AppNotification {
         final dateTime = DateTime.parse(json['time']).toLocal();
         final diff = DateTime.now().difference(dateTime);
         if (diff.inMinutes < 60) {
-          formattedTime =
-              diff.inMinutes <= 1 ? 'Just now' : '${diff.inMinutes} min ago';
+          formattedTime = diff.inMinutes <= 1 ? 'Just now' : '${diff.inMinutes} min ago';
         } else if (diff.inHours < 24) {
           formattedTime = '${diff.inHours} hours ago';
         } else if (diff.inDays < 7) {
@@ -76,20 +83,52 @@ class AppNotification {
       }
     }
 
+    DateTime parsedDate = DateTime.now();
+    if (json['time'] != null) {
+      try {
+        parsedDate = DateTime.parse(json['time']).toLocal();
+      } catch (e) {
+        // ignore
+      }
+    }
+
     return AppNotification(
       id: json['id'].toString(),
       type: parsedType,
       title: json['title'] ?? 'Notification',
       body: json['message'] ?? '',
       time: formattedTime,
-      reportId:
-          json['incident_id'] != null
-              ? int.tryParse(json['incident_id'].toString())
-              : (json['report_id'] != null
-                  ? int.tryParse(json['report_id'].toString())
-                  : null),
+      reporterName: json['reporter_name']?.toString() ?? 'Someone',
+      disasterType: json['disaster_type']?.toString() ?? 'Disaster',
+      rescueStatus: json['status']?.toString() ?? 'Updated',
+      rawDate: parsedDate,
+      reportId: json['incident_id'] != null 
+          ? int.tryParse(json['incident_id'].toString()) 
+          : (json['report_id'] != null ? int.tryParse(json['report_id'].toString()) : null),
       isRead: json['is_read'] ?? false,
     );
+  }
+
+  String getFormattedMessage() {
+    final name = reporterName.isNotEmpty ? reporterName : 'Someone';
+    final dtype = disasterType.isNotEmpty ? disasterType : 'Disaster';
+    
+    switch (type) {
+      case NotificationType.proximityAlert:
+        return '$name reported $dtype in your area';
+      case NotificationType.reportVerified:
+        return "$name's $dtype report got verified";
+      case NotificationType.statusUpdate:
+        final stat = rescueStatus.isNotEmpty ? rescueStatus : 'Updated';
+        if (stat.toLowerCase() == 'accepted') {
+          return "$name's $dtype report was accepted by the rescue team";
+        }
+        return "$name's $dtype report was $stat by the rescue team";
+      case NotificationType.reportRejected:
+        return "$name's $dtype report was closed";
+      case NotificationType.riskZone:
+        return "Risk zone updated in your area";
+    }
   }
 
   String get typeLabel {
@@ -160,7 +199,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!notification.isRead) {
       context.read<NotificationProvider>().markAsRead(notification.id);
     }
-
+    
     if (notification.reportId != null) {
       // Direct deep link to report on dashboard
       DeepLinkRouter().routeToReport(notification.reportId!);
@@ -182,48 +221,144 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, provider, _) {
+        final notifications = provider.notifications;
+        
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final yesterday = today.subtract(const Duration(days: 1));
+
+        final todayList = <AppNotification>[];
+        final yesterdayList = <AppNotification>[];
+        final olderList = <AppNotification>[];
+
+        for (var n in notifications) {
+          final d = n.rawDate;
+          final dateOnly = DateTime(d.year, d.month, d.day);
+          if (dateOnly == today) {
+            todayList.add(n);
+          } else if (dateOnly == yesterday) {
+            yesterdayList.add(n);
+          } else {
+            olderList.add(n);
+          }
+        }
+
+        List<Widget> slivers = [];
+        
+        if (provider.isLoading && notifications.isEmpty) {
+          slivers.add(
+            const SliverFillRemaining(
+              child: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
+                ),
+              ),
+            ),
+          );
+        } else if (notifications.isEmpty) {
+          slivers.add(
+            SliverFillRemaining(
+              child: _buildEmptyState(),
+            ),
+          );
+        } else {
+          if (todayList.isNotEmpty) {
+            slivers.add(_buildSectionHeader('Today'));
+            slivers.add(_buildListSliver(todayList));
+          }
+          if (yesterdayList.isNotEmpty) {
+            slivers.add(_buildSectionHeader('Yesterday'));
+            slivers.add(_buildListSliver(yesterdayList));
+          }
+          if (olderList.isNotEmpty) {
+            slivers.add(_buildSectionHeader('Older'));
+            slivers.add(_buildListSliver(olderList));
+          }
+          
+          if (provider.hasMore) {
+            slivers.add(
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24.0),
+                  child: Center(
+                    child: TextButton(
+                      onPressed: () => provider.fetchNotifications(loadMore: true),
+                      child: provider.isLoading
+                          ? const SizedBox(
+                              width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.orange),
+                            )
+                          : const Text(
+                              'Tap to View More Reports',
+                              style: TextStyle(
+                                color: AppColors.orange,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+        }
+
         return Scaffold(
           backgroundColor: AppColors.bgPrimary,
           appBar: _buildAppBar(context, provider),
-          body:
-              provider.isLoading && provider.notifications.isEmpty
-                  ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.orange,
-                      ),
-                    ),
-                  )
-                  : provider.notifications.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                    color: AppColors.orange,
-                    backgroundColor: AppColors.bgSurface,
-                    onRefresh: () => provider.fetchNotifications(),
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      itemCount: provider.notifications.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder:
-                          (_, i) => _NotificationCard(
-                            notification: provider.notifications[i],
-                            onTap: () => _showDetail(provider.notifications[i]),
-                          ),
-                    ),
-                  ),
+          body: RefreshIndicator(
+            color: AppColors.orange,
+            backgroundColor: AppColors.bgSurface,
+            onRefresh: () => provider.fetchNotifications(),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: slivers,
+            ),
+          ),
         );
       },
     );
   }
 
-  PreferredSizeWidget _buildAppBar(
-    BuildContext context,
-    NotificationProvider provider,
-  ) {
+  Widget _buildSectionHeader(String title) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListSliver(List<AppNotification> items) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final isLast = index == items.length - 1;
+            return Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+              child: _NotificationCard(
+                notification: items[index],
+                onTap: () => _showDetail(items[index]),
+              ),
+            );
+          },
+          childCount: items.length,
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, NotificationProvider provider) {
     final unreadCount = provider.unreadCount;
     return AppBar(
       backgroundColor: AppColors.bgPrimary,
@@ -327,148 +462,66 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isRead = notification.isRead;
-    final accent = notification.accentColor;
-    final accentDimmed = Color.fromRGBO(
-      accent.red,
-      accent.green,
-      accent.blue,
-      0.35,
-    );
-    final accentCurrent = isRead ? accentDimmed : accent;
-    final accentBg = Color.fromRGBO(
-      accent.red,
-      accent.green,
-      accent.blue,
-      0.12,
-    );
+    final firstLetter = notification.reporterName.isNotEmpty ? notification.reporterName[0].toUpperCase() : 'U';
 
     return GestureDetector(
       onTap: onTap,
-      child: Stack(
-        children: [
-          // Layer 1: Card with uniform border (renders children correctly)
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border, width: 0.8),
-            ),
-            child: Padding(
-              // left: 17 = 3.5px accent bar + 13.5px inner gap ≈ original 14px feel
-              padding: const EdgeInsets.only(
-                left: 17,
-                right: 14,
-                top: 14,
-                bottom: 14,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: notification.accentColor.withOpacity(0.2),
+              child: Text(
+                firstLetter,
+                style: TextStyle(
+                  color: notification.accentColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
-              child: Row(
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon bubble
-                  Container(
-                    width: 36,
-                    height: 36,
-                    margin: const EdgeInsets.only(right: 12, top: 2),
-                    decoration: BoxDecoration(
-                      color: accentBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      notification.icon,
-                      color: accentCurrent,
-                      size: 18,
+                  Text(
+                    notification.reporterName.isNotEmpty ? notification.reporterName : 'User',
+                    style: TextStyle(
+                      color: isRead ? Colors.white70 : Colors.white,
+                      fontSize: 15,
+                      fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
                     ),
                   ),
-
-                  // Text content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Type label
-                        Text(
-                          notification.typeLabel,
-                          style: TextStyle(
-                            color: accentCurrent,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-
-                        // Title
-                        Text(
-                          notification.title,
-                          style: TextStyle(
-                            color: isRead ? Colors.white70 : Colors.white,
-                            fontSize: 13.5,
-                            fontWeight:
-                                isRead ? FontWeight.w400 : FontWeight.w600,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-
-                        // Time row + unread dot
-                        Row(
-                          children: [
-                            Text(
-                              notification.time,
-                              style: TextStyle(
-                                color: isRead ? Colors.white54 : Colors.white70,
-                                fontSize: 11,
-                              ),
-                            ),
-                            if (!isRead) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: accent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.getFormattedMessage(),
+                    style: TextStyle(
+                      color: isRead ? Colors.white54 : Colors.white70,
+                      fontSize: 13.5,
+                      height: 1.3,
                     ),
                   ),
-
-                  // Chevron
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: Colors.white24,
-                      size: 18,
+                  const SizedBox(height: 6),
+                  Text(
+                    notification.time,
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-
-          // Layer 2: Colored left accent bar (drawn over the card, no border conflicts)
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 3.5,
-              decoration: BoxDecoration(
-                color: accentCurrent,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
-                ),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

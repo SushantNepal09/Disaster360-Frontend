@@ -2,6 +2,7 @@ import 'package:disaster360/colors.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/providers/report_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -140,6 +141,13 @@ class _MarkAsControlledScreenState extends State<MarkAsControlledScreen>
         int.parse(assignmentId),
         'Completed',
       );
+
+      try {
+        final rProv = context.read<ReportProvider>();
+        rProv.fetchReports();
+        rProv.fetchActiveRescues();
+        rProv.fetchCompletedOperations();
+      } catch (_) {}
 
       if (!mounted) return;
       setState(() => _isSubmitting = false);

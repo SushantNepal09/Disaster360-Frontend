@@ -1,7 +1,7 @@
 import 'package:provider/provider.dart';
 import 'package:disaster360/widgets/pressable_widget.dart';
 import 'package:disaster360/providers/auth_provider.dart';
-import 'package:disaster360/services/feedback.dart';
+import 'package:disaster360/auth/change_password_screen.dart';
 import 'package:disaster360/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:disaster360/utils/secure_logout.dart';
@@ -235,12 +235,12 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
       child: Column(
         children: [
           _MenuTile(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: 'Provide Feedback',
+            icon: Icons.lock_outline_rounded,
+            label: 'Change Password',
             onTap:
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const FeedbackScreen()),
+                  MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
                 ),
           ),
           const Divider(height: 1, color: AppColors.border, indent: 56),

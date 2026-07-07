@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:disaster360/utils/secure_logout.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
-import 'package:disaster360/services/feedback.dart';
+import 'package:disaster360/auth/change_password_screen.dart';
 import 'package:disaster360/services/api_service.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/colors.dart';
@@ -181,8 +181,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
                   const SizedBox(height: 16),
                   _buildSystemStatusCard(),
                   const SizedBox(height: 16),
-                  _buildQuickActions(context),
-                  const SizedBox(height: 16),
                   _buildMenuCard(context),
                 ],
               ),
@@ -220,8 +218,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
         _buildInfoCard(context),
         const SizedBox(height: 16),
         _buildSystemStatusCard(),
-        const SizedBox(height: 16),
-        _buildQuickActions(context),
         const SizedBox(height: 20),
         _buildUserActivitySection(context),
         const SizedBox(height: 16),
@@ -398,7 +394,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
     final user = context.watch<AuthProvider>().user;
     final rows = [
       _InfoRow(label: 'Employee ID', value: user?.citizenshipNumber ?? 'N/A'),
-      _InfoRow(label: 'Department', value: 'Disaster Management Authority'),
+      _InfoRow(label: 'Department', value: user?.specialization ?? 'N/A'),
       _InfoRow(label: 'Email', value: user?.email ?? 'N/A'),
       _InfoRow(label: 'Phone', value: user?.phone ?? 'N/A'),
       _InfoRow(
@@ -537,46 +533,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionLabel('QUICK ACTIONS'),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _HoverQuickAction(
-              icon: Icons.campaign_outlined,
-              label: 'Broadcast\nAlert',
-              color: AppColors.danger,
-              onTap: () => _showBroadcastDialog(context),
-            ),
-            const SizedBox(width: 10),
-            _HoverQuickAction(
-              icon: Icons.download_outlined,
-              label: 'Export\nReport',
-              color: AppColors.info,
-              onTap: () => _showExportDialog(context),
-            ),
-            const SizedBox(width: 10),
-            _HoverQuickAction(
-              icon: Icons.manage_accounts_outlined,
-              label: 'Manage\nUsers',
-              color: AppColors.warning,
-              onTap: () => _showManageUsers(context),
-            ),
-            const SizedBox(width: 10),
-            _HoverQuickAction(
-              icon: Icons.history_outlined,
-              label: 'System\nLogs',
-              color: AppColors.success,
-              onTap: () => _showSystemLogs(context),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+  
 
   Widget _buildUserActivitySection(BuildContext context) {
     final tabs = ['Admins', 'Citizens', 'Rescue'];
@@ -766,9 +723,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
       child: Column(
         children: [
           _HoverMenuTile(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: 'Provide Feedback',
-            onTap: () => _showFeedbackPanel(context),
+            icon: Icons.lock_outline_rounded,
+            label: 'Change Password',
+            onTap: () => _showChangePassword(context),
           ),
 
           const Divider(height: 1, color: AppColors.border, indent: 56),
@@ -1619,20 +1576,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
     );
   }
 
-  // ── Feedback panel ──────────────────────────────────────────────────────
-  void _showFeedbackPanel(BuildContext context) {
-    if (_BP.isWide(context)) {
-      // Tablet/Desktop: show as floating dialog
-      _showPanel(
-        context: context,
-        title: 'Provide Feedback',
-        sheetSize: 0.7,
-        content: const FeedbackScreen(isInDialog: true),
-      );
-    } else {
-      // Mobile: push full screen
-      Navigator.push(context, _fadeRoute(const FeedbackScreen()));
-    }
+  // ── Change Password ──────────────────────────────────────────────────────
+  void _showChangePassword(BuildContext context) {
+    Navigator.push(context, _fadeRoute(const ChangePasswordScreen()));
   }
 
   // ── Sign out ───────────────────────────────────────────────────────────────

@@ -136,13 +136,28 @@ class _AdminReportsScreenState extends State<AdminReportsScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'My Reports',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'My Reports',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.refresh_rounded, color: AppColors.orange),
+                              onPressed: () {
+                                context.read<ReportProvider>().fetchReports();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Refreshing reports...'), duration: Duration(seconds: 1)),
+                                );
+                              },
+                              tooltip: 'Refresh Reports',
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         _AnimatedSearchBar(
@@ -281,23 +296,20 @@ class _ReportBody extends StatelessWidget {
           double.infinity,
         );
 
-        return SingleChildScrollView(
+        return GridView.builder(
           padding: EdgeInsets.fromLTRB(hPad + extraPad, 0, hPad + extraPad, 24),
-          child: Wrap(
-            spacing: gap,
-            runSpacing: gap,
-            children: List.generate(
-              reports.length,
-              (i) => SizedBox(
-                width: cardW,
-                child: _StaggeredCard(
-                  index: i,
-                  child: _AdminReportCard(
-                    report: reports[i],
-                    onTap: () => onTap(reports[i]),
-                  ),
-                ),
-              ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: gap,
+            mainAxisSpacing: gap,
+            mainAxisExtent: 440, // Fixed height for consistent cards
+          ),
+          itemCount: reports.length,
+          itemBuilder: (context, i) => _StaggeredCard(
+            index: i,
+            child: _AdminReportCard(
+              report: reports[i],
+              onTap: () => onTap(reports[i]),
             ),
           ),
         );

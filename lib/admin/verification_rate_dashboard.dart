@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/report_provider.dart';
 
 // ─── COLOR PALETTE ──────────────────────────────────────────────────────────
 const Color _bg = Color(0xFF0F1117);
@@ -206,6 +208,45 @@ class _VerificationRateDashboardScreenState
           ),
         ],
         const Spacer(),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: _border),
+            borderRadius: BorderRadius.circular(6),
+            color: _cardSurface,
+          ),
+          child: InkWell(
+            onTap: () {
+              context.read<ReportProvider>().fetchReports();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Refreshing analytics...'), duration: Duration(seconds: 1)),
+              );
+            },
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.refresh_rounded,
+                    size: 14,
+                    color: _mutedText,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Refresh',
+                    style: GoogleFonts.outfit(
+                      color: _mutedText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(

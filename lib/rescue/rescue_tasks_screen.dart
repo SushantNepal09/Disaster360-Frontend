@@ -35,11 +35,11 @@ class RescueTasksScreen extends StatefulWidget {
 class _RescueTasksScreenState extends State<RescueTasksScreen>
     with SingleTickerProviderStateMixin {
   String _selectedFilter = 'All';
-  String _searchQuery = '';
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
   final List<String> _filters = ['All', 'Active', 'Pending', 'Completed'];
+  final Set<String> _acceptingTasks = {};
 
   List<RescueTask> _filteredTasks(RescueProvider provider) {
     List<RescueTask> list;
@@ -59,18 +59,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
               .toList();
     }
 
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      list =
-          list
-              .where(
-                (t) =>
-                    t.taskId.toLowerCase().contains(q) ||
-                    t.type.toLowerCase().contains(q) ||
-                    t.location.toLowerCase().contains(q),
-              )
-              .toList();
-    }
+
 
     return list;
   }
@@ -156,6 +145,7 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
                                           ),
                                           child: _FacebookReportCard(
                                             task: filtered[i],
+                                            isAccepting: _acceptingTasks.contains(filtered[i].assignmentId),
                                             onAccept:
                                                 () => _handleAccept(
                                                   context,
@@ -210,62 +200,15 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
             ),
           ),
           const Spacer(),
-          Container(
-            width: 200,
-            height: 36,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1F1F1F),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0x0FFFFFFF)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                const Icon(Icons.search, color: Colors.white54, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    onChanged: (val) => setState(() => _searchQuery = val),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    decoration: const InputDecoration(
-                      hintText: 'Search...',
-                      hintStyle: TextStyle(color: Colors.white30),
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.success),
+            tooltip: 'Refresh Tasks',
             onPressed: () {
               context.read<RescueProvider>().fetchAll();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Refreshing tasks...'), duration: Duration(seconds: 1)),
+              );
             },
-          ),
-          const SizedBox(width: 8),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -336,37 +279,36 @@ class _RescueTasksScreenState extends State<RescueTasksScreen>
     );
   }
 
-  void _handleAccept(BuildContext context, RescueTask task) {
-    _showActionDialog(
-      context: context,
-      title: 'Accept Task',
-      message:
-          'Are you sure you want to accept ${task.taskId}?\nYou will be deployed to ${task.location}.',
-      confirmLabel: 'Accept',
-      confirmColor: AppColors.success,
-      onConfirm: () async {
-        Navigator.pop(context);
-        try {
-          final provider = context.read<RescueProvider>();
-          await provider.acceptAssignment(int.parse(task.assignmentId));
-          if (context.mounted) {
-            _showSnack(
-              context,
-              '✓ Task #${task.taskId} accepted. Head to ${task.location}.',
-              color: AppColors.success,
-            );
-          }
-        } catch (e) {
-          if (context.mounted) {
-            _showSnack(
-              context,
-              e.toString().replaceFirst('Exception: ', ''),
-              color: AppColors.danger,
-            );
-          }
-        }
-      },
-    );
+  Future<void> _handleAccept(BuildContext context, RescueTask task) async {
+    if (_acceptingTasks.contains(task.assignmentId)) return;
+    setState(() {
+      _acceptingTasks.add(task.assignmentId);
+    });
+    try {
+      final provider = context.read<RescueProvider>();
+      await provider.acceptAssignment(int.parse(task.assignmentId));
+      if (mounted) {
+        _showSnack(
+          context,
+          '✓ Task #${task.taskId} accepted. Head to ${task.location}.',
+          color: AppColors.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnack(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          color: AppColors.danger,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _acceptingTasks.remove(task.assignmentId);
+        });
+      }
+    }
   }
 
 void _handleDetails(BuildContext context, RescueTask task) {
@@ -986,12 +928,14 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
 
 class _FacebookReportCard extends StatelessWidget {
   final RescueTask task;
+  final bool isAccepting;
   final VoidCallback onAccept;
   final VoidCallback onReject;
   final VoidCallback onDetails;
 
   const _FacebookReportCard({
     required this.task,
+    this.isAccepting = false,
     required this.onAccept,
     required this.onReject,
     required this.onDetails,
@@ -1187,15 +1131,24 @@ class _FacebookReportCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: onAccept,
-                      icon: const Icon(
-                        Icons.check_circle_outline,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Accept',
-                        style: TextStyle(
+                      onPressed: isAccepting ? null : onAccept,
+                      icon: isAccepting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                      label: Text(
+                        isAccepting ? 'Accepting...' : 'Accept',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1715,13 +1668,16 @@ class RescueTask {
   }
   factory RescueTask.fromJson(Map<String, dynamic> json) {
     final assignmentStatus = json['assignmentStatus'] ?? json['status'] ?? '';
+    final statusLower = assignmentStatus.toString().toLowerCase();
     TaskStatus tStatus;
-    if (assignmentStatus == 'Completed' ||
-        assignmentStatus == 'Controlled' ||
-        assignmentStatus == 'Closed') {
+    if (statusLower == 'completed' ||
+        statusLower == 'controlled' ||
+        statusLower == 'closed' ||
+        statusLower == 'resolved') {
       tStatus = TaskStatus.completed;
-    } else if (assignmentStatus == 'Accepted' ||
-        assignmentStatus == 'In Progress') {
+    } else if (statusLower == 'accepted' ||
+        statusLower == 'in progress' ||
+        statusLower.contains('progress')) {
       tStatus = TaskStatus.pending;
     } else {
       tStatus = TaskStatus.active;
@@ -1772,10 +1728,10 @@ class RescueTask {
     }
 
     return RescueTask(
-      assignmentId: json['assignmentId']?.toString() ?? '',
-      assignmentStatus: json['assignmentStatus']?.toString() ?? '',
+      assignmentId: (json['assignmentId'] ?? json['assignment_id'])?.toString() ?? '',
+      assignmentStatus: (json['assignmentStatus'] ?? json['status'])?.toString() ?? '',
       rejectionReason: json['rejectionReason']?.toString(),
-      taskId: json['incidentId']?.toString() ?? '',
+      taskId: (json['incidentId'] ?? json['id'])?.toString() ?? '',
       teamAssignmentStatus: json['teamAssignmentStatus']?.toString() ?? '',
       isAssignedToCurrentTeam: json['isAssignedToCurrentTeam'] ?? false,
       status: tStatus,
@@ -1790,7 +1746,7 @@ class RescueTask {
       mediaUrls: parsedMediaUrls,
       lat: double.tryParse(loc['latitude']?.toString() ?? '0.0') ?? 0.0,
       lng: double.tryParse(loc['longitude']?.toString() ?? '0.0') ?? 0.0,
-      reportId: json['incidentId']?.toString() ?? '',
+      reportId: (json['incidentId'] ?? json['id'])?.toString() ?? '',
       reporterName: json['reporterName'] ?? 'Unknown Reporter',
       reporterStatus: json['reporterStatus'] ?? 'Unknown',
       title: json['title'] ?? 'Untitled Report',

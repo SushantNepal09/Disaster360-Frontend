@@ -8,8 +8,8 @@ import 'package:disaster360/widgets/pressable_widget.dart';
 
 class CitizenReportCard extends StatefulWidget {
   final ReportModel report;
-  final VoidCallback? onUpvote;
-  final VoidCallback? onDownvote;
+  final Future<void> Function()? onUpvote;
+  final Future<void> Function()? onDownvote;
   final Duration animationDelay;
 
   const CitizenReportCard({
@@ -28,6 +28,8 @@ class _CitizenReportCardState extends State<CitizenReportCard>
     with SingleTickerProviderStateMixin {
   bool _hovering = false;
   bool _isDescriptionExpanded = false;
+  bool _isLiking = false;
+  bool _isDisliking = false;
   late AnimationController _entryCtrl;
   late Animation<double> _entryFade;
   late Animation<Offset> _entrySlide;
@@ -410,10 +412,14 @@ class _CitizenReportCardState extends State<CitizenReportCard>
                             ],
                             const Spacer(),
                             GestureDetector(
-                              onTap: widget.onUpvote,
+                              onTap: _isLiking || _isDisliking || widget.onUpvote == null ? null : () async {
+                                setState(() => _isLiking = true);
+                                await widget.onUpvote!();
+                                if(mounted) setState(() => _isLiking = false);
+                              },
                               child: Row(
                                 children: [
-                                  Icon(
+                                  _isLiking ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success)) : Icon(
                                     report.userReaction == 'LIKE' ? Icons.thumb_up_alt_rounded : Icons.thumb_up_alt_outlined,
                                     color: report.userReaction == 'LIKE' ? AppColors.success : Colors.white54,
                                     size: 18,
@@ -423,8 +429,8 @@ class _CitizenReportCardState extends State<CitizenReportCard>
                                     '${report.likes}',
                                     style: TextStyle(
                                       color: report.userReaction == 'LIKE' ? AppColors.success : Colors.white54,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      fontWeight: report.userReaction == 'LIKE' ? FontWeight.bold : FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -432,10 +438,14 @@ class _CitizenReportCardState extends State<CitizenReportCard>
                             ),
                             const SizedBox(width: 24),
                             GestureDetector(
-                              onTap: widget.onDownvote,
+                              onTap: _isLiking || _isDisliking || widget.onDownvote == null ? null : () async {
+                                setState(() => _isDisliking = true);
+                                await widget.onDownvote!();
+                                if(mounted) setState(() => _isDisliking = false);
+                              },
                               child: Row(
                                 children: [
-                                  Icon(
+                                  _isDisliking ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.danger)) : Icon(
                                     report.userReaction == 'DISLIKE' ? Icons.thumb_down_alt_rounded : Icons.thumb_down_alt_outlined,
                                     color: report.userReaction == 'DISLIKE' ? AppColors.danger : Colors.white54,
                                     size: 18,
@@ -445,8 +455,8 @@ class _CitizenReportCardState extends State<CitizenReportCard>
                                     '${report.dislikes}',
                                     style: TextStyle(
                                       color: report.userReaction == 'DISLIKE' ? AppColors.danger : Colors.white54,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      fontWeight: report.userReaction == 'DISLIKE' ? FontWeight.bold : FontWeight.w500,
                                     ),
                                   ),
                                 ],

@@ -115,6 +115,32 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<dynamic> fetchRescueTimeline(String incidentId) async {
+    return await get('/reports/$incidentId/rescue-timeline');
+  }
+
+  Future<dynamic> reactToReport(String incidentId, String reaction) async {
+    return await post('/reports/$incidentId/react?reaction=$reaction');
+  }
+
+  
+  Future<dynamic> uploadAdminReportAttachments(String incidentId, List<String> filePaths) async {
+    return await multipartFiles('/admin/incidents/$incidentId/admin-report/attachments', filePaths, fieldName: 'files');
+  }
+
+  Future<dynamic> deleteAdminReportAttachment(String incidentId, int attachmentId) async {
+    return await delete('/admin/incidents/$incidentId/admin-report/attachments/$attachmentId');
+  }
+
+  Future<dynamic> fetchAdminReport(String incidentId) async {
+    return await get('/reports/$incidentId/admin-report');
+  }
+
+  Future<dynamic> fetchClosureReport(String incidentId) async {
+    return await get('/admin/reports/$incidentId/closure-report');
+  }
+
+
   dynamic _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return {};

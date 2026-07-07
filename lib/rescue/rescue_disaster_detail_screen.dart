@@ -52,6 +52,14 @@ class RescueDisasterDetailScreen extends StatefulWidget {
 
 class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
     with TickerProviderStateMixin {
+  int get _operationId {
+    final taskId = int.tryParse(widget.task.taskId.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (taskId != null && taskId > 0) return taskId;
+    final assignId = int.tryParse(widget.task.assignmentId.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (assignId != null && assignId > 0) return assignId;
+    return 0;
+  }
+
   // Animation controllers
   late AnimationController _cardController;
   late Animation<double> _cardFade;
@@ -73,9 +81,9 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
 
   Future<void> _fetchTimelineEvents() async {
     try {
-      final eventsData = await RescueService().getTimelineEvents(int.parse(widget.task.taskId));
+      final eventsData = await RescueService().getTimelineEvents(_operationId);
       final events = eventsData.map((e) => RescueTimelineEvent.fromJson(e)).toList();
-      final mediaData = await RescueService().getOperationMedia(int.parse(widget.task.taskId));
+      final mediaData = await RescueService().getOperationMedia(_operationId);
       final media = mediaData.map((m) => ReportMedia.fromJson(m)).toList();
       final session = SessionService();
       if (session.currentUser == null) {
@@ -294,6 +302,16 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
         overflow: TextOverflow.ellipsis,
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded, color: AppColors.orange),
+          onPressed: () {
+            _fetchTimelineEvents();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Refreshing details...'), duration: Duration(seconds: 1)),
+            );
+          },
+          tooltip: 'Refresh Details',
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: _StatusBadge(status: widget.task.status.name),
@@ -407,20 +425,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
               border: Border(bottom: BorderSide(color: AppColors.danger.withOpacity(0.3))),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.circle, color: AppColors.danger, size: 10),
-                const SizedBox(width: 8),
-                const Text(
-                  '🚨 ACTIVE DISASTER',
-                  style: TextStyle(
-                    color: AppColors.danger,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
+           
           ),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -906,64 +911,73 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
                           const SizedBox(height: 16),
                           const Divider(color: Colors.white12),
                           const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _timelineUpdateController,
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: InputDecoration(
-                                    hintText: 'Add manual update (e.g., Arrived at site)',
-                                    hintStyle: const TextStyle(color: Colors.white38),
-                                    filled: true,
-                                    fillColor: AppColors.bgDark,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: Colors.white12),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: Colors.white12),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: AppColors.primary),
+                          if (widget.task.assignmentStatus.toLowerCase() == 'accepted')
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text(
+                                'Start the operation from the home screen to add timeline updates.',
+                                style: TextStyle(color: AppColors.warning, fontStyle: FontStyle.italic),
+                              ),
+                            )
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _timelineUpdateController,
+                                    style: const TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      hintText: 'Add manual update (e.g., Arrived at site)',
+                                      hintStyle: const TextStyle(color: Colors.white38),
+                                      filled: true,
+                                      fillColor: AppColors.bgDark,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(color: Colors.white12),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(color: Colors.white12),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(color: AppColors.primary),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                onPressed: () async {
-                                  final text = _timelineUpdateController.text.trim();
-                                  if (text.isEmpty) return;
-                                  
-                                  try {
-                                    final newMap = await RescueService().addManualTimelineEvent(
-                                      int.parse(widget.task.taskId),
-                                      text,
-                                      null,
-                                    );
-                                    _timelineUpdateController.clear();
-                                    _fetchTimelineEvents();
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Error adding update: $e')),
+                                const SizedBox(width: 12),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () async {
+                                    final text = _timelineUpdateController.text.trim();
+                                    if (text.isEmpty) return;
+                                    
+                                    try {
+                                      final newMap = await RescueService().addManualTimelineEvent(
+                                        _operationId,
+                                        text,
+                                        null,
                                       );
+                                      _timelineUpdateController.clear();
+                                      _fetchTimelineEvents();
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error adding update: $e')),
+                                        );
+                                      }
                                     }
-                                  }
-                                },
-                                child: const Icon(Icons.send, color: Colors.white, size: 20),
-                              ),
-                            ],
-                          ),
+                                  },
+                                  child: const Icon(Icons.send, color: Colors.white, size: 20),
+                                ),
+                              ],
+                            ),
                         ],
                       ],
                     ),
@@ -1079,157 +1093,176 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
               );
               }),
             ),
-          GestureDetector(
-            onTap: _isUploadingMedia ? null : () async {
-              int incidentId = 0;
-              try {
-                incidentId = int.parse(widget.task.taskId.replaceAll(RegExp(r'[^0-9]'), ''));
-              } catch (e) {
-                return;
-              }
-              
-              final picker = ImagePicker();
-              final List<XFile> images = await picker.pickMultiImage();
-              
-              if (images.isEmpty) return;
-
-              String? titleInput;
-              bool? proceed = await showDialog<bool>(
-                context: context,
-                builder: (context) {
-                  final textController = TextEditingController();
-                  return StatefulBuilder(
-                    builder: (context, setDialogState) {
-                      final isValid = textController.text.trim().isNotEmpty && textController.text.trim().length <= 100;
-                      
-                      return AlertDialog(
-                        backgroundColor: AppColors.bgDark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        title: const Text('Upload Images', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Image Title', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: textController,
-                              style: const TextStyle(color: Colors.white),
-                              maxLength: 100,
-                              onChanged: (v) => setDialogState(() {}),
-                              decoration: InputDecoration(
-                                hintText: 'Enter a descriptive title...',
-                                hintStyle: const TextStyle(color: Colors.white38),
-                                prefixIcon: const Icon(Icons.camera_alt_outlined, color: Colors.white54),
-                                filled: true,
-                                fillColor: AppColors.bgSurface,
-                                counterText: '',
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: AppColors.border),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: AppColors.primary),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Example:\n"Collapsed Bridge"\n"Flooded Main Road"\n"Victim Evacuation"',
-                              style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.5),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'This title will appear in the Rescue Timeline.',
-                              style: TextStyle(color: AppColors.primary, fontSize: 12, fontStyle: FontStyle.italic),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-                          ),
-                          ElevatedButton(
-                            onPressed: isValid ? () {
-                              titleInput = textController.text.trim();
-                              Navigator.pop(context, true);
-                            } : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
-                              disabledForegroundColor: Colors.white54,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: const Text('Upload'),
-                          ),
-                        ],
-                      );
-                    }
-                  );
-                }
-              );
-
-              if (proceed != true) return;
-              
-              setState(() {
-                _isUploadingMedia = true;
-              });
-              
-              try {
-                final storageService = SupabaseStorageService();
-                final filesToUpload = images.map((img) => File(img.path)).toList();
-                final uploadedUrls = await storageService.uploadImages(filesToUpload);
-                
-                final List<Map<String, dynamic>> mediaPayload = [];
-                for (int i = 0; i < uploadedUrls.length; i++) {
-                  final file = File(images[i].path);
-                  mediaPayload.add({
-                    'url': uploadedUrls[i],
-                    'filename': images[i].name,
-                    'size': await file.length(),
-                    'title': titleInput,
-                  });
-                }
-                
-                await RescueService().uploadOperationMedia(incidentId, mediaPayload);
-                
-                if (mounted) {
-                  _fetchTimelineEvents();
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
-                }
-              } finally {
-                if (mounted) {
-                  setState(() {
-                    _isUploadingMedia = false;
-                  });
-                }
-              }
-            },
-            child: Container(
+          if (widget.task.assignmentStatus.toLowerCase() == 'accepted')
+            Container(
               height: 100,
               width: MediaQuery.of(context).size.width * 0.45,
               decoration: BoxDecoration(
-                color: _isUploadingMedia ? Colors.transparent : AppColors.primary.withOpacity(0.05),
+                color: AppColors.primary.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _isUploadingMedia ? Colors.transparent : AppColors.primary.withOpacity(0.3), style: BorderStyle.solid),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3), style: BorderStyle.solid),
               ),
-              child: _isUploadingMedia 
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                : const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, color: AppColors.primary),
-                      SizedBox(height: 4),
-                      Text('Add Media', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+              padding: const EdgeInsets.all(8),
+              child: const Center(
+                child: Text(
+                  'Start operation to add media',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.warning, fontSize: 12),
+                ),
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: _isUploadingMedia ? null : () async {
+                int incidentId = 0;
+                try {
+                  incidentId = int.parse(widget.task.taskId.replaceAll(RegExp(r'[^0-9]'), ''));
+                } catch (e) {
+                  return;
+                }
+                
+                final picker = ImagePicker();
+                final List<XFile> images = await picker.pickMultiImage();
+                
+                if (images.isEmpty) return;
+
+                String? titleInput;
+                bool? proceed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) {
+                    final textController = TextEditingController();
+                    return StatefulBuilder(
+                      builder: (context, setDialogState) {
+                        final isValid = textController.text.trim().isNotEmpty && textController.text.trim().length <= 100;
+                        
+                        return AlertDialog(
+                          backgroundColor: AppColors.bgDark,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          title: const Text('Upload Images', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Image Title', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: textController,
+                                style: const TextStyle(color: Colors.white),
+                                maxLength: 100,
+                                onChanged: (v) => setDialogState(() {}),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter a descriptive title...',
+                                  hintStyle: const TextStyle(color: Colors.white38),
+                                  prefixIcon: const Icon(Icons.camera_alt_outlined, color: Colors.white54),
+                                  filled: true,
+                                  fillColor: AppColors.bgSurface,
+                                  counterText: '',
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: AppColors.border),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: AppColors.primary),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Example:\n"Collapsed Bridge"\n"Flooded Main Road"\n"Victim Evacuation"',
+                                style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.5),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'This title will appear in the Rescue Timeline.',
+                                style: TextStyle(color: AppColors.primary, fontSize: 12, fontStyle: FontStyle.italic),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                            ),
+                            ElevatedButton(
+                              onPressed: isValid ? () {
+                                titleInput = textController.text.trim();
+                                Navigator.pop(context, true);
+                              } : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
+                                disabledForegroundColor: Colors.white54,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: const Text('Upload'),
+                            ),
+                          ],
+                        );
+                      }
+                    );
+                  }
+                );
+
+                if (proceed != true) return;
+                
+                setState(() {
+                  _isUploadingMedia = true;
+                });
+                
+                try {
+                  final storageService = SupabaseStorageService();
+                  final filesToUpload = images.map((img) => File(img.path)).toList();
+                  final uploadedUrls = await storageService.uploadImages(filesToUpload);
+                  
+                  final List<Map<String, dynamic>> mediaPayload = [];
+                  for (int i = 0; i < uploadedUrls.length; i++) {
+                    final file = File(images[i].path);
+                    mediaPayload.add({
+                      'url': uploadedUrls[i],
+                      'filename': images[i].name,
+                      'size': await file.length(),
+                      'title': titleInput,
+                    });
+                  }
+                  
+                  await RescueService().uploadOperationMedia(incidentId, mediaPayload);
+                  
+                  if (mounted) {
+                    _fetchTimelineEvents();
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() {
+                      _isUploadingMedia = false;
+                    });
+                  }
+                }
+              },
+              child: Container(
+                height: 100,
+                width: MediaQuery.of(context).size.width * 0.45,
+                decoration: BoxDecoration(
+                  color: _isUploadingMedia ? Colors.transparent : AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _isUploadingMedia ? Colors.transparent : AppColors.primary.withOpacity(0.3), style: BorderStyle.solid),
+                ),
+                child: _isUploadingMedia 
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  : const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, color: AppColors.primary),
+                        SizedBox(height: 4),
+                        Text('Add Media', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+              ),
             ),
-          ),
           const SizedBox(height: 16),
           const Text(
             'Photos and videos are organized chronologically. Visible to Admin.',
@@ -1249,7 +1282,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
       'Post-Incident Report',
       Icons.task_outlined,
       PostIncidentReportWidget(
-        operationId: int.parse(widget.task.taskId),
+        operationId: _operationId,
         isCompleted: isCompleted,
       ),
     );
@@ -1356,21 +1389,24 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bg;
     Color text;
-    switch (status) {
-      case 'In Progress':
+    switch (status.toLowerCase()) {
+      case 'in progress':
         bg = AppColors.orange.withOpacity(0.18);
         text = AppColors.orange;
         break;
-      case 'Verified':
-      case 'Controlled':
+      case 'verified':
+      case 'controlled':
+      case 'completed':
+      case 'resolved':
         bg = AppColors.success.withOpacity(0.15);
         text = AppColors.success;
         break;
-      case 'Closed':
+      case 'closed':
         bg = AppColors.info.withOpacity(0.15);
         text = AppColors.info;
         break;
-      case 'Rejected':
+      case 'rejected':
+      case 'cancelled':
         bg = AppColors.danger.withOpacity(0.15);
         text = AppColors.danger;
         break;

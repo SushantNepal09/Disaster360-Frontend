@@ -1,7 +1,10 @@
 import 'dart:math' as Math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:disaster360/admin/widgets/admin_post_incident_report_widget.dart';
 import 'package:disaster360/providers/report_provider.dart';
+import 'package:disaster360/services/api_service.dart';
+import 'package:disaster360/services/gis_cache_service.dart';
 import 'package:disaster360/utils/status_helper.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
@@ -18,6 +21,186 @@ class CitizenReportDetailScreen extends StatefulWidget {
 
 class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
   bool _isMergedExpanded = false;
+  bool _isLiking = false;
+  bool _isDisliking = false;
+  
+  List<dynamic> _timelineEvents = [];
+  bool _isLoadingTimeline = true;
+  String? _timelineError;
+
+  String _localUnit = "Not Available";
+  String _district = "Not Available";
+  String _province = "Not Available";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTimeline();
+    _fetchLocationDetails();
+  }
+
+  Future<void> _fetchLocationDetails() async {
+    try {
+      final areas = await GisCacheService().identifyAdministrativeAreas(widget.report.latitude, widget.report.longitude);
+      if (areas.isNotEmpty && areas.length >= 3) {
+        if (mounted) {
+          setState(() {
+            _province = areas[0];
+            _district = areas[1];
+            _localUnit = areas[2];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to fetch location details: $e");
+    }
+  }
+
+  Future<void> _fetchTimeline() async {
+    final status = widget.report.status.toLowerCase();
+    // Only fetch if it's assigned, in progress, controlled, or closed
+    if (['assigned', 'in progress', 'controlled', 'closed', 'resolved'].contains(status)) {
+      try {
+        final res = await ApiService().fetchRescueTimeline(widget.report.id.toString());
+        if (mounted) {
+          setState(() {
+            _timelineEvents = res['data'] ?? [];
+            _isLoadingTimeline = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _timelineError = e.toString();
+            _isLoadingTimeline = false;
+          });
+        }
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoadingTimeline = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildTimelineSection() {
+    if (_isLoadingTimeline) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator(color: Colors.blue)),
+      );
+    }
+    
+    if (_timelineError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Text('Error loading timeline: $_timelineError', style: TextStyle(color: Colors.red)),
+      );
+    }
+
+    if (_timelineEvents.isEmpty) {
+      return _buildCard(
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'No rescue updates available yet.',
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Rescue Operation Timeline',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._timelineEvents.map((event) {
+            final dateStr = _formatDate(event['created_at'] ?? '');
+            final hasMedia = event['media_url'] != null && event['media_url'].toString().isNotEmpty;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Container(
+                        width: 2,
+                        height: 50,
+                        color: Colors.blue.withOpacity(0.3),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event['title'] ?? 'Update',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          dateStr,
+                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                        if (event['description'] != null && event['description'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            event['description'],
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                        ],
+                        if (hasMedia) ...[
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              event['media_url'],
+                              height: 120,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 120,
+                                color: Colors.grey[800],
+                                child: const Icon(Icons.broken_image, color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
 
   int _currentStepIndex(String status) {
     final s = status.toLowerCase();
@@ -167,7 +350,7 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final report = widget.report;
-    final steps = ['Pending', 'Verified', 'Assigned', 'In Progress', 'Resolved'];
+    final steps = ['Pending', 'Verified', 'Assigned & In Progress', 'Controlled'];
     final currentIndex = _currentStepIndex(report.status);
 
     return Scaffold(
@@ -362,6 +545,13 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                     ),
                   ),
 
+                // Section: Timeline
+                if (['assigned', 'in progress', 'controlled', 'closed', 'resolved'].contains(report.status.toLowerCase()))
+                  _buildTimelineSection(),
+
+                if (['closed', 'resolved'].contains(report.status.toLowerCase()))
+                  AdminPostIncidentReportWidget(incidentId: widget.report.id.toString(), isCompleted: false),
+
                 // Section 5: Location
                 _buildCard(
                   child: Column(
@@ -393,7 +583,7 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Local Unit: ${report.localUnit ?? "Not Available"}',
+                                  'Local Unit: $_localUnit',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
@@ -401,7 +591,7 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'District: ${report.district ?? "Not Available"}',
+                                  'District: $_district',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
@@ -409,7 +599,7 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Province: ${report.province ?? "Not Available"}',
+                                  'Province: $_province',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
@@ -425,13 +615,13 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                 ),
 
                 // Section 6: Timeline
-                if (report.status.toLowerCase() != 'rejected' && report.status.toLowerCase() != 'pending')
+                if (!['closed', 'resolved', 'controlled', 'rejected', 'pending'].contains(report.status.toLowerCase()))
                   _buildCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Rescue Timeline',
+                          'Status Timeline',
                           style: TextStyle(
                             color: Colors.white54,
                             fontSize: 13,
@@ -624,8 +814,10 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          context.read<ReportProvider>().reactToReport(report.id, 'LIKE');
+                        onTap: _isLiking || _isDisliking ? null : () async {
+                          setState(() => _isLiking = true);
+                          await context.read<ReportProvider>().toggleReaction(report.id, 'LIKE');
+                          if(mounted) setState(() => _isLiking = false);
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -639,7 +831,7 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              _isLiking ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success)) : Icon(
                                 report.userReaction == 'LIKE' ? Icons.thumb_up_alt_rounded : Icons.thumb_up_alt_outlined,
                                 color: report.userReaction == 'LIKE' ? AppColors.success : Colors.white,
                                 size: 20,
@@ -661,8 +853,10 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          context.read<ReportProvider>().reactToReport(report.id, 'DISLIKE');
+                        onTap: _isLiking || _isDisliking ? null : () async {
+                          setState(() => _isDisliking = true);
+                          await context.read<ReportProvider>().toggleReaction(report.id, 'DISLIKE');
+                          if(mounted) setState(() => _isDisliking = false);
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -676,7 +870,7 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              _isDisliking ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.danger)) : Icon(
                                 report.userReaction == 'DISLIKE' ? Icons.thumb_down_alt_rounded : Icons.thumb_down_alt_outlined,
                                 color: report.userReaction == 'DISLIKE' ? AppColors.danger : Colors.white,
                                 size: 20,

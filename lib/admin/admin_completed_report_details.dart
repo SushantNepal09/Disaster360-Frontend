@@ -1,4 +1,6 @@
 import 'package:disaster360/colors.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:disaster360/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +18,40 @@ class AdminCompletedReportDetailScreen extends StatefulWidget {
 
 class _AdminCompletedReportDetailScreenState
     extends State<AdminCompletedReportDetailScreen> {
+
+  List<dynamic> _timelineEvents = [];
+  bool _isLoadingTimeline = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTimeline();
+  }
+
+  Future<void> _fetchTimeline() async {
+    try {
+      final incidentId = widget.report['incident_id'];
+      final api = ApiService();
+      final response = await api.get('/reports/$incidentId/rescue-timeline');
+      if (mounted) {
+        setState(() {
+          if (response is List) {
+             _timelineEvents = response;
+          } else if (response is Map) {
+             _timelineEvents = response['data'] ?? response['timeline'] ?? [];
+          }
+          _isLoadingTimeline = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingTimeline = false;
+        });
+      }
+    }
+  }
+
   final TextEditingController _finalReportController = TextEditingController();
   bool _isSubmitting = false;
 
@@ -94,6 +130,90 @@ class _AdminCompletedReportDetailScreenState
   }
 
   @override
+
+  Widget _buildRescueTimeline() {
+    if (_isLoadingTimeline) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.orange));
+    }
+    if (_timelineEvents.isEmpty) {
+      return const Text('No timeline events found.', style: TextStyle(color: Colors.white54));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'RESCUE TIMELINE',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ..._timelineEvents.map((event) {
+          final title = event['title'] ?? 'Event';
+          final desc = event['description'] ?? '';
+          final time = event['timestamp'] != null ? _relativeDate(event['timestamp']) : '';
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: AppColors.orange,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Container(
+                      width: 2,
+                      height: 40,
+                      color: AppColors.border,
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      if (desc.isNotEmpty)
+                        Text(
+                          desc,
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        time,
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildPostIncidentReport() {
+    // Backend doesn't return attachments for completed operations, so this is handled in team reports.
+    return const SizedBox.shrink();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final report = widget.report;
     final teams = (report['teams'] as List<dynamic>?) ?? [];
@@ -117,106 +237,21 @@ class _AdminCompletedReportDetailScreenState
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Incident Details
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.bgSurface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'INCIDENT #${report['incident_id']}',
-                        style: const TextStyle(
-                          color: AppColors.orange,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'COMPLETED',
-                          style: TextStyle(
-                            color: AppColors.success,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    (report['disaster_type'] ?? 'Unknown')
-                        .toString()
-                        .toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.white54,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          (report['location']?['address'] ?? 'Unknown')
-                              .toString(),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Description',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    (report['description'] ?? 'No description').toString(),
-                    style: const TextStyle(color: Colors.white70, height: 1.5),
-                  ),
-                ],
-              ),
-            ).animate().fade().slideY(begin: 0.05, end: 0),
+            _buildRescueTimeline(),
+            const SizedBox(height: 24),
+            _buildPostIncidentReport(),
 
             const SizedBox(height: 24),
             const Text(
-              'RESCUE TEAM REPORTS',
+              'RESCUE POST DISASTER REPORTS',
               style: TextStyle(
                 color: Colors.white54,
                 fontWeight: FontWeight.bold,
@@ -352,6 +387,8 @@ class _AdminCompletedReportDetailScreenState
           ],
         ),
       ),
-    );
+     ),
+    ),
+   );
   }
 }

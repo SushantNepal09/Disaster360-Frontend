@@ -1,3 +1,4 @@
+import 'package:disaster360/citizen/citizen_closed_reports_screen.dart';
 import 'package:disaster360/citizen/citizen_report_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -111,7 +112,7 @@ int _statusSortOrder(String status) {
   if (s == 'assigned') return 2;
   if (s == 'acknowledged') return 3;
   if (s.contains('progress')) return 4;
-  if (s.contains('resolved') || s.contains('controlled')) return 5;
+  if (s.contains('resolved') || s.contains('controlled') || s.contains('closed')) return 5;
   if (s == 'rejected') return 6;
   return 7;
 }
@@ -238,6 +239,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     );
   }
 
+
   Widget _buildHomeTab() {
     return Column(
       children: [
@@ -277,7 +279,9 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
+          Row(
+            children: [
+              GestureDetector(
             onTap: () {
               if (_activeNav == 0) _scrollToTop();
             },
@@ -304,6 +308,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 ),
               ],
             ),
+          ),
+          ],
           ),
           GestureDetector(
             onTap:
@@ -361,14 +367,20 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         reports.where((r) => r.status.toLowerCase().contains('pending')).length;
     final inProgress =
         reports
-            .where((r) => r.status.toLowerCase().contains('progress'))
+            .where(
+              (r) =>
+                  r.status.toLowerCase().contains('progress') ||
+                  r.status.toLowerCase() == 'verified' ||
+                  r.status.toLowerCase() == 'assigned',
+            )
             .length;
     final controlled =
         reports
             .where(
               (r) =>
                   r.status.toLowerCase().contains('controlled') ||
-                  r.status.toLowerCase().contains('verified'),
+                  r.status.toLowerCase().contains('closed') ||
+                  r.status.toLowerCase().contains('resolved'),
             )
             .length;
     return Row(
@@ -389,6 +401,12 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           value: '$controlled',
           label: 'Controlled',
           valueColor: AppColors.success,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CitizenClosedReportsScreen()),
+            );
+          },
         ),
       ],
     );
@@ -676,7 +694,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   // ── REPORT CARDS SECTION ────────────────────────────────────────────────────
 
   List<ReportModel> _getFilteredReports(BuildContext context) {
-    final all = context.watch<ReportProvider>().reports;
+    final all = context.watch<ReportProvider>().activeReports;
     List<ReportModel> filtered = [];
 
     if (_selectedHomeFilter == 'All') {
@@ -688,14 +706,20 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       'Pending',
       'On Rescue',
       'Verified',
+      'Closed',
     ].contains(_selectedHomeFilter)) {
       if (_selectedHomeFilter == 'On Rescue') {
         filtered =
             all
                 .where((r) => r.status.toLowerCase().contains('progress'))
                 .toList();
+      } else if (_selectedHomeFilter == 'Closed') {
+        filtered =
+            all
+                .where((r) => r.status.toLowerCase() == 'closed' || r.status.toLowerCase() == 'resolved' || r.status.toLowerCase() == 'controlled')
+                .toList();
       } else {
-        filtered = all.where((r) => r.status == _selectedHomeFilter).toList();
+        filtered = all.where((r) => r.status.toLowerCase() == _selectedHomeFilter.toLowerCase()).toList();
       }
     } else {
       // Type filters
@@ -774,12 +798,12 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               milliseconds: 60 * reports.indexOf(report),
             ),
             onUpvote:
-                () => context.read<ReportProvider>().reactToReport(
+                () => context.read<ReportProvider>().toggleReaction(
                   report.id,
                   'LIKE',
                 ),
             onDownvote:
-                () => context.read<ReportProvider>().reactToReport(
+                () => context.read<ReportProvider>().toggleReaction(
                   report.id,
                   'DISLIKE',
                 ),
@@ -944,18 +968,20 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String label;
   final Color valueColor;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.value,
     required this.label,
     required this.valueColor,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: PressableWidget(
-        onTap: () {},
+        onTap: onTap ?? () {},
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
           decoration: BoxDecoration(
@@ -975,15 +1001,24 @@ class _StatCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400,
-                  decoration: TextDecoration.none,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                  if (onTap != null) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 10),
+                  ],
+                ],
               ),
             ],
           ),

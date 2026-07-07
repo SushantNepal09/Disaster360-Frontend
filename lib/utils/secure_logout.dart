@@ -45,6 +45,7 @@ class SecureLogout {
     if (context.mounted) {
       await context.read<AuthProvider>().logout();
 
+      if (!context.mounted) return;
       // 6. Navigate to AuthWrapper which handles Login routing securely
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AuthWrapper()),

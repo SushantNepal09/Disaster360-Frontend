@@ -107,13 +107,28 @@ class _RescueAllReportsScreenState extends State<RescueAllReportsScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'All Reports',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'All Reports',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.refresh_rounded, color: AppColors.orange),
+                              onPressed: () {
+                                context.read<RescueProvider>().fetchAllReports();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Refreshing reports...'), duration: Duration(seconds: 1)),
+                                );
+                              },
+                              tooltip: 'Refresh Reports',
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         _AnimatedSearchBar(
@@ -695,11 +710,11 @@ class _RescueReportCardState extends State<_RescueReportCard> {
             ),
             const SizedBox(height: 10),
 
-            // Image thumbnails
-            if (report.mediaUrls.isNotEmpty) ...[
-              SizedBox(
-                height: 60,
-                child: ListView.separated(
+            // Image thumbnails (always reserve space for consistent card heights)
+            SizedBox(
+              height: 60,
+              child: report.mediaUrls.isNotEmpty
+                  ? ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: report.mediaUrls.length.clamp(0, 4),
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -745,10 +760,10 @@ class _RescueReportCardState extends State<_RescueReportCard> {
                       ),
                     );
                   },
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
+                )
+              : const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 10),
 
             if (report.assignedTeams.isNotEmpty)
               Wrap(
@@ -1129,21 +1144,26 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bg;
     Color text;
-    switch (status) {
-      case 'In Progress':
+    switch (status.toLowerCase()) {
+      case 'pending':
+      case 'accepted':
+      case 'in progress':
         bg = AppColors.orange.withOpacity(0.18);
         text = AppColors.orange;
         break;
-      case 'Verified':
-      case 'Controlled':
+      case 'verified':
+      case 'controlled':
+      case 'completed':
+      case 'resolved':
         bg = AppColors.success.withOpacity(0.15);
         text = AppColors.success;
         break;
-      case 'Closed':
+      case 'closed':
         bg = AppColors.info.withOpacity(0.15);
         text = AppColors.info;
         break;
-      case 'Rejected':
+      case 'rejected':
+      case 'cancelled':
         bg = AppColors.danger.withOpacity(0.15);
         text = AppColors.danger;
         break;

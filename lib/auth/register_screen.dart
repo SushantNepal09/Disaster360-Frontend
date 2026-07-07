@@ -19,19 +19,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _citizenshipNumberController = TextEditingController();
+  final _departmentController = TextEditingController();
 
   String? _selectedDistrict;
   NepaliDateTime? _selectedIssueDate;
-  String? _selectedSpecialization;
-
-  final List<String> _specializations = [
-    'Firefighter',
-    'Ambulance/Medical',
-    'Police',
-    'Search and Rescue (SAR)',
-    'Heavy Rescue',
-    'Other',
-  ];
 
   String _selectedRole = 'Citizen';
   final List<String> _roles = ['Citizen', 'Admin', 'Rescue'];
@@ -112,6 +103,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'Kanchanpur',
   ];
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _fullNameController.dispose();
+    _phoneController.dispose();
+    _citizenshipNumberController.dispose();
+    _departmentController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickDate() async {
     final pickedDate = await showNepaliDatePicker(
       context: context,
@@ -152,10 +154,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (_selectedRole.toLowerCase() == 'rescue' &&
-        _selectedSpecialization == null) {
+    if ((_selectedRole.toLowerCase() == 'rescue' || _selectedRole.toLowerCase() == 'admin') &&
+        _departmentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a specialization')),
+        const SnackBar(content: Text('Please enter a department name')),
       );
       return;
     }
@@ -179,7 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         citizenshipIssueDistrict: _selectedDistrict!,
         citizenshipIssueDate:
             '${_selectedIssueDate!.year}-${_selectedIssueDate!.month.toString().padLeft(2, '0')}-${_selectedIssueDate!.day.toString().padLeft(2, '0')}',
-        specialization: _selectedSpecialization,
+        specialization: _departmentController.text.trim().isEmpty ? null : _departmentController.text.trim(),
       );
 
       if (!mounted) return;
@@ -590,38 +592,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Conditional Specialization Dropdown
-                          if (_selectedRole.toLowerCase() == 'rescue') ...[
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedSpecialization,
-                              validator:
-                                  (val) =>
-                                      val == null
-                                          ? 'Please select a specialization'
-                                          : null,
-                              dropdownColor: AppColors.bgSurface,
+                          // Conditional Department Name Field
+                          if (_selectedRole.toLowerCase() == 'rescue' || _selectedRole.toLowerCase() == 'admin') ...[
+                            TextFormField(
+                              controller: _departmentController,
                               style: const TextStyle(color: Colors.white),
-                              iconEnabledColor: Colors.white54,
-                              hint: const Text(
-                                'Specialization (e.g. Firefighter)',
-                                style: TextStyle(color: Colors.white38),
-                              ),
-                              decoration: _getInputDecoration(
-                                hintText: null,
-                                prefixIcon: Icons.star_border_outlined,
-                              ),
-                              items:
-                                  _specializations.map((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
-                              onChanged: (newValue) {
-                                setState(() {
-                                  _selectedSpecialization = newValue;
-                                });
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a department name';
+                                }
+                                return null;
                               },
+                              decoration: _getInputDecoration(
+                                hintText: 'Department Name',
+                                prefixIcon: Icons.business,
+                              ),
                             ),
                           ],
                           const SizedBox(height: 32),

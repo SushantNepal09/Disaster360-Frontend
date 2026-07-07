@@ -374,6 +374,18 @@ class _PostDisasterReportScreenState extends State<PostDisasterReportScreen>
           fontFamily: 'monospace',
         ),
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded, color: AppColors.orange),
+          onPressed: () {
+            _clearForm();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Form cleared'), duration: Duration(seconds: 1)),
+            );
+          },
+          tooltip: 'Clear Form',
+        ),
+      ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(height: 1, color: AppColors.border),

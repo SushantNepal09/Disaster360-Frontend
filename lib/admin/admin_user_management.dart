@@ -88,9 +88,12 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           backgroundColor: AppColors.bgPrimary,
           elevation: 0,
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.security, size: 64, color: AppColors.warning),
@@ -162,6 +165,8 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
             ],
           ),
         ),
+          ),
+        ),
       );
     }
 
@@ -200,7 +205,10 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                   style: TextStyle(color: Colors.white54),
                 ),
               )
-              : ListView.builder(
+              : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: _users.length,
                 itemBuilder: (context, index) {
@@ -316,6 +324,8 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                     ),
                   );
                 },
+              ),
+                ),
               ),
     );
   }

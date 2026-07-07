@@ -171,6 +171,7 @@ class _SplashScreenState extends State<SplashScreen>
             
             SizedBox(
               width: animWidth,
+              height: animWidth, // Add height constraint to prevent RenderFlex overflow
               child: Lottie.asset(
                 'assets/animations/nepal_delivery.json',
                 controller: _animationController,

@@ -188,7 +188,7 @@ class RescueProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   Future<void> updateOperationStatus(int assignmentId, String status) async {
     await _service.updateOperationStatus(assignmentId, status);
-    await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
+    await fetchAll();
   }
 
   // ---------------------------------------------------------------------------
@@ -200,7 +200,7 @@ class RescueProvider extends ChangeNotifier {
       'Post-Incident Report Submitted',
       reportText,
     );
-    await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
+    await fetchAll();
   }
 
   Future<void> uploadReportAttachments(
@@ -208,6 +208,6 @@ class RescueProvider extends ChangeNotifier {
     List<String> filePaths,
   ) async {
     await _service.uploadReportAttachments(assignmentId, filePaths);
-    await Future.wait([fetchMyAssignments(), fetchCompletedAssignments()]);
+    await fetchAll();
   }
 }

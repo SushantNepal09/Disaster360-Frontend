@@ -145,4 +145,20 @@ class AuthProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  Future<String> changePassword(String currentPassword, String newPassword, String confirmPassword) async {
+    try {
+      final response = await _apiService.post(
+        '/auth/change-password',
+        body: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+          'confirm_password': confirmPassword,
+        },
+      );
+      return response['message'] ?? 'Password changed successfully';
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

@@ -1,4 +1,6 @@
+import '../services/gis_cache_service.dart';
 import 'package:disaster360/colors.dart';
+import 'package:disaster360/admin/widgets/admin_post_incident_report_widget.dart';
 import 'package:disaster360/widgets/image_viewer_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,6 +9,7 @@ import 'package:disaster360/services/api_service.dart';
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/citizen/citizen_home_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ─── Data Model ───────────────────────────────────────────────────────────────
 
@@ -150,7 +153,63 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     _decisionController.forward();
 
     _fetchAvailableTeams();
+    _fetchTimeline();
+    _fetchClosureReport();
   }
+
+  List<dynamic> _timelineEvents = [];
+  bool _isLoadingTimeline = true;
+  String? _timelineError;
+
+  Map<String, dynamic>? _closureReport;
+  bool _isLoadingClosure = true;
+  String? _closureError;
+
+  Future<void> _fetchTimeline() async {
+    final statusLower = widget.report.status.toLowerCase();
+    if (['assigned', 'in progress', 'controlled', 'closed', 'resolved'].contains(statusLower) || _decisionState == 'verified' || _decisionState == 'closed') {
+      try {
+        final rawId = widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), '');
+        final res = await ApiService().fetchRescueTimeline(rawId);
+        if (mounted) {
+          setState(() {
+            _timelineEvents = res['data'] ?? [];
+            _isLoadingTimeline = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _timelineError = e.toString();
+            _isLoadingTimeline = false;
+          });
+        }
+      }
+    } else {
+      if (mounted) setState(() => _isLoadingTimeline = false);
+    }
+  }
+
+  Future<void> _fetchClosureReport() async {
+    try {
+      final rawId = widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), '');
+      final res = await ApiService().fetchClosureReport(rawId);
+      if (mounted) {
+        setState(() {
+          _closureReport = res['data'];
+          _isLoadingClosure = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _closureError = e.toString();
+          _isLoadingClosure = false;
+        });
+      }
+    }
+  }
+
 
   List<Map<String, String>> _availableTeams = [];
 
@@ -188,6 +247,270 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     } catch (e) {
       debugPrint("Error fetching rescue teams: $e");
     }
+  }
+
+  Widget _buildTimelineSection() {
+    if (_isLoadingTimeline) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator(color: Colors.blue)),
+      );
+    }
+    
+    if (_timelineError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Text('Error loading timeline: $_timelineError', style: TextStyle(color: Colors.red)),
+      );
+    }
+
+    if (_timelineEvents.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: const Center(
+          child: Text(
+            'No rescue updates available yet.',
+            style: TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Rescue Operation Timeline',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._timelineEvents.map((event) {
+            final dateStr = _formatDate(event['created_at'] ?? '');
+            final hasMedia = event['media_url'] != null && event['media_url'].toString().isNotEmpty;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Container(
+                        width: 2,
+                        height: 50,
+                        color: Colors.blue.withOpacity(0.3),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event['title'] ?? 'Update',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          dateStr,
+                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                        if (event['description'] != null && event['description'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            event['description'],
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                        ],
+                        if (hasMedia) ...[
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              event['media_url'],
+                              height: 120,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 120,
+                                color: Colors.grey[800],
+                                child: const Icon(Icons.broken_image, color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClosureAndAdminReportSection() {
+    final statusLower = widget.report.status.toLowerCase();
+    final decisionLower = _decisionState.toLowerCase();
+    final isClosedOrResolved = ['closed', 'resolved'].contains(statusLower) || ['closed', 'resolved'].contains(decisionLower);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildClosureReportSection(),
+        if (isClosedOrResolved) ...[
+          const SizedBox(height: 14),
+          AdminPostIncidentReportWidget(incidentId: widget.report.reportId, isCompleted: true),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildClosureReportSection() {
+    if (_isLoadingClosure) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator(color: Colors.green)),
+      );
+    }
+
+    if (_closureError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Text('Error loading closure report: $_closureError', style: TextStyle(color: Colors.red)),
+      );
+    }
+
+    if (_closureReport == null) {
+      return const SizedBox.shrink(); // No closure report available
+    }
+
+    final data = _closureReport!;
+    final attachments = data['attachments'] as List<dynamic>? ?? [];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.green.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.green, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Final Closure Report',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Team: ${data['team_name'] ?? 'Unknown'}',
+            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Closed On: ${_formatDate(data['closed_date'] ?? '')}',
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+          ),
+          if (data['closing_description'] != null && data['closing_description'].toString().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'Closing Remarks:',
+              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              data['closing_description'],
+              style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
+            ),
+          ],
+          if (attachments.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Attachments:',
+              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            ...attachments.map((att) {
+              return InkWell(
+                onTap: () async {
+                  final url = Uri.parse(att['file_url']);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not open PDF file.')),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.picture_as_pdf, color: Colors.redAccent, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          att['original_filename'] ?? 'Report Document',
+                          style: const TextStyle(color: Colors.blueAccent, decoration: TextDecoration.underline),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(Icons.open_in_new, color: Colors.white54, size: 16),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        ],
+      ),
+    );
   }
 
   String _formatDate(String isoString) {
@@ -228,7 +551,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
-  void _verifyApiCall() async {
+  Future<void> _verifyApiCall() async {
     try {
       final api = ApiService();
       // Handle mock UI report ID (e.g. "RPT-00420") vs actual API ID logic
@@ -287,8 +610,8 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     }
   }
 
-  void _onVerify() {
-    _verifyApiCall();
+  Future<void> _onVerify() async {
+    await _verifyApiCall();
   }
 
   void _onReject() {
@@ -589,6 +912,18 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
         ),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded, color: AppColors.orange),
+          onPressed: () {
+            _fetchAvailableTeams();
+            _fetchTimeline();
+            _fetchClosureReport();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Refreshing details...'), duration: Duration(seconds: 1)),
+            );
+          },
+          tooltip: 'Refresh Details',
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: _StatusBadge(status: widget.report.status),
@@ -616,7 +951,13 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
               _buildReporterCard(),
               const SizedBox(height: 14),
               _buildVotesRow(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 14),
+              if (['assigned', 'in progress', 'controlled', 'closed', 'resolved'].contains(widget.report.status.toLowerCase()) || _decisionState == 'verified' || _decisionState == 'closed') ...[
+                _buildTimelineSection(),
+                const SizedBox(height: 14),
+              ],
+              _buildClosureAndAdminReportSection(),
+              const SizedBox(height: 14),
               _buildDecisionArea(),
               const SizedBox(height: 16),
               _buildHistoryButton(),
@@ -654,6 +995,12 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                           _buildReportInfoCard(),
                           const SizedBox(height: 14),
                           _buildGpsPhotosCard(),
+                          const SizedBox(height: 14),
+                          if (['assigned', 'in progress', 'controlled', 'closed', 'resolved'].contains(widget.report.status.toLowerCase()) || _decisionState == 'verified' || _decisionState == 'closed') ...[
+                            _buildTimelineSection(),
+                            const SizedBox(height: 14),
+                          ],
+                          _buildClosureAndAdminReportSection(),
                           const SizedBox(height: 14),
                           _buildVotesRow(),
                           const SizedBox(height: 24),
@@ -712,6 +1059,12 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                           _buildReportInfoCard(),
                           const SizedBox(height: 16),
                           _buildGpsPhotosCard(),
+                          const SizedBox(height: 16),
+                          if (['assigned', 'in progress', 'controlled', 'closed', 'resolved'].contains(widget.report.status.toLowerCase()) || _decisionState == 'verified' || _decisionState == 'closed') ...[
+                            _buildTimelineSection(),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildClosureAndAdminReportSection(),
                           const SizedBox(height: 16),
                           _buildVotesRow(),
                         ],
@@ -813,13 +1166,33 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                 color: AppColors.orange,
                 size: 18,
               ),
-              Text(
-                '${widget.report.lat}, ${widget.report.lng}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+              FutureBuilder<List<String>>(
+                future: GisCacheService().identifyAdministrativeAreas(
+                  double.tryParse(widget.report.lat) ?? 0.0,
+                  double.tryParse(widget.report.lng) ?? 0.0,
                 ),
+                builder: (context, snapshot) {
+                  String locText = widget.report.location;
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    locText = 'Loading location...';
+                  } else if (snapshot.hasData) {
+                    final data = snapshot.data!;
+                    if (data[0] == 'Unknown' && data[1] == 'Unknown' && data[2] == 'Unknown') {
+                      locText = widget.report.location.isNotEmpty ? widget.report.location : '${widget.report.lat}, ${widget.report.lng}';
+                    } else {
+                      locText = '${data[2]}, ${data[1]}, ${data[0]}';
+                    }
+                  }
+                  return Text(
+                    locText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -957,28 +1330,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      margin: const EdgeInsets.only(right: 5),
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Text(
-                      'Trust Score: ${widget.report.trustScore}/100',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                const SizedBox(height: 3),],
             ),
           ),
         ],
@@ -1597,20 +1949,6 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                 fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-          _ActionButton(
-            fullWidth: true,
-            label: 'View Admin Overall Report',
-            icon: Icons.assignment_rounded,
-            color: Colors.purple,
-            filled: true,
-            onTap: () {
-              _showReportDialog(
-                context,
-                'Overall Admin',
-                widget.report.finalAdminReport!,
-              );
-            },
           ),
         ],
       ],

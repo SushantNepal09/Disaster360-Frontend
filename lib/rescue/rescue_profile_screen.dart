@@ -1,10 +1,11 @@
 import 'package:provider/provider.dart';
 import 'package:disaster360/providers/auth_provider.dart';
+import 'package:disaster360/auth/change_password_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
 import 'package:disaster360/utils/secure_logout.dart';
 import 'package:disaster360/colors.dart';
-import 'package:disaster360/services/feedback.dart';
 import 'package:flutter/material.dart';
+import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESCUE PROFILE SCREEN — Disaster360 Rescue Module
@@ -32,28 +33,13 @@ class RescueProfileScreen extends StatefulWidget {
   State<RescueProfileScreen> createState() => _RescueProfileScreenState();
 }
 
-class _RescueProfileScreenState extends State<RescueProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _RescueProfileScreenState extends State<RescueProfileScreen> {
   // ── System / duty state ────────────────────────────────────────────────────
-  bool _systemOnline = true;
   bool _isOnDuty = true;
-
-  // ── Pulse animation for duty indicator ───────────────────────────────────
-  late AnimationController _pulseCtrl;
-  late Animation<double> _pulseAnim;
 
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(
-      begin: 0.45,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
-
     // Fetch rescue-specific stats from the backend
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RescueProvider>().fetchProfile();
@@ -62,7 +48,6 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
 
   @override
   void dispose() {
-    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -93,19 +78,22 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
     final specialization = user?.specialization ?? 'Not Specified';
     final initials = _getInitials(name);
 
-    // Stats from /rescue/profile API
-    final stats = profile?['stats'] as Map? ?? {};
-    final completedOps = (stats['completed_operations'] as int?) ?? 0;
-    final totalOps = (stats['total_operations'] as int?) ?? 0;
-    final activeOps = (stats['active_operations'] as int?) ?? 0;
+    // Dynamic Stats from myAssignments
+    final myAssignments = rescue.myAssignments;
+    final completedOps = myAssignments.where((t) => t.status == TaskStatus.completed).length;
+    final totalOps = myAssignments.length;
+    final activeOps = myAssignments.where((t) => t.status == TaskStatus.pending || t.status == TaskStatus.active).length;
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildHeader(context),
               const SizedBox(height: 28),
@@ -117,17 +105,13 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
               const SizedBox(height: 20),
               _buildDetailsCard(email, phone, specialization),
               const SizedBox(height: 16),
-              _buildSystemStatusCard(),
-              const SizedBox(height: 16),
-              _buildDutyStatusCard(context),
-              const SizedBox(height: 16),
-              _buildMenuCard(context),
-              const SizedBox(height: 24),
-              _buildGoOffDutyButton(context),
+              _buildChangePasswordButton(context),
               const SizedBox(height: 12),
               _buildSignOutButton(context),
               const SizedBox(height: 28),
             ],
+              ),
+            ),
           ),
         ),
       ),
@@ -306,7 +290,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
         value: 'Rescue Team',
         valueColor: AppColors.success,
       ),
-      _InfoRow(label: 'Specialization', value: specialization),
+      _InfoRow(label: 'Department', value: specialization),
     ];
 
     return Container(
@@ -363,172 +347,18 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
     );
   }
 
-  // ── 6. System status card ──────────────────────────────────────────────────
-  Widget _buildSystemStatusCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: _systemOnline ? AppColors.success : AppColors.danger,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 250),
-                style: TextStyle(
-                  color: _systemOnline ? AppColors.success : AppColors.danger,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-                child: Text(_systemOnline ? 'System Online' : 'System Offline'),
-              ),
-            ],
-          ),
-          Switch(
-            value: _systemOnline,
-            onChanged: (v) => setState(() => _systemOnline = v),
-            activeThumbColor: AppColors.success,
-            inactiveThumbColor: AppColors.danger,
-            inactiveTrackColor: AppColors.danger.withOpacity(0.3),
-            activeTrackColor: AppColors.success.withOpacity(0.3),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── 7. Duty status card ────────────────────────────────────────────────────
-  Widget _buildDutyStatusCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Text(
-              'DUTY STATUS',
-              style: TextStyle(
-                color: Colors.white38,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.border),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Current Status',
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
-                ),
-                Row(
-                  children: [
-                    if (_isOnDuty)
-                      AnimatedBuilder(
-                        animation: _pulseAnim,
-                        builder:
-                            (_, __) => Opacity(
-                              opacity: _pulseAnim.value,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                margin: const EdgeInsets.only(right: 6),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.success,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                      ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            _isOnDuty
-                                ? AppColors.success.withOpacity(0.18)
-                                : Colors.white12,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color:
-                              _isOnDuty
-                                  ? AppColors.success.withOpacity(0.5)
-                                  : Colors.white24,
-                        ),
-                      ),
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: TextStyle(
-                          color: _isOnDuty ? AppColors.success : Colors.white54,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        child: Text(_isOnDuty ? 'On Duty' : 'Off Duty'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── 8. Menu card: Provide Feedback ────────────────────────────────────────
-  Widget _buildMenuCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: _ProfileMenuTile(
-        icon: Icons.chat_bubble_outline_rounded,
-        label: 'Provide Feedback',
-        onTap:
-            () => Navigator.push(context, _fadeRoute(const FeedbackScreen())),
-      ),
-    );
-  }
-
-  // ── 9a. Go Off Duty button ─────────────────────────────────────────────────
-  Widget _buildGoOffDutyButton(BuildContext context) {
+  // ── 9a. Change Password button ─────────────────────────────────────────────
+  Widget _buildChangePasswordButton(BuildContext context) {
     return _ProfileActionButton(
-      label: _isOnDuty ? 'Go Off Duty' : 'Go On Duty',
-      icon:
-          _isOnDuty
-              ? Icons.bedtime_outlined
-              : Icons.play_circle_outline_rounded,
-      color: _isOnDuty ? AppColors.warning : AppColors.success,
-      onTap: () => _showDutyToggleDialog(context),
+      label: 'Change Password',
+      icon: Icons.lock_outline_rounded,
+      color: Colors.white,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+        );
+      },
     );
   }
 
@@ -550,19 +380,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
     final user = context.read<AuthProvider>().user;
     final nameCtrl = TextEditingController(text: user?.fullName ?? '');
     final phoneCtrl = TextEditingController(text: user?.phone ?? '');
-
-    String? selectedSpec = user?.specialization;
-    final List<String> specializations = [
-      'Firefighter',
-      'Ambulance/Medical',
-      'Police',
-      'Search and Rescue (SAR)',
-      'Heavy Rescue',
-      'Other',
-    ];
-    if (selectedSpec != null && !specializations.contains(selectedSpec)) {
-      specializations.add(selectedSpec);
-    }
+    final deptCtrl = TextEditingController(text: user?.specialization ?? '');
 
     showDialog(
       context: context,
@@ -596,16 +414,11 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
                           const SizedBox(height: 12),
                           _DialogField(controller: phoneCtrl, label: 'Phone'),
                           const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            initialValue: selectedSpec,
-                            dropdownColor: AppColors.bgSurface,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                            iconEnabledColor: Colors.white54,
+                          TextFormField(
+                            controller: deptCtrl,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
                             decoration: InputDecoration(
-                              labelText: 'Specialization',
+                              labelText: 'Department Name',
                               labelStyle: const TextStyle(
                                 color: Colors.white54,
                                 fontSize: 13,
@@ -621,18 +434,6 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
                                 vertical: 12,
                               ),
                             ),
-                            items:
-                                specializations.map((String value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(value),
-                                  );
-                                }).toList(),
-                            onChanged: (newValue) {
-                              setState(() {
-                                selectedSpec = newValue;
-                              });
-                            },
                           ),
                         ],
                       ),
@@ -652,7 +453,7 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
                           await context.read<AuthProvider>().updateProfile(
                             fullName: nameCtrl.text.trim(),
                             phone: phoneCtrl.text.trim(),
-                            specialization: selectedSpec,
+                            specialization: deptCtrl.text.trim().isEmpty ? null : deptCtrl.text.trim(),
                           );
                           if (context.mounted) {
                             Navigator.pop(context);
@@ -700,73 +501,6 @@ class _RescueProfileScreenState extends State<RescueProfileScreen>
     );
   }
 
-  void _showDutyToggleDialog(BuildContext context) {
-    final goingOff = _isOnDuty;
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            backgroundColor: AppColors.bgSurface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: AppColors.border),
-            ),
-            title: Text(
-              goingOff ? 'Go Off Duty?' : 'Go On Duty?',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 17,
-              ),
-            ),
-            content: Text(
-              goingOff
-                  ? 'You will no longer receive new task assignments until you return to duty.'
-                  : 'You will be set as available and may receive task assignments from the admin.',
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white38),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() => _isOnDuty = !_isOnDuty);
-                  Navigator.pop(context);
-                  _showSnack(
-                    goingOff
-                        ? 'You are now Off Duty.'
-                        : 'You are now On Duty. Stay safe!',
-                    color: goingOff ? AppColors.warning : AppColors.success,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      goingOff ? AppColors.warning : AppColors.success,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  goingOff ? 'Go Off Duty' : 'Go On Duty',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
 
   void _showSignOutDialog(BuildContext context) {
     showDialog(
@@ -1086,27 +820,6 @@ class _DialogField extends StatelessWidget {
   }
 }
 
-// ── Fade route helper ──────────────────────────────────────────────────────────
-PageRouteBuilder _fadeRoute(Widget page) {
-  return PageRouteBuilder(
-    pageBuilder: (_, __, ___) => page,
-    transitionDuration: const Duration(milliseconds: 280),
-    reverseTransitionDuration: const Duration(milliseconds: 220),
-    transitionsBuilder:
-        (_, animation, __, child) => FadeTransition(
-          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.02),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            ),
-            child: child,
-          ),
-        ),
-  );
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  DATA MODELS

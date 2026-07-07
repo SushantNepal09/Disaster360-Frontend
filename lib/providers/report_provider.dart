@@ -97,15 +97,68 @@ class ReportProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _completedOperations = [];
   List<Map<String, dynamic>> _duplicateReports = [];
   bool _isLoading = false;
+  bool _showClosedOnMap = false;
+
+  bool get showClosedOnMap => _showClosedOnMap;
+
 
   int? _highlightedReportId;
 
   List<ReportModel> get reports => _reports;
+  List<ReportModel> get activeReports => _reports.where((r) => r.status != 'Closed').toList();
+  List<ReportModel> get closedReports => _reports.where((r) => r.status == 'Closed').toList();
   List<Map<String, dynamic>> get activeRescues => _activeRescues;
   List<Map<String, dynamic>> get completedOperations => _completedOperations;
   List<Map<String, dynamic>> get duplicateReports => _duplicateReports;
   bool get isLoading => _isLoading;
   int? get highlightedReportId => _highlightedReportId;
+
+  Future<void> toggleReaction(int incidentId, String reaction) async {
+    final index = _reports.indexWhere((r) => r.id == incidentId);
+    if (index == -1) return;
+
+    final report = _reports[index];
+    final oldReaction = report.userReaction;
+    final oldLikes = report.likes;
+    final oldDislikes = report.dislikes;
+
+    // Optimistic update
+    if (oldReaction == reaction) {
+      // Removing reaction
+      report.userReaction = null;
+      if (reaction == 'LIKE') report.likes--;
+      if (reaction == 'DISLIKE') report.dislikes--;
+    } else {
+      // Changing or adding reaction
+      report.userReaction = reaction;
+      if (reaction == 'LIKE') {
+        report.likes++;
+        if (oldReaction == 'DISLIKE') report.dislikes--;
+      }
+      if (reaction == 'DISLIKE') {
+        report.dislikes++;
+        if (oldReaction == 'LIKE') report.likes--;
+      }
+    }
+    notifyListeners();
+
+    try {
+      final response = await _apiService.reactToReport(incidentId.toString(), reaction);
+      if (response != null && response is Map) {
+        report.likes = response['likes'] ?? report.likes;
+        report.dislikes = response['dislikes'] ?? report.dislikes;
+        report.userReaction = response['user_reaction'];
+        notifyListeners();
+      }
+    } catch (e) {
+      // Revert on failure
+      report.userReaction = oldReaction;
+      report.likes = oldLikes;
+      report.dislikes = oldDislikes;
+      notifyListeners();
+      debugPrint("Error reacting to report: $e");
+    }
+  }
 
   void highlightReport(int id) {
     _highlightedReportId = id;

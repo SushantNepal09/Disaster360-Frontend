@@ -226,6 +226,14 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
 
   List<ReportModel> get _filtered =>
       _reports.where((i) {
+        bool isClosed = ['closed', 'resolved', 'controlled'].contains(i.status.toLowerCase());
+        
+        if (_activeFilter == 'Closed') {
+          return isClosed;
+        } else {
+          if (isClosed) return false;
+        }
+
         if (_activeFilter == 'Active') return i.status.toLowerCase() != 'controlled';
         if (_activeFilter == 'High') return i.severity.toLowerCase() == 'high' && i.status.toLowerCase() != 'controlled';
         if (_activeFilter == 'Moderate') return i.severity.toLowerCase() == 'moderate' && i.status.toLowerCase() != 'controlled';
@@ -451,14 +459,16 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                     : inc.severity.toLowerCase() == 'moderate'
                     ? 11000.0
                     : 6000.0;
+            final isClosed = ['closed', 'resolved', 'controlled'].contains(inc.status.toLowerCase());
+            final cColor = isClosed ? Colors.grey.withOpacity(0.3) : DisasterStyle.zoneColor(inc.disasterType);
+            final cBorder = isClosed ? Colors.grey.withOpacity(0.5) : DisasterStyle.colorForType(inc.disasterType).withOpacity(0.4);
+
             return CircleMarker(
               point: LatLng(inc.latitude, inc.longitude),
               radius: radius,
               useRadiusInMeter: true,
-              color: DisasterStyle.zoneColor(inc.disasterType),
-              borderColor: DisasterStyle.colorForType(
-                inc.disasterType,
-              ).withOpacity(0.4),
+              color: cColor,
+              borderColor: cBorder,
               borderStrokeWidth: 1.5,
             );
           }).toList(),
@@ -783,6 +793,14 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                               selected: _activeFilter == 'Moderate',
                               onTap: () => setState(() => _activeFilter = _activeFilter == 'Moderate' ? null : 'Moderate'),
                               count: _moderateCount,
+                            ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: 'Closed',
+                              color: Colors.grey,
+                              selected: _activeFilter == 'Closed',
+                              onTap: () => setState(() => _activeFilter = _activeFilter == 'Closed' ? null : 'Closed'),
+                              count: _reports.where((i) => ['closed', 'resolved', 'controlled'].contains(i.status.toLowerCase())).length,
                             ),
                           ],
                         ),
@@ -1461,7 +1479,8 @@ class _MarkerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = DisasterStyle.colorForType(incident.disasterType);
+    final isClosed = ['closed', 'resolved', 'controlled'].contains(incident.status.toLowerCase());
+    final color = isClosed ? Colors.grey : DisasterStyle.colorForType(incident.disasterType);
     final isControlled = incident.status.toLowerCase() == 'controlled';
     return Stack(
       alignment: Alignment.center,

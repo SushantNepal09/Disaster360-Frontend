@@ -41,6 +41,7 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
   late Animation<double> _pulseAnim;
 
   final List<String> _filters = ['All'];
+  final Set<String> _acceptingTasks = {};
 
   List<RescueTask> _filteredTasks(List<RescueTask> allTasks) {
     if (_searchQuery.isEmpty) return allTasks;
@@ -147,6 +148,7 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
                                           ),
                                           child: _FacebookReportCard(
                                             task: filtered[i],
+                                            isAccepting: _acceptingTasks.contains(filtered[i].assignmentId),
                                             onAccept:
                                                 () => _handleAccept(
                                                   context,
@@ -233,10 +235,13 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
           ),
           const SizedBox(width: 16),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.success),
+            tooltip: 'Refresh Tasks',
             onPressed: () {
               context.read<RescueProvider>().fetchAll();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Refreshing tasks...'), duration: Duration(seconds: 1)),
+              );
             },
           ),
           const SizedBox(width: 8),
@@ -329,37 +334,36 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen>
     );
   }
 
-  void _handleAccept(BuildContext context, RescueTask task) {
-    _showActionDialog(
-      context: context,
-      title: 'Accept Task',
-      message:
-          'Are you sure you want to accept ${task.taskId}?\nYou will be deployed to ${task.location}.',
-      confirmLabel: 'Accept',
-      confirmColor: AppColors.success,
-      onConfirm: () async {
-        Navigator.pop(context);
-        try {
-          final provider = context.read<RescueProvider>();
-          await provider.acceptAssignment(int.parse(task.assignmentId));
-          if (context.mounted) {
-            _showSnack(
-              context,
-              '✓ Task #${task.taskId} accepted. Head to ${task.location}.',
-              color: AppColors.success,
-            );
-          }
-        } catch (e) {
-          if (context.mounted) {
-            _showSnack(
-              context,
-              e.toString().replaceFirst('Exception: ', ''),
-              color: AppColors.danger,
-            );
-          }
-        }
-      },
-    );
+  Future<void> _handleAccept(BuildContext context, RescueTask task) async {
+    if (_acceptingTasks.contains(task.assignmentId)) return;
+    setState(() {
+      _acceptingTasks.add(task.assignmentId);
+    });
+    try {
+      final provider = context.read<RescueProvider>();
+      await provider.acceptAssignment(int.parse(task.assignmentId));
+      if (mounted) {
+        _showSnack(
+          context,
+          '✓ Task #${task.taskId} accepted. Head to ${task.location}.',
+          color: AppColors.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnack(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          color: AppColors.danger,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _acceptingTasks.remove(task.assignmentId);
+        });
+      }
+    }
   }
 
   void _handleDetails(BuildContext context, RescueTask task) {
@@ -1105,12 +1109,14 @@ class _ImageViewerOverlayState extends State<_ImageViewerOverlay>
 
 class _FacebookReportCard extends StatelessWidget {
   final RescueTask task;
+  final bool isAccepting;
   final VoidCallback onAccept;
   final VoidCallback onReject;
   final VoidCallback onDetails;
 
   const _FacebookReportCard({
     required this.task,
+    this.isAccepting = false,
     required this.onAccept,
     required this.onReject,
     required this.onDetails,
@@ -1306,15 +1312,24 @@ class _FacebookReportCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: onAccept,
-                      icon: const Icon(
-                        Icons.check_circle_outline,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Accept',
-                        style: TextStyle(
+                      onPressed: isAccepting ? null : onAccept,
+                      icon: isAccepting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                      label: Text(
+                        isAccepting ? 'Accepting...' : 'Accept',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),

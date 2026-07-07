@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/colors.dart';
 import 'package:disaster360/services/notification_service.dart';
+import 'package:disaster360/services/api_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:disaster360/utils/status_helper.dart';
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -69,6 +70,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
 
   bool _isLoading = false;
   late AnimationController _refreshSpinController;
+
+  // Alert Notification State
+  final ApiService _apiService = ApiService();
+  final _alertTitleCtrl = TextEditingController();
+  final _alertMsgCtrl = TextEditingController();
+  final _selectedUsersCtrl = TextEditingController();
+  String _alertAudience = 'all';
+  String _alertPriority = 'high';
+  int? _alertIncidentId;
+  bool _isSendingAlert = false;
 
   @override
   void initState() {
@@ -356,7 +367,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildDuplicateReports(context),
+                              _buildDisasterAlertNotification(context),
                               const SizedBox(height: 28),
                               _buildRescueTeamStatus(context),
                             ],
@@ -370,7 +381,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                       children: [
                         _buildPendingVerification(context),
                         const SizedBox(height: 28),
-                        _buildDuplicateReports(context),
+                        _buildDisasterAlertNotification(context),
                         const SizedBox(height: 28),
                         _buildRescueTeamStatus(context),
                       ],
@@ -865,7 +876,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                             }
                           }
                         },
-                        onReject: () {
+                        onReject: () async {
                           final rc = TextEditingController();
                           showDialog(
                             context: context,
@@ -1039,7 +1050,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             (_) => RejectionBottomSheet(
               report: adminReport,
               reasonController: reasonController,
-              onConfirmReject: onConfirm,
+              onConfirmReject: (reason) {
+                onConfirm(reason);
+              },
             ),
       );
     } else {
@@ -1049,7 +1062,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             (_) => _RejectionDialog(
               report: adminReport,
               reasonController: reasonController,
-              onConfirmReject: onConfirm,
+              onConfirmReject: (reason) {
+                onConfirm(reason);
+              },
             ),
       );
     }
@@ -1206,290 +1221,261 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
   }
 
-  // ─── Duplicate Reports ────────────────────────────────────────────────────
-  Widget _buildDuplicateReports(BuildContext context) {
+  // ─── Disaster Alert Notification ──────────────────────────────────────────
+  Widget _buildDisasterAlertNotification(BuildContext context) {
     final reportProvider = context.watch<ReportProvider>();
-    final duplicateReports = reportProvider.duplicateReports;
+    // Fetch active/approved incidents for the dropdown
+    final activeIncidents = reportProvider.reports.where((r) => r.status == 'Approved' || r.status == 'Active').toList();
 
-    final duplicates =
-        duplicateReports.map((dup) {
-          final mergedReportsRaw = dup['mergedReports'] as List<dynamic>? ?? [];
-          final mergedReports =
-              mergedReportsRaw.map((r) {
-                return _MergedReportItem(
-                  id: r['id'] ?? 'Unknown',
-                  intId: r['intId'] ?? 0,
-                  title: r['title'] ?? 'Unknown',
-                  date: r['date'] ?? 'Unknown',
-                  reporter: r['reporter'] ?? 'Unknown',
-                  status: r['status'] ?? 'Pending',
-                );
-              }).toList();
-
-          return _DuplicateReportData(
-            summary: dup['summary'] ?? '',
-            detail: dup['detail'] ?? '',
-            mergedReports: mergedReports,
-          );
-        }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionLabel('DUPLICATE REPORTS'),
-        const SizedBox(height: 12),
-        if (duplicates.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Text(
-              'No duplicate reports found.',
-              style: TextStyle(color: Colors.white54),
-            ),
-          )
-        else
-          ...duplicates.map(
-            (dup) => _AnimatedDuplicateCard(
-              data: dup,
-              onTap: () => _showMergedReportsDialog(context, dup),
-            ),
-          ),
-      ],
-    );
-  }
-
-  void _showMergedReportsDialog(
-    BuildContext context,
-    _DuplicateReportData data,
-  ) {
-    showDialog(
-      context: context,
-      builder:
-          (_) => Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Dialog(
-                backgroundColor: AppColors.bgSurface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.border, width: 1),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.merge_type_rounded,
-                              color: AppColors.warning,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Merged Reports',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const Spacer(),
-                          _HoverAnimatedWidget(
-                            child: GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white38,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        data.detail,
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(color: AppColors.border, height: 1),
-                      const SizedBox(height: 14),
-                      ...data.mergedReports.map(
-                        (report) => Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.bgDark,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.border,
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    '#${report.id}',
-                                    style: const TextStyle(
-                                      color: AppColors.info,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          report.status == 'Verified'
-                                              ? AppColors.success.withOpacity(
-                                                0.2,
-                                              )
-                                              : (report.status == 'Rejected'
-                                                  ? AppColors.danger
-                                                      .withOpacity(0.2)
-                                                  : AppColors.warning
-                                                      .withOpacity(0.2)),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      report.status,
-                                      style: TextStyle(
-                                        color:
-                                            report.status == 'Verified'
-                                                ? AppColors.success
-                                                : (report.status == 'Rejected'
-                                                    ? AppColors.danger
-                                                    : AppColors.warning),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    report.date,
-                                    style: const TextStyle(
-                                      color: Colors.white38,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                report.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                'Reported by ${report.reporter}',
-                                style: const TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              if (report.status == 'Pending') ...[
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton(
-                                        onPressed: () {
-                                          context
-                                              .read<ReportProvider>()
-                                              .updateSubmissionStatus(
-                                                report.intId,
-                                                'Rejected',
-                                              )
-                                              .then((_) {
-                                                Navigator.pop(context);
-                                              });
-                                        },
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppColors.danger,
-                                          side: const BorderSide(
-                                            color: AppColors.danger,
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 8,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'Reject',
-                                          style: TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          context
-                                              .read<ReportProvider>()
-                                              .updateSubmissionStatus(
-                                                report.intId,
-                                                'Verified',
-                                              )
-                                              .then((_) {
-                                                Navigator.pop(context);
-                                              });
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.success,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 8,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'Verify',
-                                          style: TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _HoverButton(
-                        label: 'Close',
-                        onTap: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionLabel('DISASTER ALERT NOTIFICATION'),
+          const SizedBox(height: 20),
+          
+          // Title Field
+          TextField(
+            controller: _alertTitleCtrl,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Alert Title',
+              labelStyle: const TextStyle(color: Colors.white54),
+              filled: true,
+              fillColor: AppColors.bgDark,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          
+          // Message Field
+          TextField(
+            controller: _alertMsgCtrl,
+            style: const TextStyle(color: Colors.white),
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: 'Alert Message / Body',
+              labelStyle: const TextStyle(color: Colors.white54),
+              filled: true,
+              fillColor: AppColors.bgDark,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Row for Audience & Priority
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _alertAudience,
+                  dropdownColor: AppColors.bgDark,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Target Audience',
+                    labelStyle: const TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: AppColors.bgDark,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All Users')),
+                    DropdownMenuItem(value: 'affected', child: Text('Affected Area')),
+                    DropdownMenuItem(value: 'selected', child: Text('Selected Users')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _alertAudience = val);
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _alertPriority,
+                  dropdownColor: AppColors.bgDark,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Priority / Severity',
+                    labelStyle: const TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: AppColors.bgDark,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'high', child: Text('High')),
+                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                    DropdownMenuItem(value: 'low', child: Text('Low')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _alertPriority = val);
+                  },
+                ),
+              ),
+            ],
+          ),
+          
+          if (_alertAudience == 'affected') ...[
+            const SizedBox(height: 16),
+            DropdownButtonFormField<int>(
+              value: _alertIncidentId,
+              dropdownColor: AppColors.bgDark,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Select Disaster / Incident',
+                labelStyle: const TextStyle(color: Colors.white54),
+                filled: true,
+                fillColor: AppColors.bgDark,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              items: activeIncidents.map((incident) {
+                return DropdownMenuItem<int>(
+                  value: incident.id,
+                  child: Text('#${incident.id} - ${incident.title}', overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+              onChanged: (val) => setState(() => _alertIncidentId = val),
+            ),
+          ],
+          
+          if (_alertAudience == 'selected') ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _selectedUsersCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Comma-separated User IDs',
+                labelStyle: const TextStyle(color: Colors.white54),
+                filled: true,
+                fillColor: AppColors.bgDark,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+          
+          const SizedBox(height: 24),
+          
+          // Send Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _isSendingAlert ? null : _sendAlert,
+              child: _isSendingAlert
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text(
+                      'SEND DISASTER ALERT',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _sendAlert() async {
+    final title = _alertTitleCtrl.text.trim();
+    final message = _alertMsgCtrl.text.trim();
+    
+    if (title.isEmpty || message.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title and Message are required'), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
+    
+    if (_alertAudience == 'affected' && _alertIncidentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an incident'), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
+    
+    List<String>? selectedUserIds;
+    if (_alertAudience == 'selected') {
+      if (_selectedUsersCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please provide User IDs'), backgroundColor: AppColors.danger),
+        );
+        return;
+      }
+      selectedUserIds = _selectedUsersCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
+
+    setState(() => _isSendingAlert = true);
+    
+    try {
+      final Map<String, dynamic> payload = {
+        'title': title,
+        'message': message,
+        'body': message,
+        'target_audience': _alertAudience,
+        'priority': _alertPriority,
+      };
+      
+      if (_alertIncidentId != null) payload['incident_id'] = _alertIncidentId;
+      if (selectedUserIds != null) payload['selected_user_ids'] = selectedUserIds;
+
+      final response = await _apiService.post('/admin/notifications/send-alert', body: payload);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message'] ?? 'Alert sent successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      
+      // Clear form
+      _alertTitleCtrl.clear();
+      _alertMsgCtrl.clear();
+      _selectedUsersCtrl.clear();
+      setState(() {
+        _alertIncidentId = null;
+        _alertAudience = 'all';
+        _alertPriority = 'high';
+      });
+      
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send alert: $e'), backgroundColor: AppColors.danger),
+      );
+    } finally {
+      if (mounted) setState(() => _isSendingAlert = false);
+    }
   }
 
   // ─── Bottom Nav (mobile) ───────────────────────────────────────────────────
@@ -1883,9 +1869,9 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard> {
 class _SinglePendingReportCard extends StatefulWidget {
   final _PendingReportData report;
   final VoidCallback onTap;
-  final VoidCallback onVerify;
-  final VoidCallback onReject;
-  final VoidCallback onReview;
+  final Future<void> Function() onVerify;
+  final Future<void> Function() onReject;
+  final Future<void> Function() onReview;
 
   const _SinglePendingReportCard({
     super.key,
@@ -1902,6 +1888,7 @@ class _SinglePendingReportCard extends StatefulWidget {
 }
 
 class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
+  bool _isProcessing = false;
   bool _hovered = false;
 
   String _relativeDate(String dateStr) {
@@ -2189,7 +2176,14 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                       children: [
                         Expanded(
                           child: InkWell(
-                            onTap: widget.onVerify,
+                            onTap: _isProcessing ? null : () async {
+                              setState(() => _isProcessing = true);
+                              try {
+                                await widget.onVerify();
+                              } finally {
+                                if (mounted) setState(() => _isProcessing = false);
+                              }
+                            },
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -2197,7 +2191,7 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                                 color: AppColors.orange,
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
@@ -2207,7 +2201,7 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'Verify',
+                                    _isProcessing ? 'Processing...' : 'Verify',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -2259,7 +2253,14 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: InkWell(
-                            onTap: widget.onReject,
+                            onTap: _isProcessing ? null : () async {
+                              setState(() => _isProcessing = true);
+                              try {
+                                await widget.onReject();
+                              } finally {
+                                if (mounted) setState(() => _isProcessing = false);
+                              }
+                            },
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -2271,7 +2272,7 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                                   width: 1,
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
@@ -2281,9 +2282,9 @@ class _SinglePendingReportCardState extends State<_SinglePendingReportCard> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'Reject',
+                                    _isProcessing ? 'Processing...' : 'Reject',
                                     style: TextStyle(
-                                      color: AppColors.danger,
+                                      color: _isProcessing ? AppColors.danger.withValues(alpha: 0.5) : AppColors.danger,
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -2584,100 +2585,6 @@ class _AnimatedRescueCardState extends State<_AnimatedRescueCard> {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  ANIMATED DUPLICATE REPORT CARD
-// ══════════════════════════════════════════════════════════════════════════════
-
-class _AnimatedDuplicateCard extends StatefulWidget {
-  final _DuplicateReportData data;
-  final VoidCallback onTap;
-  const _AnimatedDuplicateCard({required this.data, required this.onTap});
-
-  @override
-  State<_AnimatedDuplicateCard> createState() => _AnimatedDuplicateCardState();
-}
-
-class _AnimatedDuplicateCardState extends State<_AnimatedDuplicateCard> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.bgSurface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color:
-                  _hovered
-                      ? AppColors.warning.withOpacity(0.45)
-                      : AppColors.border,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(right: 12, top: 2),
-                child: AnimatedScale(
-                  scale: _hovered ? 1.15 : 1.0,
-                  duration: const Duration(milliseconds: 150),
-                  child: const Icon(
-                    Icons.merge_type_rounded,
-                    color: AppColors.warning,
-                    size: 18,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 150),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: _hovered ? 13.8 : 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      child: Text(widget.data.summary),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.data.detail,
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              AnimatedScale(
-                scale: _hovered ? 1.2 : 1.0,
-                duration: const Duration(milliseconds: 150),
-                child: const Icon(
-                  Icons.chevron_right_rounded,
-                  color: Colors.white38,
-                  size: 18,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  ANIMATED BOTTOM NAV ITEM (Mobile)
@@ -3413,32 +3320,3 @@ class _RescueTeamData {
   });
 }
 
-class _DuplicateReportData {
-  final String summary;
-  final String detail;
-  final List<_MergedReportItem> mergedReports;
-
-  const _DuplicateReportData({
-    required this.summary,
-    required this.detail,
-    required this.mergedReports,
-  });
-}
-
-class _MergedReportItem {
-  final String id;
-  final int intId;
-  final String title;
-  final String date;
-  final String reporter;
-  final String status;
-
-  const _MergedReportItem({
-    required this.id,
-    required this.intId,
-    required this.title,
-    required this.date,
-    required this.reporter,
-    required this.status,
-  });
-}

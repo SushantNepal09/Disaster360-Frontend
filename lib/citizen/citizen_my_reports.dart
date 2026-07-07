@@ -34,8 +34,8 @@ class _CitizenMyReportsScreenState extends State<CitizenMyReportsScreen> {
       final matchesFilter =
           _selectedFilter == 'All' ||
           (_selectedFilter == 'Closed' &&
-              (r.status == 'Controlled' || r.status == 'Rejected')) ||
-          r.status == _selectedFilter;
+              (r.status.toLowerCase() == 'controlled' || r.status.toLowerCase() == 'rejected' || r.status.toLowerCase() == 'closed' || r.status.toLowerCase() == 'resolved')) ||
+          r.status.toLowerCase() == _selectedFilter.toLowerCase();
 
       final matchesSearch =
           _searchQuery.isEmpty ||

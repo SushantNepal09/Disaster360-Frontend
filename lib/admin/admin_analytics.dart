@@ -206,10 +206,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
               _buildSectionLabel('VERIFICATION RATE'),
               const SizedBox(height: 12),
               _buildVerificationRateCard(context),
-              const SizedBox(height: 28),
-              _buildSectionLabel('RESPONSE TIME'),
-              const SizedBox(height: 12),
-              _buildResponseTimeCard(context),
+
             ],
           ),
         ),
@@ -222,10 +219,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
               _buildSectionLabel('REPORTS BY DISASTER TYPE'),
               const SizedBox(height: 12),
               _buildDisasterTypeCard(context),
-              const SizedBox(height: 28),
-              _buildSectionLabel('RESCUE TEAM PERFORMANCE'),
-              const SizedBox(height: 12),
-              _buildRescueTeamPerformance(context),
+
               const SizedBox(height: 28),
               _buildSectionLabel('COMMUNITY TRUST SIGNALS'),
               const SizedBox(height: 12),
@@ -262,14 +256,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         _buildSectionLabel('REPORTS BY DISASTER TYPE'),
         const SizedBox(height: 12),
         _buildDisasterTypeCard(context),
-        const SizedBox(height: 28),
-        _buildSectionLabel('RESCUE TEAM PERFORMANCE'),
-        const SizedBox(height: 12),
-        _buildRescueTeamPerformance(context),
-        const SizedBox(height: 28),
-        _buildSectionLabel('RESPONSE TIME'),
-        const SizedBox(height: 12),
-        _buildResponseTimeCard(context),
+
         const SizedBox(height: 28),
         _buildSectionLabel('COMMUNITY TRUST SIGNALS'),
         const SizedBox(height: 12),
@@ -844,165 +831,6 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
     );
   }
 
-  // ─── Rescue Team Performance ───────────────────────────────────────────────
-  Widget _buildRescueTeamPerformance(BuildContext context) {
-    final teams =
-        List<Map<String, dynamic>>.from(_analyticsData!['rescueTeams']).map((
-          t,
-        ) {
-          final type = t['type'].toString().toLowerCase();
-          Color c = AppColors.success;
-          if (type.contains('flood')) {
-            c = AppColors.info;
-          } else if (type.contains('fire'))
-            c = AppColors.danger;
-          else if (type.contains('search'))
-            c = AppColors.warning;
-          return {...t, 'color': c};
-        }).toList();
-    return Column(
-      children:
-          teams.map((team) {
-            return _HoverCard(
-              margin: const EdgeInsets.only(bottom: 10),
-              onTap: () => _showRescueTeamDetail(context, team),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: (team['color'] as Color).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          team['initials'] as String,
-                          style: TextStyle(
-                            color: team['color'] as Color,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            team['name'] as String,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              _MiniStat(
-                                label: 'Missions',
-                                value: team['missions'].toString(),
-                                color: AppColors.info,
-                              ),
-                              const SizedBox(width: 12),
-                              _MiniStat(
-                                label: 'Success',
-                                value: '${team['successRate']}%',
-                                color: AppColors.success,
-                              ),
-                              const SizedBox(width: 12),
-                              _MiniStat(
-                                label: 'Avg Time',
-                                value: '${team['avgTime']}m',
-                                color: AppColors.warning,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white24,
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-    );
-  }
-
-  // ─── Response Time ─────────────────────────────────────────────────────────
-  Widget _buildResponseTimeCard(BuildContext context) {
-    final data = Map<String, dynamic>.from(_analyticsData!['responseTime']);
-    return _HoverCard(
-      onTap: () => _showResponseTimeDetail(context, data),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Avg Response & Control Times',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const Icon(
-                  Icons.open_in_full_rounded,
-                  color: Colors.white38,
-                  size: 14,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _ResponseTimeStat(
-                  label: 'Dispatch',
-                  value: '${data['dispatch']}m',
-                  icon: Icons.radio_button_checked_rounded,
-                  color: AppColors.info,
-                ),
-                const SizedBox(width: 10),
-                _ResponseTimeStat(
-                  label: 'On Scene',
-                  value: '${data['onScene']}m',
-                  icon: Icons.directions_run_rounded,
-                  color: AppColors.warning,
-                ),
-                const SizedBox(width: 10),
-                _ResponseTimeStat(
-                  label: 'Controlled',
-                  value: '${data['controlled']}m',
-                  icon: Icons.check_circle_rounded,
-                  color: AppColors.success,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildTimelineBar(data),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTimelineBar(Map<String, dynamic> data) {
     final dispatch = (data['dispatch'] as num).toDouble();
     final onScene = (data['onScene'] as num).toDouble();
@@ -1266,13 +1094,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          Text(
-                            'Trust: ${r['trust']}/100',
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 11,
-                            ),
-                          ),
+                          
                         ],
                       ),
                       const SizedBox(width: 6),

@@ -93,6 +93,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
   final List<String> _selectedTeams = [];
   late bool _hasAssignedTeam;
   late String _assignedTeamsStr;
+  bool _isAssigning = false;
 
   // Animation controllers
   late AnimationController _cardController;
@@ -622,24 +623,24 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     }
   }
 
-  void _showRejectionDialog() {
-    final TextEditingController reasonController = TextEditingController();
+    void _showRejectionDialog() {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.65),
       builder:
           (_) => _RejectionDialog(
             report: widget.report,
-            reasonController: reasonController,
-            onConfirmReject: (reason) {
+            onConfirmReject: () {
               Navigator.pop(context);
-              _rejectApiCall(reason);
+              _rejectApiCall("");
             },
           ),
     );
   }
 
   void _onAssign() async {
+    if (_isAssigning) return;
+    
     // If no teams are selected during a Modify (already has assignments), confirm clear-all
     if (_selectedTeams.isEmpty) {
       final confirmed = await showDialog<bool>(
@@ -691,6 +692,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
       if (confirmed != true) return;
     }
 
+    setState(() => _isAssigning = true);
     try {
       final intId = int.tryParse(
         widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
@@ -760,6 +762,8 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isAssigning = false);
     }
   }
 
@@ -842,8 +846,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
     }
   }
 
-  void _showRejectionBottomSheet() {
-    final TextEditingController reasonController = TextEditingController();
+    void _showRejectionBottomSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -851,10 +854,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
       builder:
           (_) => RejectionBottomSheet(
             report: widget.report,
-            reasonController: reasonController,
-            onConfirmReject: (reason) {
+            onConfirmReject: () {
               Navigator.pop(context);
-              _rejectApiCall(reason);
+              _rejectApiCall("");
             },
           ),
     );
@@ -950,7 +952,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
               const SizedBox(height: 14),
               _buildReporterCard(),
               const SizedBox(height: 14),
-              _buildVotesRow(),
+
               const SizedBox(height: 14),
               if (['assigned', 'in progress', 'controlled', 'closed', 'resolved'].contains(widget.report.status.toLowerCase()) || _decisionState == 'verified' || _decisionState == 'closed') ...[
                 _buildTimelineSection(),
@@ -1002,7 +1004,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                           ],
                           _buildClosureAndAdminReportSection(),
                           const SizedBox(height: 14),
-                          _buildVotesRow(),
+
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -1066,7 +1068,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
                           ],
                           _buildClosureAndAdminReportSection(),
                           const SizedBox(height: 16),
-                          _buildVotesRow(),
+
                         ],
                       ),
                     ),
@@ -1340,28 +1342,6 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
 
   // ─── Votes Row ─────────────────────────────────────────────────────────────
 
-  Widget _buildVotesRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _AnimatedVoteBox(
-            icon: Icons.thumb_up_alt_outlined,
-            label: '+${widget.report.upvotes}  Upvotes',
-            color: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _AnimatedVoteBox(
-            icon: Icons.thumb_down_alt_outlined,
-            label: '-${widget.report.downvotes}  Downvotes',
-            color: AppColors.danger,
-          ),
-        ),
-      ],
-    );
-  }
-
   // ─── Decision Area ─────────────────────────────────────────────────────────
 
   Widget _buildDecisionArea() {
@@ -1502,7 +1482,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen>
           icon: Icons.group_rounded,
           color: AppColors.orange,
           filled: true,
-          onTap: _onAssign,
+          onTap: _isAssigning ? () {} : _onAssign,
         ),
         const SizedBox(height: 10),
         _ActionButton(
@@ -2389,202 +2369,72 @@ class _FullScreenPhotoViewer extends StatelessWidget {
 
 class _RejectionDialog extends StatelessWidget {
   final AdminReportData report;
-  final TextEditingController reasonController;
-  final void Function(String reason) onConfirmReject;
+  final void Function() onConfirmReject;
 
   const _RejectionDialog({
     required this.report,
-    required this.reasonController,
     required this.onConfirmReject,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.danger.withOpacity(0.3),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.55),
-                  blurRadius: 48,
-                  offset: const Offset(0, 20),
-                ),
-                BoxShadow(
-                  color: AppColors.danger.withOpacity(0.08),
-                  blurRadius: 32,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1F1F1F),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      contentPadding: const EdgeInsets.all(24),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                // Header row
-                Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.warning_amber_rounded,
-                        color: AppColors.danger,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Reject Report',
-                      style: TextStyle(
-                        color: AppColors.danger,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Close X
-                    _AnimatedIconButton(
-                      icon: Icons.close_rounded,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Minimal report info card
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.bgDark,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border, width: 1),
+                    color: AppColors.danger.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '#${report.reportId}',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _TypeChip(label: report.type),
-                          const Spacer(),
-                          _StatusBadge(status: report.status),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        report.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${report.date}  ·  ${report.location}',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: const Icon(Icons.cancel_rounded, color: AppColors.danger, size: 24),
                 ),
-                const SizedBox(height: 18),
-
-                // Reason label
+                const SizedBox(width: 12),
                 const Text(
-                  'Reason for Rejection',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: reasonController,
-                  maxLines: 4,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Describe why this report is being rejected...',
-                    hintStyle: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 13,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.bgDark,
-                    contentPadding: const EdgeInsets.all(14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: AppColors.danger.withOpacity(0.5),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Action row — Cancel + Confirm
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionButton(
-                        label: 'Cancel',
-                        icon: Icons.arrow_back_rounded,
-                        color: Colors.white38,
-                        fullWidth: true,
-                        onTap: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _ActionButton(
-                        label: 'Confirm Rejection',
-                        icon: Icons.close_rounded,
-                        color: AppColors.danger,
-                        filled: true,
-                        fullWidth: true,
-                        onTap: () => onConfirmReject(reasonController.text),
-                      ),
-                    ),
-                  ],
+                  'Reject Report',
+                  style: TextStyle(color: AppColors.danger, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 20),
+            const Text(
+              'Are you sure you want to reject this report?',
+              style: TextStyle(color: Colors.white, fontSize: 15),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    label: 'Cancel',
+                    icon: Icons.arrow_back_rounded,
+                    color: Colors.white54,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ActionButton(
+                    label: 'Reject',
+                    icon: Icons.close_rounded,
+                    color: AppColors.danger,
+                    filled: true,
+                    fullWidth: true,
+                    onTap: onConfirmReject,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -2595,144 +2445,59 @@ class _RejectionDialog extends StatelessWidget {
 
 class RejectionBottomSheet extends StatelessWidget {
   final AdminReportData report;
-  final TextEditingController reasonController;
-  final void Function(String reason) onConfirmReject;
+  final void Function() onConfirmReject;
 
   const RejectionBottomSheet({
     super.key,
     required this.report,
-    required this.reasonController,
     required this.onConfirmReject,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1F1F1F),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.bgSurface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Reject Report',
+                style: TextStyle(color: AppColors.danger, fontSize: 17, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Reject Report',
-              style: TextStyle(
-                color: AppColors.danger,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white54),
+                onPressed: () => Navigator.pop(context),
               ),
-            ),
-            const SizedBox(height: 14),
-            // Minimal report info
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.bgDark,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '#${report.reportId}',
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _TypeChip(label: report.type),
-                      const Spacer(),
-                      _StatusBadge(status: report.status),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    report.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${report.date}  ·  ${report.location}',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Reason for Rejection',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: reasonController,
-              maxLines: 4,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Describe why this report is being rejected...',
-                hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-                filled: true,
-                fillColor: AppColors.bgDark,
-                contentPadding: const EdgeInsets.all(14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: AppColors.danger.withOpacity(0.5),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _ActionButton(
-              fullWidth: true,
-              label: 'Confirm Rejection',
-              icon: Icons.close_rounded,
-              color: AppColors.danger,
-              filled: true,
-              onTap: () => onConfirmReject(reasonController.text),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Are you sure you want to reject this report?',
+            style: TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          const SizedBox(height: 24),
+          _ActionButton(
+            fullWidth: true,
+            label: 'Reject Report',
+            icon: Icons.close_rounded,
+            color: AppColors.danger,
+            filled: true,
+            onTap: onConfirmReject,
+          ),
+        ],
       ),
     );
   }
@@ -2894,101 +2659,9 @@ class _AnimatedIconButtonState extends State<_AnimatedIconButton>
 }
 
 /// Vote box with hover animation
-class _AnimatedVoteBox extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
 
-  const _AnimatedVoteBox({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
 
-  @override
-  State<_AnimatedVoteBox> createState() => _AnimatedVoteBoxState();
-}
 
-class _AnimatedVoteBoxState extends State<_AnimatedVoteBox>
-    with SingleTickerProviderStateMixin {
-  bool _hovering = false;
-  late AnimationController _ctrl;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 160),
-    );
-    _scale = Tween<double>(
-      begin: 1.0,
-      end: 1.03,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.basic,
-      onEnter: (_) {
-        setState(() => _hovering = true);
-        _ctrl.forward();
-      },
-      onExit: (_) {
-        setState(() => _hovering = false);
-        _ctrl.reverse();
-      },
-      child: ScaleTransition(
-        scale: _scale,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: widget.color.withOpacity(_hovering ? 0.14 : 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: widget.color.withOpacity(_hovering ? 0.45 : 0.25),
-              width: 1,
-            ),
-            boxShadow:
-                _hovering
-                    ? [
-                      BoxShadow(
-                        color: widget.color.withOpacity(0.12),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                    : [],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(widget.icon, color: widget.color, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: widget.color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Action button — can be inline or full-width, filled or outlined
 class _ActionButton extends StatefulWidget {

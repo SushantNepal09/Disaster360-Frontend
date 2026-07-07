@@ -768,41 +768,44 @@ class _DisasterMapScreenState extends State<DisasterMapScreen>
                     child: Column(
                       children: [
                         // Top row: Active, High, Moderate
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _FilterChip(
-                              label: 'Active',
-                              color: AppColors.info,
-                              selected: _activeFilter == 'Active',
-                              onTap: () => setState(() => _activeFilter = _activeFilter == 'Active' ? null : 'Active'),
-                              count: _activeCount,
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'High',
-                              color: AppColors.danger,
-                              selected: _activeFilter == 'High',
-                              onTap: () => setState(() => _activeFilter = _activeFilter == 'High' ? null : 'High'),
-                              count: _highCount,
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Moderate',
-                              color: AppColors.warning,
-                              selected: _activeFilter == 'Moderate',
-                              onTap: () => setState(() => _activeFilter = _activeFilter == 'Moderate' ? null : 'Moderate'),
-                              count: _moderateCount,
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Closed',
-                              color: Colors.grey,
-                              selected: _activeFilter == 'Closed',
-                              onTap: () => setState(() => _activeFilter = _activeFilter == 'Closed' ? null : 'Closed'),
-                              count: _reports.where((i) => ['closed', 'resolved', 'controlled'].contains(i.status.toLowerCase())).length,
-                            ),
-                          ],
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _FilterChip(
+                                label: 'Active',
+                                color: AppColors.info,
+                                selected: _activeFilter == 'Active',
+                                onTap: () => setState(() => _activeFilter = _activeFilter == 'Active' ? null : 'Active'),
+                                count: _activeCount,
+                              ),
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: 'High',
+                                color: AppColors.danger,
+                                selected: _activeFilter == 'High',
+                                onTap: () => setState(() => _activeFilter = _activeFilter == 'High' ? null : 'High'),
+                                count: _highCount,
+                              ),
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: 'Moderate',
+                                color: AppColors.warning,
+                                selected: _activeFilter == 'Moderate',
+                                onTap: () => setState(() => _activeFilter = _activeFilter == 'Moderate' ? null : 'Moderate'),
+                                count: _moderateCount,
+                              ),
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: 'Closed',
+                                color: Colors.grey,
+                                selected: _activeFilter == 'Closed',
+                                onTap: () => setState(() => _activeFilter = _activeFilter == 'Closed' ? null : 'Closed'),
+                                count: _reports.where((i) => ['closed', 'resolved', 'controlled'].contains(i.status.toLowerCase())).length,
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 12),
                         // Second row: All, Earthquake, Flood, Landslide, Fire

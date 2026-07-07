@@ -59,6 +59,9 @@ class AdminHomeScreen extends StatefulWidget {
 
 class _AdminHomeScreenState extends State<AdminHomeScreen>
     with TickerProviderStateMixin {
+  final _alertTitleCtrl = TextEditingController();
+  final _alertMsgCtrl = TextEditingController();
+  final _selectedUsersCtrl = TextEditingController();
   int _activeNav = 0;
   int _previousNav = 0;
   int _currentReportIndex = 0;
@@ -73,9 +76,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
 
   // Alert Notification State
   final ApiService _apiService = ApiService();
-  final _alertTitleCtrl = TextEditingController();
-  final _alertMsgCtrl = TextEditingController();
-  final _selectedUsersCtrl = TextEditingController();
+  
+  
+  
   String _alertAudience = 'all';
   String _alertPriority = 'high';
   int? _alertIncidentId;
@@ -641,8 +644,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       lng: p.lng,
       reporter: p.reporter,
       trustScore: p.trustScore,
-      upvotes: p.upvotes,
-      downvotes: p.downvotes,
+      upvotes: 0,
+      downvotes: 0,
       mediaUrls: p.mediaUrls,
       submissions: p.submissions,
       assignedRescueTeams: matchedReport?.rescueTeam ?? 'Not Assigned',
@@ -662,16 +665,18 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     final reports =
         pendingModels
             .map(
-              (m) => _PendingReportData(
+              (m) {
+                final loc = [m.localUnit, m.district, m.province].where((s) => s != null && s.isNotEmpty).join(', ');
+                return _PendingReportData(
                 reportId: 'RPT-${m.id}',
                 status: m.status,
                 submittedAgo: _relativeDate(m.createdAt),
                 type: m.disasterType,
-                location: m.title,
+                location: loc.isNotEmpty ? loc : m.title,
                 description: m.description,
                 severity: m.severity,
-                upvotes: m.likes,
-                downvotes: m.dislikes,
+                upvotes: 0,
+                downvotes: 0,
                 date: m.createdAt,
                 lat: '${m.latitude.toStringAsFixed(4)}°N',
                 lng: '${m.longitude.toStringAsFixed(4)}°E',
@@ -679,7 +684,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 trustScore: 80,
                 mediaUrls: m.mediaUrls,
                 submissions: m.submissions,
-              ),
+              );
+              }
             )
             .toList();
 
@@ -877,14 +883,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                           }
                         },
                         onReject: () async {
-                          final rc = TextEditingController();
+                          
                           showDialog(
                             context: context,
                             builder:
                                 (_) => _RejectionDialog(
                                   report: adminReport,
-                                  reasonController: rc,
-                                  onConfirmReject: (reason) async {
+                                  
+                                  onConfirmReject: ()async {
                                     Navigator.pop(context);
                                     final intId = int.tryParse(
                                       report.reportId.replaceAll(
@@ -1028,10 +1034,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     AdminReportData adminReport,
     _PendingReportData report,
   ) {
-    final reasonController = TextEditingController();
+    
     final isMobile = _Breakpoint.isMobile(context);
 
-    void onConfirm(String reason) {
+    void onConfirm() {
       Navigator.pop(context);
       final intId = int.tryParse(
         report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
@@ -1049,9 +1055,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         builder:
             (_) => RejectionBottomSheet(
               report: adminReport,
-              reasonController: reasonController,
-              onConfirmReject: (reason) {
-                onConfirm(reason);
+              
+              onConfirmReject: () {
+                onConfirm();
               },
             ),
       );
@@ -1061,9 +1067,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         builder:
             (_) => _RejectionDialog(
               report: adminReport,
-              reasonController: reasonController,
-              onConfirmReject: (reason) {
-                onConfirm(reason);
+              
+              onConfirmReject: () {
+                onConfirm();
               },
             ),
       );
@@ -1082,7 +1088,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             initialsColor: AppColors.info,
             name: rescue['name'] ?? 'Unknown Team',
             locationStatus: rescue['locationStatus'] ?? 'Unknown',
-            badge: rescue['badge'] ?? 'Dispatch',
+            badge: '',
             badgeColor:
                 rescue['badge'] == 'Active'
                     ? AppColors.success
@@ -1273,64 +1279,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          
-          // Row for Audience & Priority
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _alertAudience,
-                  dropdownColor: AppColors.bgDark,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Target Audience',
-                    labelStyle: const TextStyle(color: Colors.white54),
-                    filled: true,
-                    fillColor: AppColors.bgDark,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All Users')),
-                    DropdownMenuItem(value: 'affected', child: Text('Affected Area')),
-                    DropdownMenuItem(value: 'selected', child: Text('Selected Users')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _alertAudience = val);
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _alertPriority,
-                  dropdownColor: AppColors.bgDark,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Priority / Severity',
-                    labelStyle: const TextStyle(color: Colors.white54),
-                    filled: true,
-                    fillColor: AppColors.bgDark,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'high', child: Text('High')),
-                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
-                    DropdownMenuItem(value: 'low', child: Text('Low')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _alertPriority = val);
-                  },
-                ),
-              ),
-            ],
-          ),
+
           
           if (_alertAudience == 'affected') ...[
             const SizedBox(height: 16),
@@ -2916,194 +2865,72 @@ class _DialogInfoRow extends StatelessWidget {
 
 class _RejectionDialog extends StatelessWidget {
   final AdminReportData report;
-  final TextEditingController reasonController;
-  final void Function(String reason) onConfirmReject;
+  final void Function() onConfirmReject;
 
   const _RejectionDialog({
     required this.report,
-    required this.reasonController,
     required this.onConfirmReject,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.danger.withOpacity(0.3),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.55),
-                  blurRadius: 48,
-                  offset: const Offset(0, 20),
-                ),
-                BoxShadow(
-                  color: AppColors.danger.withOpacity(0.08),
-                  blurRadius: 32,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1F1F1F),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      contentPadding: const EdgeInsets.all(24),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.warning_amber_rounded,
-                        color: AppColors.danger,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Reject Report',
-                      style: TextStyle(
-                        color: AppColors.danger,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    _AnimatedIconButton(
-                      icon: Icons.close_rounded,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.bgDark,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border, width: 1),
+                    color: AppColors.danger.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '#${report.reportId}',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _TypeChip(label: report.type),
-                          const Spacer(),
-                          _StatusBadge(status: report.status),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        report.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${report.date}  ·  ${report.location}',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: const Icon(Icons.cancel_rounded, color: AppColors.danger, size: 24),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(width: 12),
                 const Text(
-                  'Reason for Rejection',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: reasonController,
-                  maxLines: 4,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Describe why this report is being rejected...',
-                    hintStyle: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 13,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.bgDark,
-                    contentPadding: const EdgeInsets.all(14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: AppColors.danger.withOpacity(0.5),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionButton(
-                        label: 'Cancel',
-                        icon: Icons.arrow_back_rounded,
-                        color: Colors.white38,
-                        fullWidth: true,
-                        onTap: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _ActionButton(
-                        label: 'Confirm Rejection',
-                        icon: Icons.close_rounded,
-                        color: AppColors.danger,
-                        filled: true,
-                        fullWidth: true,
-                        onTap: () => onConfirmReject(reasonController.text),
-                      ),
-                    ),
-                  ],
+                  'Reject Report',
+                  style: TextStyle(color: AppColors.danger, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 20),
+            const Text(
+              'Are you sure you want to reject this report?',
+              style: TextStyle(color: Colors.white, fontSize: 15),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    label: 'Cancel',
+                    icon: Icons.arrow_back_rounded,
+                    color: Colors.white54,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ActionButton(
+                    label: 'Reject',
+                    icon: Icons.close_rounded,
+                    color: AppColors.danger,
+                    filled: true,
+                    fullWidth: true,
+                    onTap: onConfirmReject,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

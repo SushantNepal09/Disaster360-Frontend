@@ -179,8 +179,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
                   const SizedBox(height: 16),
                   _buildInfoCard(context),
                   const SizedBox(height: 16),
-                  _buildSystemStatusCard(),
-                  const SizedBox(height: 16),
                   _buildMenuCard(context),
                 ],
               ),
@@ -217,8 +215,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
         const SizedBox(height: 20),
         _buildInfoCard(context),
         const SizedBox(height: 16),
-        _buildSystemStatusCard(),
-        const SizedBox(height: 20),
         _buildUserActivitySection(context),
         const SizedBox(height: 16),
         _buildMenuCard(context),
@@ -458,65 +454,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
     );
   }
 
-  Widget _buildSystemStatusCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 10,
-                    height: 10,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color:
-                          _systemOnline ? AppColors.success : AppColors.danger,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 250),
-                    style: TextStyle(
-                      color:
-                          _systemOnline ? AppColors.success : AppColors.danger,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    child: Text(
-                      _systemOnline ? 'System Online' : 'System Offline',
-                    ),
-                  ),
-                ],
-              ),
-              Switch(
-                value: _systemOnline,
-                onChanged: (v) => setState(() => _systemOnline = v),
-                activeThumbColor: AppColors.success,
-                inactiveThumbColor: AppColors.danger,
-                inactiveTrackColor: AppColors.danger.withOpacity(0.3),
-                activeTrackColor: AppColors.success.withOpacity(0.3),
-              ),
-            ],
-          ),
-          const Divider(height: 20, color: AppColors.border),
-          _infoRowPair('Last Sync', 'Mar 30, 2026 · 11:45 AM'),
-          const SizedBox(height: 8),
-          _infoRowPair('Server Region', 'Nepal — AP South'),
-        ],
-      ),
-    );
-  }
-
   Widget _infoRowPair(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -726,19 +663,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
             icon: Icons.lock_outline_rounded,
             label: 'Change Password',
             onTap: () => _showChangePassword(context),
-          ),
-
-          const Divider(height: 1, color: AppColors.border, indent: 56),
-          _HoverMenuTile(
-            icon: Icons.security_outlined,
-            label: 'Security Settings',
-            onTap: () => _showSecurityPanel(context),
-          ),
-          const Divider(height: 1, color: AppColors.border, indent: 56),
-          _HoverMenuTile(
-            icon: Icons.notifications_outlined,
-            label: 'Notification Preferences',
-            onTap: () => _showNotificationPrefs(context),
           ),
         ],
       ),
@@ -1474,104 +1398,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ── Security settings ──────────────────────────────────────────────────────
-  void _showSecurityPanel(BuildContext context) {
-    bool twoFa = true, loginAlerts = true;
-    _showPanel(
-      context: context,
-      title: 'Security Settings',
-      content: StatefulBuilder(
-        builder:
-            (_, setLS) => Column(
-              children: [
-                _switchRow(
-                  'Two-Factor Authentication',
-                  twoFa,
-                  (v) => setLS(() => twoFa = v),
-                ),
-                const Divider(color: AppColors.border),
-                _switchRow(
-                  'Login Alerts',
-                  loginAlerts,
-                  (v) => setLS(() => loginAlerts = v),
-                ),
-                const Divider(color: AppColors.border),
-                _HoverMenuTile(
-                  icon: Icons.lock_outline,
-                  label: 'Change Password',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showSnack('Password change email sent', isSuccess: true);
-                  },
-                ),
-                const Divider(color: AppColors.border, indent: 56),
-                _HoverMenuTile(
-                  icon: Icons.devices_outlined,
-                  label: 'Active Sessions  (2)',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showSnack(
-                      'All other sessions terminated',
-                      isSuccess: true,
-                    );
-                  },
-                ),
-              ],
-            ),
-      ),
-    );
-  }
-
-  // ── Notification prefs ─────────────────────────────────────────────────────
-  void _showNotificationPrefs(BuildContext context) {
-    bool push = true, sms = true, email = false, proximity = true;
-    _showPanel(
-      context: context,
-      title: 'Notification Preferences',
-      content: StatefulBuilder(
-        builder:
-            (_, setLS) => Column(
-              children: [
-                _switchRow(
-                  'Push Notifications',
-                  push,
-                  (v) => setLS(() => push = v),
-                ),
-                const Divider(color: AppColors.border),
-                _switchRow('SMS Alerts', sms, (v) => setLS(() => sms = v)),
-                const Divider(color: AppColors.border),
-                _switchRow(
-                  'Email Digest',
-                  email,
-                  (v) => setLS(() => email = v),
-                ),
-                const Divider(color: AppColors.border),
-                _switchRow(
-                  'Proximity Alerts',
-                  proximity,
-                  (v) => setLS(() => proximity = v),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: _HoverElevatedButton(
-                    label: 'Save Preferences',
-                    color: AppColors.orange,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showSnack(
-                        'Notification preferences saved',
-                        isSuccess: true,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
       ),
     );
   }

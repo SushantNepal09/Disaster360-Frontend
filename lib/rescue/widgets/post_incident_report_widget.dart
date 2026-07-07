@@ -39,7 +39,6 @@ class _PostIncidentReportWidgetState extends State<PostIncidentReportWidget> {
         _report = PostIncidentReport.fromJson(data);
       }
     } catch (e) {
-      print('PDF Upload Error: $e');
       debugPrint("Failed to load report: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -73,7 +72,6 @@ class _PostIncidentReportWidgetState extends State<PostIncidentReportWidget> {
         await _loadReport();
       }
     } catch (e) {
-      print('PDF Upload Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to upload PDFs: $e')),
@@ -96,7 +94,6 @@ class _PostIncidentReportWidgetState extends State<PostIncidentReportWidget> {
       }
       await _loadReport();
     } catch (e) {
-      print('PDF Upload Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to delete attachment: $e')),
@@ -197,7 +194,6 @@ class _PostIncidentReportWidgetState extends State<PostIncidentReportWidget> {
       final date = DateTime.parse(dateString).toLocal();
       return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      print('PDF Upload Error: $e');
       return dateString;
     }
   }

@@ -596,8 +596,8 @@ class _AdminReportCardState extends State<_AdminReportCard> {
       builder:
           (_) => RejectionBottomSheet(
             report: widget.report,
-            reasonController: rc,
-            onConfirmReject: (reason) {
+            
+            onConfirmReject: () {
               Navigator.pop(context);
               final intId = int.tryParse(
                 widget.report.reportId.replaceAll(RegExp(r'[^0-9]'), ''),
@@ -985,39 +985,7 @@ class _AdminReportCardState extends State<_AdminReportCard> {
             ],
 
             // Votes
-            Row(
-              children: [
-                const Icon(
-                  Icons.thumb_up_alt_outlined,
-                  color: AppColors.success,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${report.upvotes}',
-                  style: const TextStyle(
-                    color: AppColors.success,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                const Icon(
-                  Icons.thumb_down_alt_outlined,
-                  color: AppColors.danger,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${report.downvotes}',
-                  style: const TextStyle(
-                    color: AppColors.danger,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+            
             const SizedBox(height: 14),
 
             if (report.submissions.isNotEmpty)

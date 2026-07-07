@@ -25,20 +25,32 @@ class LiveUpdateModel {
     required this.createdAt,
   });
 
+  
+  String normalizeDate(String dateStr) {
+    if (!dateStr.endsWith('Z') && !dateStr.contains('+')) {
+      return 'Z';
+    }
+    return dateStr;
+  }
+
   factory LiveUpdateModel.fromJson(Map<String, dynamic> json) {
+    String normalizeDate(String dateStr) {
+      if (!dateStr.endsWith('Z') && !dateStr.contains('+')) {
+        return 'Z';
+      }
+      return dateStr;
+    }
+
     return LiveUpdateModel(
       id: json['id'] ?? 0,
-      teamId: json['team_id'] ?? '',
-      teamName: json['team_name'] ?? 'Unknown Team',
-      category: json['category'] ?? 'General',
-      severity: json['severity'] ?? 'Normal',
-      message: json['message'] ?? '',
+      incidentId: json['incident_id'] ?? 0,
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      severity: json['severity'] ?? 'Unknown',
       mediaUrl: json['media_url'],
-      latitude: json['latitude']?.toDouble(),
-      longitude: json['longitude']?.toDouble(),
-      visibility: json['visibility'] ?? 'Public',
+      source: json['source'] ?? 'Citizen',
       createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+          ? DateTime.parse(normalizeDate(json['created_at'].toString())) 
           : DateTime.now(),
     );
   }

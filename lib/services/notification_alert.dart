@@ -13,6 +13,7 @@ enum NotificationType {
   statusUpdate,
   riskZone,
   reportRejected,
+  adminAlert,
 }
 
 class AppNotification {
@@ -59,6 +60,11 @@ class AppNotification {
       case 'incident_closed':
         parsedType = NotificationType.reportRejected;
         break;
+      case 'admin_alert':
+      case 'admin_notification':
+      case 'disaster_alert':
+        parsedType = NotificationType.adminAlert;
+        break;
       default:
         parsedType = NotificationType.proximityAlert;
     }
@@ -95,10 +101,10 @@ class AppNotification {
     return AppNotification(
       id: json['id'].toString(),
       type: parsedType,
-      title: json['title'] ?? 'Notification',
+      title: (json['type'] == 'admin_alert' || json['type'] == 'admin_notification' || json['type'] == 'disaster_alert') ? "Admin's Alert Notification" : (json['title'] ?? 'Notification'),
       body: json['message'] ?? '',
       time: formattedTime,
-      reporterName: json['reporter_name']?.toString() ?? 'Someone',
+      reporterName: (json['type'] == 'admin_alert' || json['type'] == 'admin_notification' || json['type'] == 'disaster_alert') ? 'Admin' : (json['reporter_name']?.toString() ?? 'Someone'),
       disasterType: json['disaster_type']?.toString() ?? 'Disaster',
       rescueStatus: json['status']?.toString() ?? 'Updated',
       rawDate: parsedDate,
@@ -127,7 +133,9 @@ class AppNotification {
       case NotificationType.reportRejected:
         return "$name's $dtype report was closed";
       case NotificationType.riskZone:
-        return "Risk zone updated in your area";
+          return "Risk zone updated in your area";
+      case NotificationType.adminAlert:
+          return body;
     }
   }
 
@@ -141,6 +149,8 @@ class AppNotification {
         return 'STATUS UPDATE';
       case NotificationType.riskZone:
         return 'RISK ZONE UPDATE';
+      case NotificationType.adminAlert:
+        return 'ADMIN ALERT';
       case NotificationType.reportRejected:
         return 'REPORT REJECTED';
     }
@@ -156,6 +166,8 @@ class AppNotification {
         return AppColors.warning;
       case NotificationType.riskZone:
         return AppColors.info;
+      case NotificationType.adminAlert:
+        return const Color(0xFF9C27B0);
       case NotificationType.reportRejected:
         return AppColors.warning;
     }
@@ -171,6 +183,8 @@ class AppNotification {
         return Icons.update_rounded;
       case NotificationType.riskZone:
         return Icons.location_on_outlined;
+      case NotificationType.adminAlert:
+        return Icons.campaign_rounded;
       case NotificationType.reportRejected:
         return Icons.cancel_outlined;
     }
@@ -493,7 +507,9 @@ class _NotificationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    notification.reporterName.isNotEmpty ? notification.reporterName : 'User',
+                    notification.type == NotificationType.adminAlert 
+                        ? "Admin's Alert Notification" 
+                        : (notification.reporterName.isNotEmpty ? notification.reporterName : 'User'),
                     style: TextStyle(
                       color: isRead ? Colors.white70 : Colors.white,
                       fontSize: 15,

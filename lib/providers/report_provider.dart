@@ -6,7 +6,7 @@ import 'dart:async';
 class ReportModel {
   final int id;
   final String userId;
-  final String userName;
+  String userName;
   final String disasterType;
   final String title;
   final String description;
@@ -56,15 +56,32 @@ class ReportModel {
     this.province,
   });
 
+
+  static String _normalizeDate(String dateStr) {
+    if (dateStr.isEmpty) return dateStr;
+    if (!dateStr.endsWith('Z') && !dateStr.contains('+')) {
+      return '${dateStr}Z';
+    }
+    return dateStr;
+  }
+
+  static String _parseUserName(dynamic submissions) {
+    if (submissions == null || submissions.isEmpty) return 'Unknown User';
+    final name = submissions[0]['user_name']?.toString() ?? 'Unknown User';
+    
+    final uuidRegex = RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', caseSensitive: false);
+    if (uuidRegex.hasMatch(name)) {
+      return 'Unknown User';
+    }
+    return name.isEmpty ? 'Unknown User' : name;
+  }
+
   factory ReportModel.fromJson(Map<String, dynamic> json) {
     final verified = json['verified'] ?? false;
     return ReportModel(
       id: json['id'] ?? 0,
       userId: json['user_id']?.toString() ?? '',
-      userName:
-          (json['submissions'] != null && json['submissions'].isNotEmpty)
-              ? json['submissions'][0]['user_name'] ?? 'Unknown'
-              : 'Unknown',
+      userName: _parseUserName(json['submissions']),
       disasterType: json['disaster_type'] ?? 'Unknown',
       title: json['title'] ?? 'No Title',
       description: json['description'] ?? '',
@@ -76,7 +93,7 @@ class ReportModel {
       likes: json['likes'] ?? 0,
       dislikes: json['dislikes'] ?? 0,
       userReaction: json['user_reaction'],
-      createdAt: json['created_at'] ?? '',
+      createdAt: _normalizeDate(json['created_at'] ?? ''),
       submissions: json['submissions'] ?? [],
       mediaUrls: List<String>.from(json['media_urls'] ?? []),
       rescueTeam: json['rescue_team']?.toString() ?? 'Not Assigned',
@@ -98,8 +115,34 @@ class ReportProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _duplicateReports = [];
   bool _isLoading = false;
   bool _showClosedOnMap = false;
+  final Map<String, String> _userNamesMap = {};
 
   bool get showClosedOnMap => _showClosedOnMap;
+
+  Future<void> resolveUserNames() async {
+    try {
+      final response = await _apiService.get('/admin/users');
+      if (response is List) {
+        for (var u in response) {
+          final id = u['id']?.toString() ?? '';
+          final name = u['full_name']?.toString() ?? u['email']?.toString() ?? 'Unknown User';
+          if (id.isNotEmpty) {
+            _userNamesMap[id] = name;
+          }
+        }
+      }
+      bool changed = false;
+      for (var r in _reports) {
+        if (r.userName == 'Unknown User' && _userNamesMap.containsKey(r.userId)) {
+          r.userName = _userNamesMap[r.userId]!;
+          changed = true;
+        }
+      }
+      if (changed) notifyListeners();
+    } catch (e) {
+      debugPrint("Could not resolve user names (likely non-admin): $e");
+    }
+  }
 
 
   int? _highlightedReportId;
@@ -194,6 +237,7 @@ class ReportProvider extends ChangeNotifier {
       final response = await _apiService.get('/reports/');
       if (response is List) {
         _reports = response.map((data) => ReportModel.fromJson(data)).toList();
+        resolveUserNames(); // Asynchronously resolve names after fetching reports
       }
     } catch (e) {
       debugPrint("Error fetching reports: $e");

@@ -235,17 +235,22 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
   ];
 
   // ── Validate & submit ──────────────────────────────────────────────────────
+  
+  bool _isValidText(String text) {
+    return RegExp(r'[a-zA-Z]').hasMatch(text);
+  }
+
   Future<void> _submit() async {
-    if (_titleCtrl.text.trim().isEmpty) {
-      _snack('Please enter a title for the report.');
+    if (_titleCtrl.text.trim().isEmpty || !_isValidText(_titleCtrl.text)) {
+      _snack('Please enter a valid title containing at least one letter.');
       return;
     }
     if (_severityLevel == 0) {
       _snack('Please select a severity level.');
       return;
     }
-    if (_descCtrl.text.trim().isEmpty) {
-      _snack('Please describe the situation.');
+    if (_descCtrl.text.trim().isEmpty || !_isValidText(_descCtrl.text)) {
+      _snack('Please enter a valid description containing at least one letter.');
       return;
     }
 
@@ -299,10 +304,11 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
         filesToUpload,
       );
 
+      
       String severityStr = "Low";
-      if (_severityLevel == 1) severityStr = "Medium";
-      if (_severityLevel == 2) severityStr = "High";
-      if (_severityLevel == 3) severityStr = "Critical";
+      if (_severityLevel > 0 && _severityLevel <= _severityLevels.length) {
+        severityStr = _severityLevels[_severityLevel - 1].label;
+      }
 
       // Step 2: Create Report
       final response = await api.post(
@@ -394,7 +400,11 @@ class _ReportDisasterScreenState extends State<ReportDisasterScreen>
     final userName = user?.fullName ?? user?.email ?? "Unknown User";
     final userId = user?.id ?? "UNKNOWN_ID";
     
-    final severityStr = _severityLevel == 1 ? "Medium" : (_severityLevel == 2 ? "High" : (_severityLevel == 3 ? "Critical" : "Low"));
+    
+    String severityStr = "Low";
+    if (_severityLevel > 0 && _severityLevel <= _severityLevels.length) {
+      severityStr = _severityLevels[_severityLevel - 1].label;
+    }
     final lat = _currentPosition?.latitude.toStringAsFixed(4) ?? "0.0";
     final lng = _currentPosition?.longitude.toStringAsFixed(4) ?? "0.0";
     

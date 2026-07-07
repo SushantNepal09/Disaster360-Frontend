@@ -192,6 +192,11 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
     );
   }
 
+  
+  bool _isValidText(String text) {
+    return RegExp(r'[a-zA-Z]').hasMatch(text);
+  }
+
   Future<void> _submitEmergencyReport() async {
     final user = SessionService().currentUser;
     if (user == null) {
@@ -207,8 +212,8 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
       return;
     }
 
-    if (_descriptionController.text.trim().isEmpty) {
-      _snack('Please provide details about the emergency.');
+    if (_descriptionController.text.trim().isEmpty || !_isValidText(_descriptionController.text)) {
+      _snack('Please provide a valid description with at least one letter.');
       return;
     }
 
@@ -231,10 +236,13 @@ class _EmergencyReportScreenState extends State<EmergencyReportScreen> {
         final lat = _currentPosition?.latitude.toStringAsFixed(4) ?? "0.0";
         final lng = _currentPosition?.longitude.toStringAsFixed(4) ?? "0.0";
         
-        final success = await SmsHelper.launchSmsFallback(
-          title: 'EMERGENCY: $_selectedDisaster',
-          description: _descriptionController.text.trim(),
-          severity: "Severe",
+        
+      
+      final success = await SmsHelper.launchSmsFallback(
+        title: 'EMERGENCY: $_selectedDisaster',
+        description: _descriptionController.text.trim(),
+        severity: _severityLevels[_severityLevel - 1].label,
+
           latitude: lat,
           longitude: lng,
           disasterType: _selectedDisaster,

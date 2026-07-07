@@ -131,69 +131,76 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
             final dateStr = _formatDate(event['created_at'] ?? '');
             final hasMedia = event['media_url'] != null && event['media_url'].toString().isNotEmpty;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Container(
-                        width: 2,
-                        height: 50,
-                        color: Colors.blue.withOpacity(0.3),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.only(bottom: 0),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Column(
                       children: [
-                        Text(
-                          event['title'] ?? 'Update',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          dateStr,
-                          style: const TextStyle(color: Colors.white54, fontSize: 12),
-                        ),
-                        if (event['description'] != null && event['description'].toString().isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            event['description'],
-                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
                           ),
-                        ],
-                        if (hasMedia) ...[
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              event['media_url'],
-                              height: 120,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                height: 120,
-                                color: Colors.grey[800],
-                                child: const Icon(Icons.broken_image, color: Colors.white54),
-                              ),
-                            ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            width: 2,
+                            color: Colors.blue.withOpacity(0.3),
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              event['title'] ?? 'Update',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              dateStr,
+                              style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            ),
+                            if (event['description'] != null && event['description'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                event['description'],
+                                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                              ),
+                            ],
+                            if (hasMedia) ...[
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  event['media_url'],
+                                  height: 120,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 120,
+                                    color: Colors.grey[800],
+                                    child: const Icon(Icons.broken_image, color: Colors.white54),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }).toList(),
@@ -377,12 +384,18 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
       ),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 20, bottom: 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Section 1: Header
+          RefreshIndicator(
+            onRefresh: () async {
+              await context.read<ReportProvider>().fetchReports();
+              await _fetchTimeline();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 20, bottom: 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Section 1: Header
                 _buildCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -793,6 +806,7 @@ class _CitizenReportDetailScreenState extends State<CitizenReportDetailScreen> {
               ],
             ),
           ),
+          ), // Close RefreshIndicator
           
           // Bottom Actions
           Positioned(

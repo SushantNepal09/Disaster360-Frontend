@@ -12,6 +12,7 @@ import 'package:disaster360/services/rescue_service.dart';
 import 'package:disaster360/citizen/citizen_home_screen.dart';
 import 'package:disaster360/rescue/rescue_tasks_screen.dart';
 import 'package:disaster360/providers/rescue_provider.dart';
+import 'package:disaster360/providers/report_provider.dart';
 import 'package:disaster360/widgets/rejection_dialog.dart';
 import 'package:disaster360/services/session_service.dart';
 import 'dart:io';
@@ -76,6 +77,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
   bool _isCurrentUserAdmin = false;
   List<ReportMedia>? _operationMedia;
   bool _isUploadingMedia = false;
+  bool _isCompleting = false;
   final Map<int, GlobalKey> _mediaKeys = {};
   int? _highlightedMediaId;
 
@@ -641,25 +643,7 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
                   }
                 )
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  Icons.navigation, 
-                  'Navigate', 
-                  AppColors.success,
-                  onTap: () async {
-                    final uri = Uri.parse('google.navigation:q=${widget.task.lat},${widget.task.lng}');
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri);
-                    } else {
-                      final fallbackUri = Uri.parse('geo:${widget.task.lat},${widget.task.lng}?q=${widget.task.lat},${widget.task.lng}');
-                      if (await canLaunchUrl(fallbackUri)) {
-                        await launchUrl(fallbackUri);
-                      }
-                    }
-                  }
-                )
-              ),
+
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionButton(
@@ -1291,29 +1275,90 @@ class _RescueDisasterDetailScreenState extends State<RescueDisasterDetailScreen>
   // ─── Bottom CTA ─────────────────────────────────────────────────────────────
 
   Widget _buildBottomCTA() {
+    bool canComplete = widget.task.assignmentStatus.toLowerCase() != 'accepted' && widget.task.assignmentStatus.toLowerCase() != 'pending';
+    bool isCompleted = widget.task.status == TaskStatus.completed;
+
+    if (isCompleted) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 24),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: canComplete ? AppColors.primary : AppColors.bgDark,
+          disabledBackgroundColor: AppColors.bgDark,
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        onPressed: () {
-          // Complete logic
-        },
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.black87),
-            SizedBox(width: 8),
-            Text(
-              'COMPLETE RESCUE OPERATION',
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+        onPressed: canComplete && !_isCompleting ? () async {
+          setState(() { _isCompleting = true; });
+          try {
+            await context
+                .read<RescueProvider>()
+                .updateOperationStatus(
+                  int.parse(widget.task.assignmentId),
+                  'Completed',
+                );
+            if (context.mounted) {
+              try {
+                final rProv = context.read<ReportProvider>();
+                rProv.fetchReports();
+                rProv.fetchActiveRescues();
+                rProv.fetchCompletedOperations();
+              } catch (_) {}
+              
+              try {
+                final resProv = context.read<RescueProvider>();
+                resProv.fetchAll();
+              } catch (_) {}
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Rescue operation marked as completed!'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+              Navigator.pop(context);
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to complete operation: $e'),
+                  backgroundColor: AppColors.danger,
+                ),
+              );
+            }
+          } finally {
+            if (mounted) {
+              setState(() { _isCompleting = false; });
+            }
+          }
+        } : null,
+        child: _isCompleting 
+          ? const SizedBox(
+              width: 24, 
+              height: 24, 
+              child: CircularProgressIndicator(color: Colors.black87, strokeWidth: 2)
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle_outline, color: canComplete ? Colors.black87 : Colors.white38),
+                const SizedBox(width: 8),
+                Text(
+                  'COMPLETE RESCUE OPERATION',
+                  style: TextStyle(
+                    color: canComplete ? Colors.black87 : Colors.white38, 
+                    fontWeight: FontWeight.w900, 
+                    fontSize: 16, 
+                    letterSpacing: 1
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
       ),
     );
   }
